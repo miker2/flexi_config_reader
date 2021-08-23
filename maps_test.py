@@ -64,6 +64,10 @@ class Actions(object):
         return l
 
     @debugmethod
+    def mak_hex(self, input, start, end, elements):
+        return int(input[start:end], base=0)
+
+    @debugmethod
     def make_number(self, input, start, end, elements):
         # Try creating an 'int' from the string first. If the string contains a float, then
         # creating an 'int' will fail. Fall back to a float.
@@ -74,7 +78,7 @@ class Actions(object):
 
 print("---------------------- Test 1 -------------------------------------------------------------")
 logger.setLevel(logging.DEBUG)
-result = maps.parse('{"ints":[1, 2,  -3 ]}', actions=Actions())
+result = maps.parse('{"ints":[1, 2,  -3 ], "more_ints": [0001, 0002, -05]}', actions=Actions())
 print(result)
 
 print("---------------------- Test 2 -------------------------------------------------------------")
@@ -90,7 +94,7 @@ print(result2)
 
 
 print("---------------------- Test 4 -------------------------------------------------------------")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 json_example = '''{
 	"id": "0001",
 	"type": "donut",
