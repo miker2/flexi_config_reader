@@ -2,7 +2,9 @@ import maps
 
 
 import functools
+import json
 import logging
+import pprint
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -39,15 +41,15 @@ class Actions(object):
     @debugmethod
     def make_map(self, input, start, end, elements):
         #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
-        d = elements[2]
-        for el in elements[3]:
+        d = elements[1]
+        for el in elements[2]:
             d = {**d, **el.PAIR}
         return d
 
     @debugmethod
     def make_pair(self, input, start, end, elements):
         #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
-        return {elements[0]: elements[3]}
+        return {elements[0]: elements[2]}
 
     @debugmethod
     def make_string(self, input, start, end, elements):
@@ -86,7 +88,7 @@ print(result2)
 
 
 print("---------------------- Test 4 -------------------------------------------------------------")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 json_example = '''{
 	"id": "0001",
 	"type": "donut",
@@ -125,5 +127,10 @@ json_example = '''{
 		]
 }'''
 
-#result2 = maps.parse(json_example, actions=Actions())
-#print(result2)
+result2 = maps.parse(json_example, actions=Actions())
+pprint.pprint(result2)
+
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+pprint.pprint(json.loads(json_example))
+
+assert(result2 == json.loads(json_example))

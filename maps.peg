@@ -1,12 +1,15 @@
 grammar Maps
-  map     <-  "{" _ PAIR (COMMA PAIR)* "}" %make_map
-  PAIR    <-  string ":" _ value %make_pair
-  value   <-  list / number / string
+  map     <-  CBo PAIR (COMMA PAIR)* CBc %make_map
+  PAIR    <-  string KVs value %make_pair
+  value   <-  list / number / string / map
   string  <-  '"' [^"]* '"' _ %make_string
-  list    <-  SBO value ("," _ value)* SBC %make_list
+  list    <-  SBo value ("," _ value)* SBc %make_list
   number  <-  [0-9]+ ("." [0-9]*)? _ %make_number
-  SBO     <-  "[" _
-  SBC     <-  "]" _
+  KVs     <-  ":" _
+  CBo     <-  "{" _
+  CBc     <-  "}" _
+  SBo     <-  "[" _
+  SBc     <-  "]" _
   COMMA   <-  "," _
   _       <-  [ \t\r\n]*
 
