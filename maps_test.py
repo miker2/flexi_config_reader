@@ -39,8 +39,8 @@ class Actions(object):
     @debugmethod
     def make_map(self, input, start, end, elements):
         #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
-        d = elements[1]
-        for el in elements[2]:
+        d = elements[2]
+        for el in elements[3]:
             d = {**d, **el.PAIR}
         return d
 
@@ -80,7 +80,7 @@ print(result)
 
 print("---------------------- Test 3 -------------------------------------------------------------")
 logger.setLevel(logging.INFO)
-json_simple = '{"id":"0001","type":0.55,"thing":[1,2.2,5]}'
+json_simple = '{"id":"0001","type":0.55,"thing"  :[1, 2.2 ,5  ]}'
 result2 = maps.parse(json_simple, actions=Actions())
 print(result2)
 

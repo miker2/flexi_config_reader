@@ -1,9 +1,12 @@
 grammar Maps
-  map     <-  "{" PAIR ("," PAIR)* "}" %make_map
-  PAIR    <-  string ":" WS value %make_pair
+  map     <-  "{" _ PAIR (COMMA PAIR)* "}" %make_map
+  PAIR    <-  string ":" _ value %make_pair
   value   <-  list / number / string
-  string  <-  '"' [^"]* '"' WS %make_string
-  list    <-  "[" value ("," WS value)* "]" %make_list
-  number  <-  [0-9]+ ("." [0-9]*)? WS %make_number
-  WS <-  [ \t\r\n]*
+  string  <-  '"' [^"]* '"' _ %make_string
+  list    <-  SBO value ("," _ value)* SBC %make_list
+  number  <-  [0-9]+ ("." [0-9]*)? _ %make_number
+  SBO     <-  "[" _
+  SBC     <-  "]" _
+  COMMA   <-  "," _
+  _       <-  [ \t\r\n]*
 
