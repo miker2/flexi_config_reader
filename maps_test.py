@@ -47,7 +47,7 @@ class Actions(object):
     @debugmethod
     def make_pair(self, input, start, end, elements):
         #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
-        return {elements[0]: elements[2]}
+        return {elements[0]: elements[3]}
 
     @debugmethod
     def make_string(self, input, start, end, elements):
@@ -75,7 +75,7 @@ print(result)
 
 print("---------------------- Test 2 -------------------------------------------------------------")
 logger.setLevel(logging.INFO)
-result = maps.parse('{   "ints"  :   "test"     }', actions=Actions())
+result = maps.parse('{"ints"  :   "test"     }', actions=Actions())
 print(result)
 
 print("---------------------- Test 3 -------------------------------------------------------------")
