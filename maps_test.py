@@ -40,15 +40,16 @@ def debugmethod(func):
 class Actions(object):
     @debugmethod
     def make_map(self, input, start, end, elements):
-        #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
+        # Skip opening curly brace
         d = elements[1]
+        # More than one pair is optional. Walk through any remaining pairs and
+        # merge them into the dictionary.
         for el in elements[2]:
             d = {**d, **el.PAIR}
         return d
 
     @debugmethod
     def make_pair(self, input, start, end, elements):
-        #print(f"start: {start}, end: {end}, input: {elements[start:end]}")
         return {elements[0]: elements[2]}
 
     @debugmethod
@@ -64,7 +65,8 @@ class Actions(object):
 
     @debugmethod
     def make_number(self, input, start, end, elements):
-        #print(f"Start: {start}, end: {end} - input: {input[start:end]}")
+        # Try creating an 'int' from the string first. If the string contains a float, then
+        # creating an 'int' will fail. Fall back to a float.
         try:
             return int(input[start:end], 10)
         except ValueError:
@@ -72,7 +74,7 @@ class Actions(object):
 
 print("---------------------- Test 1 -------------------------------------------------------------")
 logger.setLevel(logging.DEBUG)
-result = maps.parse('{"ints":[1, 2,   3 ]}', actions=Actions())
+result = maps.parse('{"ints":[1, 2,  -3 ]}', actions=Actions())
 print(result)
 
 print("---------------------- Test 2 -------------------------------------------------------------")
@@ -82,7 +84,7 @@ print(result)
 
 print("---------------------- Test 3 -------------------------------------------------------------")
 logger.setLevel(logging.INFO)
-json_simple = '{"id":"0001","type":0.55,"thing"  :[1, 2.2 ,5  ]}'
+json_simple = '{"id":"0001","type":0.55,"thing"  :[1, 2.2 ,5.  ], "sci_not_test": [1e3, 1.e-5, -4.3e+5] }'
 result2 = maps.parse(json_simple, actions=Actions())
 print(result2)
 
@@ -99,7 +101,7 @@ result = maps.parse(json_example, actions=Actions())
 print(result)
 
 print("---------------------- Test 5 -------------------------------------------------------------")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 json_example = '''{
 	"id": "0001",
 	"type": "donut",
