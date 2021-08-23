@@ -51,7 +51,7 @@ class Actions(object):
 
     @debugmethod
     def make_string(self, input, start, end, elements):
-        return elements[2].text
+        return elements[1].text
 
     @debugmethod
     def make_list(self, input, start, end, elements):
