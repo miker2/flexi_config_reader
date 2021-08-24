@@ -6,8 +6,8 @@ grammar my_config
   STRUCTS <-  "struct " _
   STRUCTE <-  "end " _
   STRUCTC <-  (struct / PAIR)+
-  PAIR    <-  KEY KVs value %make_pair
-  KEY     <-  [a-z] [a-zA-Z0-9_]* _  %found_key
+  PAIR    <-  KEY KVs value (COMMENT)? %make_pair
+  KEY     <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
   value   <-  list / number / string / map
   string  <-  '"' [^"]* '"' _ %make_string
   list    <-  SBo value ("," _ value)* SBc %make_list
@@ -19,6 +19,6 @@ grammar my_config
   SBo     <-  "[" _
   SBc     <-  "]" _
   COMMA   <-  "," _
-  COMMENT <-  "#" .*
+  COMMENT <-  "#" [^\n\r]* _
   _       <-  [ \t\r\n]*
 

@@ -92,10 +92,11 @@ class Actions(object):
                 d = {**d, **el}
         return { elements[1] : d }
 
+print("----------------- Test 1 ------------------------------------------------------------------")
 my_config_example = '''
 struct test1
     key1 = "value"
-    key2 = 1.342
+    key2 = 1.342    # test comment here
     key3 = 10
     f = "none"
 end test1
@@ -106,7 +107,60 @@ struct test2
 end test2
 '''
 
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 result = my_config.parse(my_config_example, actions=Actions())
 pprint.pprint(result)
         
+print("----------------- Test 2 ------------------------------------------------------------------")
+my_config_example = '''
+struct test1
+    key1 = "value"
+    key2 = 1.342    # test comment here
+    key3 = 10
+    f = "none"
+end test1
+
+struct test2
+    my_key = "foo"
+    n_key = 1
+
+    struct inner
+      key = 1
+      pair = "two"
+      val = 1.232e10
+    end inner
+end test2
+'''
+
+logger.setLevel(logging.INFO)
+result = my_config.parse(my_config_example, actions=Actions())
+pprint.pprint(result)
+
+print("----------------- Test 3 ------------------------------------------------------------------")
+my_config_example = '''
+struct test1
+    key1 = "value"
+    key2 = 1.342    # test comment here
+    key3 = 10
+    f = "none"
+end test1
+
+struct outer
+    my_key = "foo"
+    n_key = 1
+
+    struct inner   # Another comment "here"
+      key = 1
+      #pair = "two"
+      val = 1.232e10
+
+      struct test1
+        key = -5
+      end test1
+    end inner
+end outer
+'''
+
+logger.setLevel(logging.DEBUG)
+result = my_config.parse(my_config_example, actions=Actions())
+pprint.pprint(result)
