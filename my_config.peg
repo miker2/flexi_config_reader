@@ -1,17 +1,21 @@
 # Consider adding a parser for HEX. Need to figure out how to make 'number' not gobble up the '0' in '0x'
 
 grammar my_config
-  map     <-  _ struct (struct)* _ %make_map
-  struct  <-  STRUCTS KEY STRUCTC STRUCTE _ KEY _ %make_struct
-  STRUCTS <-  "struct " _
-  STRUCTE <-  "end " _
+  map     <-  _ (struct / proto) (struct / proto)* _ %make_map
+  struct  <-  STRUCTs KEY STRUCTC END KEY _ %make_struct
+  proto   <-  PROTOs KEY STRUCTC END KEY _ %make_proto
+  STRUCTs <-  "struct " _
+  PROTOs  <-  "proto " _
+  REFs    <-  "reference " _
+  END     <-  "end " _
   STRUCTC <-  (struct / PAIR)+
   PAIR    <-  KEY KVs value (COMMENT)? %make_pair
   KEY     <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
-  value   <-  list / number / string / map
+  value   <-  list / number / string / VAR
   string  <-  '"' [^"]* '"' _ %make_string
   list    <-  SBo value ("," _ value)* SBc %make_list
   number  <-  [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
+  VAR     <-  "$" [A-Z0-9_]+ _ %make_var
   #HEX     <-  "0" [xX] [0-9a-fA-F]+
   KVs     <-  "=" _
   CBo     <-  "{" _

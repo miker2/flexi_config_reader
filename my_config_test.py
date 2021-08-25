@@ -34,16 +34,35 @@ def debugmethod(func):
 
     return wrapper
 
+class ProtoVar(object):
+    def __init__(self, name):
+        self.name = name
+        self.value = None
 
+    def __repr__(self):
+        return f"${self.name}={self.value}"
+
+class Proto(object):
+    def __init__(self, name, proto):
+        self.name = name
+        self.proto = proto
+
+    def __repr__(self):
+        return f"!PROTO! {self.name} : {self.proto}"
+
+# TODO: Add merging of nested structs. Currently, duplicate structs get overwritten, which is not
+#       what we want.
+# NOTE: We also don't want to allow duplicate values, so we need to handle those gracefully as well.
 class Actions(object):
     @debugmethod
     def make_map(self, input, start, end, elements):
-        # Skip opening curly brace
-        d = elements[1]
+        # Skip opening whitespace
+        d = [elements[1]]
         # More than one pair is optional. Walk through any remaining pairs and
         # merge them into the dictionary.
         for el in elements[2]:
-            d = {**d, **el}
+            d.append(el)
+            #d = {**d, **el}
         return d
 
     @debugmethod
@@ -81,8 +100,8 @@ class Actions(object):
             return float(input[start:end])
 
     @debugmethod
-    def struct_top(self, input, start, end, elements):
-        return elements[2].text + elements[3].text
+    def make_var(self, input, start, end, elements):
+        return ProtoVar(elements[1].text)
 
     @debugmethod
     def make_struct(self, input, start, end, elements):
@@ -91,6 +110,14 @@ class Actions(object):
             if el is not None:
                 d = {**d, **el}
         return { elements[1] : d }
+
+    @debugmethod
+    def make_proto(self, input, start, end, elements):
+        d = {}
+        for el in elements[2]:
+            if el is not None:
+                d = {**d, **el}
+        return Proto(elements[1], d)
 
 print("----------------- Test 1 ------------------------------------------------------------------")
 my_config_example = '''
@@ -159,6 +186,50 @@ struct outer
       end test1
     end inner
 end outer
+
+struct test1
+    different = 1
+    other = 2
+end test1
+'''
+
+logger.setLevel(logging.DEBUG)
+result = my_config.parse(my_config_example, actions=Actions())
+pprint.pprint(result)
+
+print("----------------- Test 4 ------------------------------------------------------------------")
+my_config_example = '''
+struct test1
+    key1 = "value"
+    key2 = 1.342    # test comment here
+    key3 = 10
+    f = "none"
+end test1
+
+proto joint_proto
+  key1 = $VAR1
+  key2 = $VAR2
+end joint_proto
+
+struct outer
+    my_key = "foo"
+    n_key = 1
+
+    struct inner   # Another comment "here"
+      key = 1
+      #pair = "two"
+      val = 1.232e10
+
+      struct test1
+        key = -5
+      end test1
+    end inner
+end outer
+
+struct test1
+    different = 1
+    other = 2
+end test1
 '''
 
 logger.setLevel(logging.DEBUG)
