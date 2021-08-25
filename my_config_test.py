@@ -35,9 +35,9 @@ def debugmethod(func):
     return wrapper
 
 class ProtoVar(object):
-    def __init__(self, name):
+    def __init__(self, name, value=None):
         self.name = name
-        self.value = None
+        self.value = value
 
     def __repr__(self):
         return f"${self.name}={self.value}"
@@ -50,17 +50,35 @@ class Proto(object):
     def __repr__(self):
         return f"!PROTO! {self.name} : {self.proto}"
 
+class ReferenceVar(object):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return f"${self.name}={self.value}"
+
+class Reference(object):
+    def __init__(self, name, proto, content):
+        self.name = name
+        self.proto = proto
+        self.content = content
+
+    def __repr__(self):
+        return f"!REFERENCE! {self.proto} as {self.name} : {self.content}"
+
 # TODO: Add merging of nested structs. Currently, duplicate structs get overwritten, which is not
 #       what we want.
 # NOTE: We also don't want to allow duplicate values, so we need to handle those gracefully as well.
 class Actions(object):
     @debugmethod
     def make_map(self, input, start, end, elements):
+        print(elements[1])
         # Skip opening whitespace
-        d = [elements[1]]
+        d = []
         # More than one pair is optional. Walk through any remaining pairs and
         # merge them into the dictionary.
-        for el in elements[2]:
+        for el in elements[1]:
             d.append(el)
             #d = {**d, **el}
         return d
@@ -74,7 +92,7 @@ class Actions(object):
         key = elements[0].text
         key += elements[1].text
         return key
-    
+
     @debugmethod
     def make_string(self, input, start, end, elements):
         return elements[1].text
@@ -104,6 +122,14 @@ class Actions(object):
         return ProtoVar(elements[1].text)
 
     @debugmethod
+    def ref_sub_var(self, input, start, end, elements):
+        return ReferenceVar(elements[0].name, elements[2])
+
+    @debugmethod
+    def ref_add_var(self, input, start, end, elements):
+        return {elements[1] : elements[3]}
+
+    @debugmethod
     def make_struct(self, input, start, end, elements):
         d = {}
         for el in elements[2]:
@@ -118,6 +144,23 @@ class Actions(object):
             if el is not None:
                 d = {**d, **el}
         return Proto(elements[1], d)
+
+    @debugmethod
+    def make_reference(self, input, start, end, elements):
+        print(f"proto: {elements[1]}")
+        print(f"struct: {elements[4]}")
+        l = []
+        d = {}
+        for el in elements[5]:
+            if el is None:
+                continue
+            if isinstance(el, dict):
+                d = {**d, **el}
+            else:
+                l.append(el)
+        l.append(d)
+        print(f"contents: {l}")
+        return Reference(elements[4], elements[1], l)
 
 print("----------------- Test 1 ------------------------------------------------------------------")
 my_config_example = '''
@@ -137,7 +180,7 @@ end test2
 logger.setLevel(logging.INFO)
 result = my_config.parse(my_config_example, actions=Actions())
 pprint.pprint(result)
-        
+
 print("----------------- Test 2 ------------------------------------------------------------------")
 my_config_example = '''
 struct test1
@@ -226,10 +269,19 @@ struct outer
     end inner
 end outer
 
+reference joint_proto as hx
+  $VAR1 = "0xdeadbeef"
+  $VAR2 = "3"
+  +new_var = 5
+  +add_another = -3.14159
+end hx
+
 struct test1
     different = 1
     other = 2
 end test1
+
+
 '''
 
 logger.setLevel(logging.DEBUG)

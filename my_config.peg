@@ -1,28 +1,35 @@
 # Consider adding a parser for HEX. Need to figure out how to make 'number' not gobble up the '0' in '0x'
 
+# TODO: need to think about the reference syntax. While it is "key/value" pairs, the "key" syntax is different
+#       which we probably want to capure
+
 grammar my_config
-  map     <-  _ (struct / proto) (struct / proto)* _ %make_map
-  struct  <-  STRUCTs KEY STRUCTC END KEY _ %make_struct
-  proto   <-  PROTOs KEY STRUCTC END KEY _ %make_proto
-  STRUCTs <-  "struct " _
-  PROTOs  <-  "proto " _
-  REFs    <-  "reference " _
-  END     <-  "end " _
-  STRUCTC <-  (struct / PAIR)+
-  PAIR    <-  KEY KVs value (COMMENT)? %make_pair
-  KEY     <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
-  value   <-  list / number / string / VAR
-  string  <-  '"' [^"]* '"' _ %make_string
-  list    <-  SBo value ("," _ value)* SBc %make_list
-  number  <-  [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
-  VAR     <-  "$" [A-Z0-9_]+ _ %make_var
-  #HEX     <-  "0" [xX] [0-9a-fA-F]+
-  KVs     <-  "=" _
-  CBo     <-  "{" _
-  CBc     <-  "}" _
-  SBo     <-  "[" _
-  SBc     <-  "]" _
-  COMMA   <-  "," _
-  COMMENT <-  "#" [^\n\r]* _
-  _       <-  [ \t\r\n]*
+  map       <-  _ (struct / proto / reference)+ _ %make_map
+  struct    <-  STRUCTs KEY STRUCTc END KEY _ %make_struct
+  proto     <-  PROTOs KEY STRUCTc END KEY _ %make_proto
+  reference <-  REFs KEY "as" _ KEY REFc END KEY _ %make_reference
+  STRUCTs   <-  "struct " _
+  PROTOs    <-  "proto " _
+  REFs      <-  "reference " _
+  END       <-  "end " _
+  STRUCTc   <-  (struct / PAIR)+
+  REFc      <-  (VARSUB / VARADD)+
+  PAIR      <-  KEY KVs (value / VAR) (COMMENT)? %make_pair
+  VARSUB    <-  VAR KVs value (COMMENT)? %ref_sub_var
+  VARADD    <-  "+" KEY KVs value (COMMENT)? %ref_add_var
+  KEY       <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
+  value     <-  list / number / string
+  string    <-  '"' [^"]* '"' _ %make_string
+  list      <-  SBo value ("," _ value)* SBc %make_list
+  number    <-  [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
+  VAR       <-  "$" [A-Z0-9_]+ _ %make_var
+  #HEX      <-  "0" [xX] [0-9a-fA-F]+
+  KVs       <-  "=" _
+  CBo       <-  "{" _
+  CBc       <-  "}" _
+  SBo       <-  "[" _
+  SBc       <-  "]" _
+  COMMA     <-  "," _
+  COMMENT   <-  "#" [^\n\r]* _
+  _         <-  [ \t\r\n]*
 
