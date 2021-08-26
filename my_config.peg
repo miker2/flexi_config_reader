@@ -1,22 +1,27 @@
 # Consider adding a parser for HEX. Need to figure out how to make 'number' not gobble up the '0' in '0x'
 
 # TODO: need to think about the reference syntax. While it is "key/value" pairs, the "key" syntax is different
-#       which we probably want to capure
+#       which we probably want to capture
+
+# TODO: Support the following syntax:
+#         key = $(path.to.other.key)
+#       Where $(path.to.other.key) references the value in another struct
 
 grammar my_config
   map       <-  _ (struct / proto / reference)+ _ %make_map
   struct    <-  STRUCTs KEY STRUCTc END KEY _ %make_struct
   proto     <-  PROTOs KEY STRUCTc END KEY _ %make_proto
-  reference <-  REFs KEY "as" _ KEY REFc END KEY _ %make_reference
+  reference <-  REFs rKEY "as" _ KEY REFc END KEY _ %make_reference
   STRUCTs   <-  "struct " _
   PROTOs    <-  "proto " _
   REFs      <-  "reference " _
   END       <-  "end " _
-  STRUCTc   <-  (struct / PAIR)+
+  STRUCTc   <-  (struct / PAIR / reference / proto)+
   REFc      <-  (VARSUB / VARADD)+
   PAIR      <-  KEY KVs (value / VAR) (COMMENT)? %make_pair
   VARSUB    <-  VAR KVs value (COMMENT)? %ref_sub_var
   VARADD    <-  "+" KEY KVs value (COMMENT)? %ref_add_var
+  rKEY      <-  [a-z] [a-zA-Z0-9_\.]* _ %found_key  # Special case key for a reference (allow '.')
   KEY       <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
   value     <-  list / number / string
   string    <-  '"' [^"]* '"' _ %make_string

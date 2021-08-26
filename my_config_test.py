@@ -1,5 +1,6 @@
 import my_config
 
+import copy
 import functools
 import logging
 import pprint
@@ -33,6 +34,7 @@ def debugmethod(func):
         return return_value
 
     return wrapper
+
 
 class ProtoVar(object):
     def __init__(self, name, value=None):
@@ -131,22 +133,28 @@ class Actions(object):
 
     @debugmethod
     def make_struct(self, input, start, end, elements):
+        assert( elements[1] == elements[4] )
         d = {}
         for el in elements[2]:
-            if el is not None:
+            if isinstance(el, Reference) or isinstance(el, Proto):
+                d[el.name] = el
+            elif el is not None:
                 d = {**d, **el}
         return { elements[1] : d }
 
     @debugmethod
     def make_proto(self, input, start, end, elements):
+        assert( elements[1] == elements[4] )
         d = {}
         for el in elements[2]:
             if el is not None:
                 d = {**d, **el}
-        return Proto(elements[1], d)
+        #return Proto(elements[1], d)
+        return { elements[1] : Proto(elements[1], d) }
 
     @debugmethod
     def make_reference(self, input, start, end, elements):
+        assert( elements[4] == elements[7] )
         print(f"proto: {elements[1]}")
         print(f"struct: {elements[4]}")
         l = []
@@ -161,6 +169,143 @@ class Actions(object):
         l.append(d)
         print(f"contents: {l}")
         return Reference(elements[4], elements[1], l)
+
+
+######### HELPERS ########################################################################
+def mergeNestedDict(dict1, dict2, allow_overwrite=False):
+    ''' Merge dictionaries recursively and keep all nested keys combined between
+        the two dictionaries. Any key/value pairs that already exist in the
+        leaves of dict1 will be overwritten by the same key/value pairs from
+        dict2.'''
+
+    def checkForErrors(key):
+        ''' Three cases to check for:
+              - Both are dictionaries     - This is okay
+              - Neither are dictionaries  - This is bad - even if the same value, we don't allow duplicates
+              - Only ones is a dictionary - Also bad. We can't handle this one
+        '''
+        dict_count = isinstance(dict1[key], dict) + isinstance(dict2[key], dict)
+        if dict_count == 0:    # Neither is a dictionary. We don't support duplicate keys
+            print(f"Found duplicate key: '{key}' with values '{dict1[key]}' and '{dict2[key]}'!!!")
+        elif dict_count == 1:  # One dictionary, but not the other, can't merge these
+            print(f"Mismatched types for key '{key}'! One is a dict, the other is a value")
+
+        return dict_count != 2  # All good if both are dictionaries (for now)
+
+    common_keys = set(dict1.keys()).intersection(dict2.keys())
+    #print(f"Common keys: {common_keys}")
+    for k in common_keys:
+        assert(allow_overwrite or not checkForErrors(k))
+
+    # This over-writes the top level keys in dict1 with dict2. If there are
+    # nested dictionaries, we need to handle these appropriately.
+    out_dict = {**dict1, **dict2}
+    for key, value in out_dict.items():
+        if key in dict1 and key in dict2:
+            # Find any values in the top-level keys that are also dictionaries.
+            # Call this function recursively.
+            if type(dict1[key]) == dict and type(dict2[key]) == dict:
+                out_dict[key] = mergeNestedDict(dict1[key], dict2[key], allow_overwrite)
+
+    return out_dict
+
+def makeName(n1, n2):
+    if not n1 or len(n1) == 0:
+        return n2
+    elif not n2 or len(n2) == 0:
+        return n1
+
+    return f"{n1}.{n2}"
+
+def flatten(d, name=None, l={}):
+    for k, v in d.items():
+        new_name = makeName(name, k)
+        if isinstance(v, dict):
+            flatten(v, new_name, l)
+        else:
+            l[new_name] = v
+            print(new_name)
+    return l
+
+def replaceProtoVar(d, ref_var):
+    for k, v in d.items():
+        if isinstance(v, ProtoVar):
+            d[k] = ref_var[v.name]
+        elif isinstance(v, dict):
+            replaceProtoVar(v, ref_var)
+
+def resolveReferences(d, protos, name=None):
+    for k, v in d.items():
+        new_name = makeName(name, k)
+        if isinstance(v, Reference):
+            p = protos[v.proto]
+            print(f"p: {p}")
+            r = copy.deepcopy(p.proto)
+            print(f"r: {v}")
+            ref_vars = {}
+            for el in v.content:
+                if isinstance(el, ReferenceVar):
+                    # fill this in
+                    print(f"Sub var: {el}")
+                    ref_vars[el.name] = el.value
+                elif isinstance(el, dict):
+                    # append to proto
+                    print(f"new keys: {el}")
+                    r = mergeNestedDict(r, el)
+
+            print(f"Ref vars: {ref_vars}")
+            replaceProtoVar(r, ref_vars)
+            d[k] = r
+
+        elif isinstance(v, dict):
+            resolveReferences(v, protos, new_name)
+
+
+# Resolve the output into a fully qualified struct
+def resolveOutput(in_data):
+    # First, we need to flatten all of the data in the list
+    flat_data = {}
+    for el in in_data:
+        if isinstance(el, dict):
+            flat_data = {**flat_data, **flatten(el)}
+        else:
+            flat_data[el.name] = el
+
+    pprint.pprint(flat_data)
+    print("---------------------")
+
+    # This is going to be inefficient, but we need to walk the list and create a list of all protos
+    protos = { k : v for k, v in flat_data.items() if isinstance(v, Proto) }
+
+    pprint.pprint(protos)
+    print("---------------------")
+
+    d = {}
+    for el in in_data:
+        d = mergeNestedDict(d, el)
+
+    pprint.pprint(d)
+    print("---------------------")
+
+    # Remove the protos from merged dictionary
+    for p in protos.keys():
+        parts = p.split('.')
+        tmp = d
+        for i in range(len(parts)-1):
+            tmp = tmp[parts[i]]
+        del tmp[parts[-1]]
+
+    pprint.pprint(d)
+    print("---------------------")
+
+    resolveReferences(d, protos)
+    pprint.pprint(d)
+    print("---------------------")
+
+
+
+######### TESTS ########################################################################
+
 
 print("----------------- Test 1 ------------------------------------------------------------------")
 my_config_example = '''
@@ -249,10 +394,13 @@ struct test1
     f = "none"
 end test1
 
-proto joint_proto
-  key1 = $VAR1
-  key2 = $VAR2
-end joint_proto
+struct protos
+  proto joint_proto
+    key1 = $VAR1
+    key2 = $VAR2
+    not_a_var = 27
+  end joint_proto
+end protos
 
 struct outer
     my_key = "foo"
@@ -269,12 +417,16 @@ struct outer
     end inner
 end outer
 
-reference joint_proto as hx
-  $VAR1 = "0xdeadbeef"
-  $VAR2 = "3"
-  +new_var = 5
-  +add_another = -3.14159
-end hx
+struct ref_in_struct
+  key1 = -0.3492
+
+  reference protos.joint_proto as hx
+    $VAR1 = "0xdeadbeef"
+    $VAR2 = "3"
+    +new_var = 5
+    +add_another = -3.14159
+  end hx
+end ref_in_struct
 
 struct test1
     different = 1
@@ -287,3 +439,4 @@ end test1
 logger.setLevel(logging.DEBUG)
 result = my_config.parse(my_config_example, actions=Actions())
 pprint.pprint(result)
+resolveOutput(result)
