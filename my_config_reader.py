@@ -314,7 +314,7 @@ class ConfigReader:
 
 
     @debugmethod
-    def _resolve_references(self, d, name=None):
+    def _resolve_references(self, d, name=None, ref_vars={}):
         for k, v in d.items():
             new_name = makeName(name, k)
             if isinstance(v, Reference):
@@ -322,7 +322,6 @@ class ConfigReader:
                 print(f"p: {p}")
                 r = copy.deepcopy(p.proto)
                 print(f"r: {v}")
-                ref_vars = {}
                 for el in v.content:
                     if isinstance(el, ReferenceVar):
                         # fill this in
@@ -336,6 +335,8 @@ class ConfigReader:
                 print(f"Ref vars: {ref_vars}")
                 self._replace_proto_var(r, ref_vars)
                 d[k] = r
+                # Call recursively in case the current reference has another reference
+                self._resolve_references(r, makeName(new_name, k), ref_vars)
 
             elif isinstance(v, dict):
                 self._resolve_references(v, new_name)
