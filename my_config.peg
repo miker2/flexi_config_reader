@@ -5,15 +5,17 @@
 
 # TODO: Support `FLAT_KEY KVs value` type entries (user can specify fully qualified values)
 
+# TODO: Create example with more comments to ensure they're handle properly everywhere.
+
 grammar my_config
   map       <-  _ (struct / proto / reference)+ _ %make_map
   struct    <-  STRUCTs KEY TAIL STRUCTc END KEY _ %make_struct
   proto     <-  PROTOs KEY TAIL STRUCTc END KEY _ %make_proto
   reference <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END KEY _ %make_reference
-  STRUCTs   <-  "struct " _
-  PROTOs    <-  "proto " _
-  REFs      <-  "reference " _
-  END       <-  "end " _
+  STRUCTs   <-  "struct" [ \t]*
+  PROTOs    <-  "proto" [ \t]*
+  REFs      <-  "reference" [ \t]*
+  END       <-  "end " [ \t]*
   STRUCTc   <-  (struct / PAIR / reference / proto)+
   REFc      <-  (VARSUB / VARADD)+
   PAIR      <-  KEY KVs (value / VAR) TAIL %make_pair
@@ -22,11 +24,11 @@ grammar my_config
   FLAT_KEY  <-  KEY ("." KEY)?  %found_key  # Special case key for a reference (allow '.')
   KEY       <-  [a-z] [a-zA-Z0-9_]*  %found_key
   value     <-  list / HEX / number / string
-  string    <-  '"' [^"]* '"' _ %make_string
+  string    <-  '"' [^"]* '"' %make_string
   list      <-  SBo value ("," _ value)* SBc %make_list
-  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
-  VAR       <-  "$" [A-Z0-9_]+ _ %make_var
-  HEX       <-  "0" [xX] [0-9a-fA-F]+ _ %make_hex
+  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?  %make_number
+  VAR       <-  "$" [A-Z0-9_]+  %make_var
+  HEX       <-  "0" [xX] [0-9a-fA-F]+ %make_hex
   KVs       <-  _ "=" _
   CBo       <-  "{" _
   CBc       <-  "}" _
