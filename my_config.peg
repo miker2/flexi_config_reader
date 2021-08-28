@@ -23,12 +23,12 @@ grammar my_config
   VARADD    <-  "+" KEY KVs value (COMMENT)? %ref_add_var
   rKEY      <-  [a-z] [a-zA-Z0-9_\.]* _ %found_key  # Special case key for a reference (allow '.')
   KEY       <-  [a-z] [a-zA-Z0-9_]* _ (COMMENT)? %found_key
-  value     <-  list / number / string
+  value     <-  list / HEX / number / string
   string    <-  '"' [^"]* '"' _ %make_string
   list      <-  SBo value ("," _ value)* SBc %make_list
-  number    <-  [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
+  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? _ %make_number
   VAR       <-  "$" [A-Z0-9_]+ _ %make_var
-  #HEX      <-  "0" [xX] [0-9a-fA-F]+
+  HEX       <-  "0" [xX] [0-9a-fA-F]+ _ %make_hex
   KVs       <-  "=" _
   CBo       <-  "{" _
   CBc       <-  "}" _

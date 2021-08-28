@@ -146,7 +146,6 @@ my_config_example = '''
 struct protos
 
     proto joint_proto
-      key1 = $VAR1
       leg = $LEG
       dof = $DOF  # This should be $LEG.$DOF, but not supported yet
     end joint_proto
@@ -195,6 +194,5 @@ cfg = mcr.ConfigReader(my_config_example, verbose=True)
 pprint.pprint(cfg.cfg)
 
 print("-------- File test ----------")
-
-cfg = mcr.ConfigReader.parse_from_file("example.cfg")
+cfg = mcr.ConfigReader.parse_from_file("example.cfg", verbose=False)
 pprint.pprint(cfg.cfg)

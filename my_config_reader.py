@@ -110,7 +110,7 @@ class Actions(object):
         return l
 
     @debugmethod
-    def mak_hex(self, input, start, end, elements):
+    def make_hex(self, input, start, end, elements):
         return int(input[start:end], base=0)
 
     @debugmethod
@@ -243,9 +243,9 @@ class ConfigReader:
         self.cfg = self._resolve_output()
 
     @staticmethod
-    def parse_from_file(filename):
+    def parse_from_file(filename, verbose=False):
         with open(filename) as f:
-            cfg = ConfigReader(f.read())
+            cfg = ConfigReader(f.read(), verbose)
 
         return cfg
     
@@ -257,7 +257,7 @@ class ConfigReader:
         flat_data = {}
         for el in self._parse_result:
             if isinstance(el, dict):
-                flat_data = {**flat_data, **self._flatten(el, l={})}
+                flat_data = {**flat_data, **self._flatten(el)}
             else:
                 flat_data[el.name] = el
             print(f" *** For {el}: \n +++ flat_data: {flat_data}")
@@ -299,15 +299,17 @@ class ConfigReader:
 
 
     #@debugmethod
-    def _flatten(self, d, name=None, l={}):
+    def _flatten(self, d, name=None, flat=None):
+        if flat is None:
+            flat = {}
         for k, v in d.items():
             new_name = makeName(name, k)
             if isinstance(v, dict):
-                l = self._flatten(v, name=new_name, l=l)
+                flat = self._flatten(v, name=new_name, flat=flat)
             else:
-                l[new_name] = v
+                flat[new_name] = v
                 print(new_name)
-        return l
+        return flat
 
 
     @debugmethod
@@ -320,7 +322,9 @@ class ConfigReader:
 
 
     @debugmethod
-    def _resolve_references(self, d, name=None, ref_vars={}):
+    def _resolve_references(self, d, name=None, ref_vars=None):
+        if ref_vars is None:
+            ref_vars = {}
         for k, v in d.items():
             new_name = makeName(name, k)
             if isinstance(v, Reference):
@@ -345,4 +349,4 @@ class ConfigReader:
                 self._resolve_references(r, makeName(new_name, k), ref_vars)
 
             elif isinstance(v, dict):
-                self._resolve_references(v, new_name)
+                self._resolve_references(v, new_name, ref_vars)
