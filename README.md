@@ -24,3 +24,17 @@ The test script can then be invoked by:
 ```
 python maps_test.py
 ```
+
+# Flexible config reader
+
+The `my_config.peg` defines a flexible config reader format that supports defining a template or "proto" for a
+portion of a configuration, then referencing that proto in order to create an instance that fills in the
+specified variables.
+
+TODO: Enter more syntax info here.
+
+You can run the test as follows:
+
+```
+canopy my_config.peg --lang python && python my_config_test.py
+```
