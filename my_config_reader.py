@@ -94,9 +94,7 @@ class Actions(object):
 
     @debugmethod
     def found_key(self, input, start, end, elements):
-        key = elements[0].text
-        key += elements[1].text
-        return key
+        return input[start:end]
 
     @debugmethod
     def make_string(self, input, start, end, elements):
@@ -136,9 +134,9 @@ class Actions(object):
 
     @debugmethod
     def make_struct(self, input, start, end, elements):
-        assert( elements[1] == elements[4] )
+        assert( elements[1] == elements[5] )
         d = {}
-        for el in elements[2]:
+        for el in elements[3]:
             if isinstance(el, Reference) or isinstance(el, Proto):
                 d[el.name] = el
             elif el is not None:
@@ -147,9 +145,9 @@ class Actions(object):
 
     @debugmethod
     def make_proto(self, input, start, end, elements):
-        assert( elements[1] == elements[4] )
+        assert( elements[1] == elements[5] )
         d = {}
-        for el in elements[2]:
+        for el in elements[3]:
             if isinstance(el, Reference):
                 d[el.name] = el
             elif el is not None:
@@ -159,12 +157,12 @@ class Actions(object):
 
     @debugmethod
     def make_reference(self, input, start, end, elements):
-        assert( elements[4] == elements[7] )
+        assert( elements[5] == elements[9] )
         logger.debug(f"proto: {elements[1]}")
-        logger.debug(f"struct: {elements[4]}")
+        logger.debug(f"struct: {elements[5]}")
         l = []
         d = {}
-        for el in elements[5]:
+        for el in elements[7]:
             if el is None:
                 continue
             if isinstance(el, dict):
@@ -173,7 +171,7 @@ class Actions(object):
                 l.append(el)
         l.append(d)
         logger.debug(f"contents: {l}")
-        return Reference(elements[4], elements[1], l)
+        return Reference(elements[5], elements[1], l)
 
 
 ######### HELPERS ########################################################################

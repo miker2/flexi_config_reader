@@ -27,8 +27,8 @@ struct test2
 end test2
 '''
 
-#cfg = mcr.ConfigReader(my_config_example)
-#pprint.pprint(cfg.cfg)
+cfg = mcr.ConfigReader(my_config_example)
+pprint.pprint(cfg.cfg)
 
 print("----------------- Test 2 ------------------------------------------------------------------")
 my_config_example = '''
@@ -51,8 +51,8 @@ struct test2
 end test2
 '''
 
-#cfg = mcr.ConfigReader(my_config_example)
-#pprint.pprint(cfg.cfg)
+cfg = mcr.ConfigReader(my_config_example)
+pprint.pprint(cfg.cfg)
 
 print("----------------- Test 3 ------------------------------------------------------------------")
 my_config_example = '''
@@ -84,8 +84,8 @@ struct test1
 end test1
 '''
 
-#cfg = mcr.ConfigReader(my_config_example, verbose=True)
-#pprint.pprint(cfg.cfg)
+cfg = mcr.ConfigReader(my_config_example, verbose=False)
+pprint.pprint(cfg.cfg)
 
 print("----------------- Test 4 ------------------------------------------------------------------")
 my_config_example = '''
@@ -138,7 +138,7 @@ end test1
 
 '''
 
-cfg = mcr.ConfigReader(my_config_example, verbose=False)
+cfg = mcr.ConfigReader(my_config_example, verbose=True)
 pprint.pprint(cfg.cfg)
 
 print("----------------- Test 5 ------------------------------------------------------------------")
