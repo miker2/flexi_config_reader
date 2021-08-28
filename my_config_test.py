@@ -193,3 +193,8 @@ end outer
 
 cfg = mcr.ConfigReader(my_config_example, verbose=True)
 pprint.pprint(cfg.cfg)
+
+print("-------- File test ----------")
+
+cfg = mcr.ConfigReader.parse_from_file("example.cfg")
+pprint.pprint(cfg.cfg)

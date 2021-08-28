@@ -160,8 +160,8 @@ class Actions(object):
     @debugmethod
     def make_reference(self, input, start, end, elements):
         assert( elements[4] == elements[7] )
-        print(f"proto: {elements[1]}")
-        print(f"struct: {elements[4]}")
+        logger.debug(f"proto: {elements[1]}")
+        logger.debug(f"struct: {elements[4]}")
         l = []
         d = {}
         for el in elements[5]:
@@ -172,7 +172,7 @@ class Actions(object):
             else:
                 l.append(el)
         l.append(d)
-        print(f"contents: {l}")
+        logger.debug(f"contents: {l}")
         return Reference(elements[4], elements[1], l)
 
 
@@ -242,6 +242,12 @@ class ConfigReader:
         self._protos = {}
         self.cfg = self._resolve_output()
 
+    @staticmethod
+    def parse_from_file(filename):
+        with open(filename) as f:
+            cfg = ConfigReader(f.read())
+
+        return cfg
     
     def _resolve_output(self):
         ''' Resolves the output of the PEG parsed data into a fully qualified struct containing
