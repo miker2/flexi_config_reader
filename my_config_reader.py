@@ -1,5 +1,6 @@
 import my_config
 
+import collections
 import copy
 import functools
 import logging
@@ -39,7 +40,7 @@ def debugmethod(func):
     return wrapper
 
 
-class ProtoVar(object):
+class ProtoVar:
     def __init__(self, name, value=None):
         self.name = name
         self.value = value
@@ -47,7 +48,7 @@ class ProtoVar(object):
     def __repr__(self):
         return f"${self.name}={self.value}"
 
-class Proto(object):
+class Proto(collections.abc.Mapping):
     def __init__(self, name, proto):
         self.name = name
         self.proto = proto
@@ -55,7 +56,19 @@ class Proto(object):
     def __repr__(self):
         return f"!PROTO! {self.name} : {self.proto}"
 
-class ReferenceVar(object):
+    def __getitem__(self, key):
+        if key == self.name:
+            return self.proto
+        else:
+            raise KeyError(f"'{key}' is not a valid key")
+
+    def __len__(self):
+        return 1
+
+    def __iter__(self):
+        yield self.name
+
+class ReferenceVar:
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -63,7 +76,7 @@ class ReferenceVar(object):
     def __repr__(self):
         return f"${self.name}={self.value}"
 
-class Reference(object):
+class Reference(collections.abc.Mapping):
     def __init__(self, name, proto, content):
         self.name = name
         self.proto = proto
@@ -72,10 +85,20 @@ class Reference(object):
     def __repr__(self):
         return f"!REFERENCE! {self.proto} as {self.name} : {self.content}"
 
-# TODO: Add merging of nested structs. Currently, duplicate structs get overwritten, which is not
-#       what we want.
-# NOTE: We also don't want to allow duplicate values, so we need to handle those gracefully as well.
-class Actions(object):
+    def __getitem__(self, key):
+        if key == self.name:
+            return {'proto': self.proto, 'content': self.content}
+        else:
+            raise KeyError(f"'{key}' is not a valid key")
+
+    def __len__(self):
+        return 1
+
+    def __iter__(self):
+        yield self.name
+
+
+class Actions:
     @debugmethod
     def make_map(self, input, start, end, elements):
         print(elements[1])
@@ -223,7 +246,8 @@ def makeName(n1, n2):
 
 
 
-
+# TODO: Figure out how to delete empty structs/dicts efficiently (for example, when protos are
+# removed from the struct, they may leave an empty parent.
 
 class ConfigReader:
     def __init__(self, cfg_str, verbose=False):

@@ -12,30 +12,33 @@ grammar my_config
   struct    <-  STRUCTs KEY TAIL STRUCTc END KEY _ %make_struct
   proto     <-  PROTOs KEY TAIL STRUCTc END KEY _ %make_proto
   reference <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END KEY _ %make_reference
-  STRUCTs   <-  "struct" [ \t]*
-  PROTOs    <-  "proto" [ \t]*
-  REFs      <-  "reference" [ \t]*
-  END       <-  "end " [ \t]*
+  STRUCTs   <-  "struct" SP
+  PROTOs    <-  "proto" SP
+  REFs      <-  "reference" SP
+  END       <-  "end" SP
   STRUCTc   <-  (struct / PAIR / reference / proto)+
-  REFc      <-  (VARSUB / VARADD)+
+  REFc      <-  (VARREF / VARADD)+
   PAIR      <-  KEY KVs (value / VAR) TAIL %make_pair
-  VARSUB    <-  VAR KVs value TAIL %ref_sub_var
+  VARREF    <-  VAR KVs value TAIL %ref_sub_var
   VARADD    <-  "+" KEY KVs value TAIL %ref_add_var
-  FLAT_KEY  <-  KEY ("." KEY)?  %found_key  # Special case key for a reference (allow '.')
+  FLAT_KEY  <-  KEY ("." KEY)?  %found_key  # Flattened struct/reference syntax
   KEY       <-  [a-z] [a-zA-Z0-9_]*  %found_key
   value     <-  list / HEX / number / string
   string    <-  '"' [^"]* '"' %make_string
-  list      <-  SBo value ("," _ value)* SBc %make_list
+  list      <-  SBo value (COMMA value)* SBc %make_list
   number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?  %make_number
   VAR       <-  "$" [A-Z0-9_]+  %make_var
   HEX       <-  "0" [xX] [0-9a-fA-F]+ %make_hex
-  KVs       <-  _ "=" _
-  CBo       <-  "{" _
-  CBc       <-  "}" _
-  SBo       <-  "[" _
-  SBc       <-  "]" _
-  COMMA     <-  "," _
-  TAIL      <-  _ (COMMENT)?
+  KVs       <-  oSP "=" oSP
+  CBo       <-  "{" oSP
+  CBc       <-  oSP "}" _
+  SBo       <-  "[" oSP
+  SBc       <-  oSP "]"
+  COMMA     <-  oSP "," oSP
+  TAIL      <-  _ (COMMENT)*
   COMMENT   <-  "#" [^\n\r]* _
-  _         <-  [ \t\r\n]*
+  oSP       <-  [ \t]*      # optional space
+  SP        <-  [ \t]+      # mandatory space
+  NL        <-  [\r\n]+     # (required) new line
+  _         <-  [ \t\r\n]*  # All whitespace
 
