@@ -339,6 +339,15 @@ class ConfigReader:
         for k, v in d.items():
             if isinstance(v, ProtoVar):
                 d[k] = ref_var[v.name]
+            elif isinstance(v, str):
+                # Find instances of 'ref_var' in 'v' and replace.
+                for rk, rv in ref_var.items():
+                    print(f"v: {v}, rk: ${rk}, rv: {rv}")
+                    v = v.replace(f"${rk}", rv)
+                    print(f"v: {v}, rk: ${{{rk}}}, rv: {rv}")
+                    v = v.replace(f"${{{rk}}}", rv)
+                    print(f"v: {v}")
+                d[k] = v
             elif isinstance(v, dict):
                 self._replace_proto_var(v, ref_var)
 
