@@ -28,21 +28,18 @@ struct CBc : peg::seq<peg::one<'}'>, WS_> {};
 struct KVs : peg::seq<peg::one<':'>, WS_> {};
 
 struct HEX
-    : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>,
-               //        v   This below could be 'xdigit'        v
-               peg::plus<peg::ranges<'0', '9', 'a', 'f', 'A', 'F'>>> {};
+    : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>, peg::plus<peg::xdigit>> {};
 
 struct sign : peg::one<'+', '-'> {};
-struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>,
-                      peg::plus<peg::range<'0', '9'>>> {};
+struct exp
+    : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
 struct NUMBER
-    : peg::seq<peg::opt<sign>, peg::plus<peg::range<'0', '9'>>,
-               peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::range<'0', '9'>>>>,
+    : peg::seq<peg::opt<sign>, peg::plus<peg::digit>,
+               peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
                peg::opt<exp>, WS_> {};
 
 struct VALUE;
-struct LIST
-    : peg::seq<SBo, VALUE, peg::star<peg::seq<peg::one<','>, WS_, VALUE>>, SBc> {};
+struct LIST : peg::seq<SBo, VALUE, peg::star<peg::seq<COMMA, VALUE>>, SBc> {};
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>,
                          peg::one<'"'>, WS_> {};
 
@@ -50,7 +47,7 @@ struct MAP;
 struct VALUE : peg::sor<LIST, NUMBER, STRING, MAP> {};
 struct PAIR : peg::seq<STRING, KVs, VALUE> {};
 
-struct MAP : peg::seq<CBo, PAIR, peg::star<peg::seq<COMMA, PAIR>>, CBc, peg::eol> {};
+struct MAP : peg::seq<CBo, PAIR, peg::star<peg::seq<COMMA, PAIR>>, CBc> {};
 
 struct grammar : peg::must<MAP, peg::eolf> {};
 /*
