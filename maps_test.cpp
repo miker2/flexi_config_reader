@@ -12,6 +12,7 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/abnf.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
+#include <tao/pegtl/contrib/json.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
@@ -23,7 +24,7 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // The data should consist only of specific types and eliminate all other
 // unecessary data (e.g. whitespace, etc).
 
-namespace maps {
+namespace jaon_ish {
 
 /*
 map     <-  CBo PAIR (COMMA PAIR)* CBc
@@ -56,10 +57,19 @@ struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 struct sign : peg::one<'+', '-'> {};
 struct exp
     : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
+struct INTEGER
+    : peg::seq<peg::opt<sign>,
+               peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>,
+                                                peg::star<peg::digit>>>> {};
+struct FLOAT
+    : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
+struct NUMBER : peg::sor<FLOAT, INTEGER> {};
+/*
 struct NUMBER
     : peg::seq<peg::opt<sign>, peg::plus<peg::digit>,
                peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
                peg::opt<exp>> {};
+*/
 struct STRING
     : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
@@ -72,15 +82,16 @@ struct PAIR : peg::seq<STRING, KVs, VALUE> {};
 
 struct MAP : peg::seq<CBo, peg::list<PAIR, COMMA, peg::space>, CBc> {};
 
-struct grammar : peg::must<MAP, peg::eolf> {};
+struct grammar : peg::seq<MAP, peg::eolf> {};
 
 template <typename Rule>
 using selector = peg::parse_tree::selector<
     Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING>,
-  peg::parse_tree::fold_one::on<VALUE, MAP, PAIR, LIST>>;
+    peg::parse_tree::fold_one::on<VALUE, MAP, PAIR, LIST>>;
 
 template <typename Rule> struct action : peg::nothing<Rule> {};
-} // namespace maps
+
+} // namespace jaon_ish
 
 template <typename GTYPE>
 auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
@@ -95,19 +106,22 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
 
   bool ret{false};
   try {
-    if (const auto root = peg::parse_tree::parse<GTYPE, maps::selector>(in)) {
+    if (const auto root =
+            peg::parse_tree::parse<GTYPE, jaon_ish::selector>(in)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
       std::cout << "  Parse tree success.\n";
     } else {
       std::cout << "  Parse tree failure!\n";
+      in.restart();
+      peg::standard_trace<GTYPE>(in);
     }
     // Re-use of an input is highly discouraged, but given that we probably
     // won't call both `parse_tree::parse` and `parse` in the same run, we'll
     // re-use the input here for convenience.
     in.restart();
-    ret = peg::parse<GTYPE, maps::action>(in);
+    ret = peg::parse<GTYPE, jaon_ish::action>(in);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
@@ -127,29 +141,37 @@ auto main() -> int {
 
   const bool pdot = false;
 
-  if (peg::analyze<maps::grammar>() != 0) {
+  if (peg::analyze<jaon_ish::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
   }
 
   size_t test_num = 1;
   {
     std::string content = "{";
-    runTest<peg::must<maps::CBo, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<jaon_ish::CBo, peg::eolf>>(test_num++, content, pdot);
   }
   {
-    std::string content = "\"int\": 5.37e+6";
-    runTest<peg::must<maps::PAIR, peg::eolf>>(test_num++, content, pdot);
+    std::string content = "-1001";
+    runTest<peg::must<jaon_ish::INTEGER, peg::eolf>>(test_num++, content, pdot);
+  }
+  {
+    std::string content = "\"float\": 5.37e+6";
+    runTest<peg::must<jaon_ish::PAIR, peg::eolf>>(test_num++, content, pdot);
+  }
+  {
+    std::string content = "1234.";
+    runTest<peg::must<jaon_ish::NUMBER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "0x0ab0";
-    runTest<peg::must<maps::VALUE, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<jaon_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
   std::vector map_strs = {
-      "{\"ints\":[1, 2,  -3 ], \"more_ints\": [0001, 0002, -05]}",
+      "{\"ints\":[1, 2,  -3 ], \"more_ints\": [1, 2, -5]}",
       "{\"ints\"  :   \"test\"     }",
-      "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], "
-      "\"sci_not_test\": [1e3, 1.e-5, -4.3e+5] }",
+      "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], \n"
+      "\"sci_notation_test\": [1.e3, 1.E-5, -4.3e+5] }",
       "{\n\
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\
@@ -186,7 +208,11 @@ auto main() -> int {
 }"};
 
   for (const auto &content : map_strs) {
-    runTest<maps::grammar>(test_num++, content, pdot);
+    // Some of these aren't actually json, so we won't expect all of the json
+    // parsing to work. Some of the unsupported features are hexadecimal values
+    // and decimal values that end in a decimal without trailing numbers.
+    runTest<peg::json::text>(test_num, content, pdot);
+    runTest<jaon_ish::grammar>(test_num++, content, pdot);
   }
   return 0;
 }
