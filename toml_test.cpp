@@ -16,6 +16,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
+#include <tao/pegtl/contrib/utf32.hpp>
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -25,7 +26,7 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // unecessary data (e.g. whitespace, etc).
 
 namespace toml {
-
+#if 0
 struct COMMENT
     : peg::seq<peg::one<'#'>,
                peg::star<peg::seq<peg::not_at<peg::eol>, peg::any>>> {};
@@ -98,6 +99,14 @@ struct KEY_GROUP
     : peg::seq<peg::opt<HEADER_LINE>, peg::plus<VALUE_LINE>, IGNORE> {};
 
 struct grammar : peg::must<peg::star<KEY_GROUP>> {};
+
+#else
+
+#include "toml_grammar.h"
+
+struct grammar : peg::must<toml> {};
+
+#endif
 
 template <typename Rule> struct selector : std::true_type {};
 
