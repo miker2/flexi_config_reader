@@ -14,8 +14,8 @@ FetchContent_MakeAvailable(taocpp_pegtl)
 
 
 
-add_executable(maps_test maps_test.cpp)
-target_link_libraries(maps_test PRIVATE taocpp::pegtl)
+add_executable(jsonish_test jsonish_test.cpp)
+target_link_libraries(jsonish_test PRIVATE taocpp::pegtl)
 
 
 add_executable(toml_test toml_test.cpp)
