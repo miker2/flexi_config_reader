@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <string>
 #include <typeinfo>
 #include <variant>
@@ -69,58 +70,99 @@ _       <-  [ \t\r\n]*
 
 } // namespace maps
 
+template <typename GTYPE>
+auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
+    -> bool {
+  std::cout << "Parsing example " << idx << "\n";
+  peg::string_input in(test_str, "example " + std::to_string(idx));
+
+  try {
+    if (const auto root = peg::parse_tree::parse<GTYPE>(in)) {
+      if (pdot) {
+        peg::parse_tree::print_dot(std::cout, *root);
+      }
+      std::cout << "  Parse tree success.\n";
+    } else {
+      std::cout << "  Parse tree failure!\n";
+    }
+    auto ret = peg::parse<GTYPE>(in);
+    std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
+    return ret;
+  } catch (const peg::parse_error &e) {
+    std::cout << "  Parser failure!\n";
+    const auto p = e.positions().front();
+    std::cout << e.what() << '\n'
+              << in.line_at(p) << '\n'
+              << std::setw(p.column) << '^' << '\n';
+  }
+
+  return false;
+}
+
 auto main() -> int {
+
+  const bool pdot = false;
 
   if (peg::analyze<maps::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
   }
 
+  size_t test_num = 1;
   {
-    std::string content = "[";
-    std::cout << "Parsing example 1" << std::endl;
-
-    peg::string_input in(content, "example 1");
-
-    if (const auto root = peg::parse_tree::parse<maps::SBo>(in)) {
-      auto ret = peg::parse<maps::SBo>(in);
-      std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-    } else {
-      std::cout << "  Parse failed." << std::endl;
-    }
+    std::string content = "{";
+    runTest<peg::must<maps::CBo, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "\"int\": 5.37e+6";
-    std::cout << "Parsing example 2" << std::endl;
-
-    peg::string_input in(content, "example 2");
-
-    if (const auto root = peg::parse_tree::parse<maps::PAIR>(in)) {
-      peg::parse_tree::print_dot(std::cout, *root);
-      auto ret = peg::parse<maps::PAIR>(in);
-      std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-    } else {
-      std::cout << "  Parse failed." << std::endl;
-    }
+    runTest<peg::must<maps::PAIR, peg::eolf>>(test_num++, content, pdot);
   }
 
-  {
-    std::string content =
-        "{\"ints\":[1, 2,  -3 ], \"more_ints\": [0001, 0002, -05]}";
-    std::cout << "Parsing example 3" << std::endl;
-    peg::string_input in(content, "example 3");
+  std::vector map_strs = {
+      "{\"ints\":[1, 2,  -3 ], \"more_ints\": [0001, 0002, -05]}",
+      "{\"ints\"  :   \"test\"     }",
+      "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], "
+      "\"sci_not_test\": [1e3, 1.e-5, -4.3e+5] }",
+      "{\n\
+  \"id\": \"0001\",\n\
+  \"type\": \"donut\",\n\
+  \"name\": \"Cake\",\n\
+  \"ppu\": 0.55,\n\
+  \"batters\": [ 0.2, 0.4, 0.6 ] \n\
+}",
 
-    try {
-      auto root = peg::parse_tree::parse<maps::grammar>(in);
-      peg::parse_tree::print_dot(std::cout, *root);
-      std::cout << "  Parse tree success!\n";
-      auto ret = peg::parse<maps::grammar>(in);
-    } catch (const peg::parse_error &e) {
-      std::cout << "  Something failed!\n";
-      const auto p = e.positions().front();
-      std::cout << e.what() << '\n'
-                << in.line_at(p) << '\n'
-                << std::setw(p.column) << '^' << '\n';
-    }
+      "{\n\
+  \"id\": \"0001\",\n\
+  \"type\": \"donut\",\n\
+  \"name\": \"Cake\",\n\
+  \"ppu\": 0.55,\n\
+  \"batters\":\n\
+    {\n\
+      \"batter\":\n\
+        [\n\
+          { \"id\": \"1001\", \"type\": \"Regular\" },\n\
+          { \"id\": \"1002\", \"type\": \"Chocolate\" },\n\
+          { \"id\": \"1003\", \"type\": \"Blueberry\" },\n\
+          { \"id\": \"1004\", \"type\": \"Devil's Food\" }\n\
+        ]\n\
+    },\n\
+  \"topping\":\n\
+    [\n\
+      { \"id\": \"5001\", \"type\": \"None\" },\n\
+      { \"id\": \"5002\", \"type\": \"Glazed\" },\n\
+      { \"id\": \"5005\", \"type\": \"Sugar\" },\n\
+      { \"id\": \"5007\", \"type\": \"Powdered Sugar\" },\n\
+      { \"id\": \"5006\", \"type\": \"Chocolate with Sprinkles\" },\n\
+      { \"id\": \"5003\", \"type\": \"Chocolate\" },\n\
+      { \"id\": \"5004\", \"type\": \"Maple\" }\n\
+    ]\n\
+}"};
+
+  for (const auto &content : map_strs) {
+    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+    std::cout << "Testing:\n" << content << std::endl;
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+    runTest<maps::grammar>(test_num++, content, pdot);
+    std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
   }
   return 0;
 }
