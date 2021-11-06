@@ -44,8 +44,8 @@ struct CBo : peg::pad<peg::one<'{'>, peg::space> {};
 struct CBc : peg::pad<peg::one<'}'>, peg::space> {};
 struct KVs : peg::pad<peg::one<':'>, peg::space> {};
 
-struct HEX
-    : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>, peg::plus<peg::xdigit>> {};
+struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
+struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
 struct sign : peg::one<'+', '-'> {};
 struct exp
@@ -61,7 +61,7 @@ struct STRING
     : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct MAP;
-struct VALUE : peg::sor<LIST, NUMBER, STRING, MAP> {};
+struct VALUE : peg::sor<HEX, LIST, NUMBER, STRING, MAP> {};
 struct PAIR : peg::seq<STRING, KVs, VALUE> {};
 
 struct MAP : peg::seq<CBo, peg::list<PAIR, COMMA, peg::space>, CBc> {};
@@ -73,9 +73,14 @@ struct grammar : peg::must<MAP, peg::eolf> {};
 template <typename GTYPE>
 auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     -> bool {
-  std::cout << "Parsing example " << idx << "\n";
+  std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+  std::cout << "Parsing example " << idx << ":\n";
+  std::cout << test_str << std::endl;
+  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+
   peg::string_input in(test_str, "example " + std::to_string(idx));
 
+  bool ret{false};
   try {
     if (const auto root = peg::parse_tree::parse<GTYPE>(in)) {
       if (pdot) {
@@ -85,9 +90,8 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     } else {
       std::cout << "  Parse tree failure!\n";
     }
-    auto ret = peg::parse<GTYPE>(in);
+    ret = peg::parse<GTYPE>(in);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-    return ret;
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
@@ -98,7 +102,8 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     std::cout << "!!!\n";
   }
 
-  return false;
+  std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+  return ret;
 }
 
 auto main() -> int {
@@ -118,6 +123,10 @@ auto main() -> int {
     std::string content = "\"int\": 5.37e+6";
     runTest<peg::must<maps::PAIR, peg::eolf>>(test_num++, content, pdot);
   }
+  {
+    std::string content = "0x0ab0";
+    runTest<peg::must<maps::VALUE, peg::eolf>>(test_num++, content, pdot);
+  }
 
   std::vector map_strs = {
       "{\"ints\":[1, 2,  -3 ], \"more_ints\": [0001, 0002, -05]}",
@@ -128,7 +137,7 @@ auto main() -> int {
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\
   \"name\": \"Cake\",\n\
-  \"ppu\": 0.55,\n\
+  \"ppu\": 0x0deadbeef0,\n\
   \"batters\": [ 0.2, 0.4, 0.6 ] \n\
 }",
 
@@ -160,11 +169,7 @@ auto main() -> int {
 }"};
 
   for (const auto &content : map_strs) {
-    std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-    std::cout << "Testing:\n" << content << std::endl;
-    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
     runTest<maps::grammar>(test_num++, content, pdot);
-    std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
   }
   return 0;
 }
