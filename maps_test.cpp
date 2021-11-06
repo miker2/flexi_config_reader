@@ -14,8 +14,14 @@
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
+#include <tao/pegtl/contrib/trace.hpp>
 
 namespace peg = TAO_PEGTL_NAMESPACE;
+
+// The end goal of this is to be able to take a string of text (or a file)
+// And create a structured tree of data.
+// The data should consist only of specific types and eliminate all other
+// unecessary data (e.g. whitespace, etc).
 
 namespace maps {
 
@@ -54,11 +60,11 @@ struct NUMBER
     : peg::seq<peg::opt<sign>, peg::plus<peg::digit>,
                peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
                peg::opt<exp>> {};
+struct STRING
+    : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct VALUE;
 struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
-struct STRING
-    : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct MAP;
 struct VALUE : peg::sor<HEX, LIST, NUMBER, STRING, MAP> {};
@@ -68,6 +74,12 @@ struct MAP : peg::seq<CBo, peg::list<PAIR, COMMA, peg::space>, CBc> {};
 
 struct grammar : peg::must<MAP, peg::eolf> {};
 
+template <typename Rule>
+using selector = peg::parse_tree::selector<
+    Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING>,
+  peg::parse_tree::fold_one::on<VALUE, MAP, PAIR, LIST>>;
+
+template <typename Rule> struct action : peg::nothing<Rule> {};
 } // namespace maps
 
 template <typename GTYPE>
@@ -78,11 +90,12 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   std::cout << test_str << std::endl;
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
-  peg::string_input in(test_str, "example " + std::to_string(idx));
+  const auto source = "example " + std::to_string(idx);
+  peg::memory_input in(test_str, source);
 
   bool ret{false};
   try {
-    if (const auto root = peg::parse_tree::parse<GTYPE>(in)) {
+    if (const auto root = peg::parse_tree::parse<GTYPE, maps::selector>(in)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
@@ -90,7 +103,11 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     } else {
       std::cout << "  Parse tree failure!\n";
     }
-    ret = peg::parse<GTYPE>(in);
+    // Re-use of an input is highly discouraged, but given that we probably
+    // won't call both `parse_tree::parse` and `parse` in the same run, we'll
+    // re-use the input here for convenience.
+    in.restart();
+    ret = peg::parse<GTYPE, maps::action>(in);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
@@ -145,7 +162,7 @@ auto main() -> int {
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\
   \"name\": \"Cake\",\n\
-  \"ppu\": 0.55,\n\
+  \"ppu\": [0.55, 1.3, 3, -2.5e2],\n\
   \"batters\":\n\
     {\n\
       \"batter\":\n\
