@@ -91,6 +91,29 @@ using selector = peg::parse_tree::selector<
 
 template <typename Rule> struct action : peg::nothing<Rule> {};
 
+/*
+template <> struct action<HEX> {
+  template <typename ActionInput>
+  static void apply(const ActionInput &in, std::string &out) {
+    std::cout << "In HEX action: " << in.string() << "\n";
+    out += "|H" + in.string();
+  }
+};
+template <> struct action<STRING> {
+  template <typename ActionInput>
+  static void apply(const ActionInput &in, std::string &out) {
+    std::cout << "In STRING action: " << in.string() << "\n";
+    out += "|S" + in.string();
+  }
+};
+template <> struct action<NUMBER> {
+  template <typename ActionInput>
+  static void apply(const ActionInput &in, std::string &out) {
+    std::cout << "In NUMBER action: " << in.string() << "\n";
+    out += "|N" + in.string();
+  }
+};
+*/
 } // namespace jaon_ish
 
 template <typename GTYPE>
@@ -105,6 +128,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   peg::memory_input in(test_str, source);
 
   bool ret{false};
+  std::string out;
   try {
     if (const auto root =
             peg::parse_tree::parse<GTYPE, jaon_ish::selector>(in)) {
@@ -121,8 +145,9 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     // won't call both `parse_tree::parse` and `parse` in the same run, we'll
     // re-use the input here for convenience.
     in.restart();
-    ret = peg::parse<GTYPE, jaon_ish::action>(in);
+    ret = peg::parse<GTYPE, jaon_ish::action>(in, out);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
+    std::cout << "out: " << out << std::endl;
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
