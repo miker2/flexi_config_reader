@@ -19,38 +19,6 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 
 namespace maps {
 
-// Consider using 'pad<R, S, T>' in a few places below.
-struct WS_ : peg::star<peg::space> {};
-struct COMMA : peg::seq<peg::one<','>, WS_> {};
-struct SBo : peg::seq<peg::one<'['>, WS_> {};
-struct SBc : peg::seq<peg::one<']'>, WS_> {};
-struct CBo : peg::seq<peg::one<'{'>, WS_> {};
-struct CBc : peg::seq<peg::one<'}'>, WS_> {};
-struct KVs : peg::seq<peg::one<':'>, WS_> {};
-
-struct HEX
-    : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>, peg::plus<peg::xdigit>> {};
-
-struct sign : peg::one<'+', '-'> {};
-struct exp
-    : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
-struct NUMBER
-    : peg::seq<peg::opt<sign>, peg::plus<peg::digit>,
-               peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
-               peg::opt<exp>, WS_> {};
-
-struct VALUE;
-struct LIST : peg::seq<SBo, VALUE, peg::star<peg::seq<COMMA, VALUE>>, SBc> {};
-struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>,
-                         peg::one<'"'>, WS_> {};
-
-struct MAP;
-struct VALUE : peg::sor<LIST, NUMBER, STRING, MAP> {};
-struct PAIR : peg::seq<STRING, KVs, VALUE> {};
-
-struct MAP : peg::seq<CBo, PAIR, peg::star<peg::seq<COMMA, PAIR>>, CBc> {};
-
-struct grammar : peg::must<MAP, peg::eolf> {};
 /*
 map     <-  CBo PAIR (COMMA PAIR)* CBc
 PAIR    <-  string KVs value
@@ -67,6 +35,38 @@ SBc     <-  "]" _
 COMMA   <-  "," _
 _       <-  [ \t\r\n]*
 */
+
+struct WS_ : peg::star<peg::space> {};
+struct COMMA : peg::one<','> {};
+struct SBo : peg::pad<peg::one<'['>, peg::space> {};
+struct SBc : peg::pad<peg::one<']'>, peg::space> {};
+struct CBo : peg::pad<peg::one<'{'>, peg::space> {};
+struct CBc : peg::pad<peg::one<'}'>, peg::space> {};
+struct KVs : peg::pad<peg::one<':'>, peg::space> {};
+
+struct HEX
+    : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>, peg::plus<peg::xdigit>> {};
+
+struct sign : peg::one<'+', '-'> {};
+struct exp
+    : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
+struct NUMBER
+    : peg::seq<peg::opt<sign>, peg::plus<peg::digit>,
+               peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
+               peg::opt<exp>> {};
+
+struct VALUE;
+struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
+struct STRING
+    : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
+
+struct MAP;
+struct VALUE : peg::sor<LIST, NUMBER, STRING, MAP> {};
+struct PAIR : peg::seq<STRING, KVs, VALUE> {};
+
+struct MAP : peg::seq<CBo, peg::list<PAIR, COMMA, peg::space>, CBc> {};
+
+struct grammar : peg::must<MAP, peg::eolf> {};
 
 } // namespace maps
 
@@ -89,11 +89,13 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
     return ret;
   } catch (const peg::parse_error &e) {
+    std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
     std::cout << e.what() << '\n'
               << in.line_at(p) << '\n'
               << std::setw(p.column) << '^' << '\n';
+    std::cout << "!!!\n";
   }
 
   return false;
