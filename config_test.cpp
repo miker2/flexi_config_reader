@@ -39,13 +39,13 @@ everywhere.
 
 grammar my_config
   map       <-  _ (struct / proto / reference)+ _ %make_map
-  struct    <-  STRUCTs KEY TAIL STRUCTc END KEY _ %make_struct
-  proto     <-  PROTOs KEY TAIL STRUCTc END KEY _ %make_proto
-  reference <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END KEY _ %make_reference
+  struct    <-  STRUCTs KEY TAIL STRUCTc END _ %make_struct
+  proto     <-  PROTOs KEY TAIL STRUCTc END _ %make_proto
+  reference <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _ %make_reference
   STRUCTs   <-  "struct" SP
   PROTOs    <-  "proto" SP
   REFs      <-  "reference" SP
-  END       <-  "end" SP
+  END       <-  "end" SP KEY
   STRUCTc   <-  (struct / PAIR / reference / proto)+
   REFc      <-  (VARREF / VARADD)+
   PAIR      <-  KEY KVs (value / VAR) TAIL %make_pair
@@ -56,10 +56,15 @@ grammar my_config
   value     <-  list / HEX / number / string
   string    <-  '"' [^"]* '"' %make_string
   list      <-  SBo value (COMMA value)* SBc %make_list
-  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?
-%make_number VAR       <-  "$" [A-Z0-9_]+  %make_var HEX       <-  "0" [xX]
-[0-9a-fA-F]+ %make_hex KVs       <-  oSP "=" oSP CBo       <-  "{" oSP CBc <-
-oSP "}" _ SBo       <-  "[" oSP SBc       <-  oSP "]" COMMA     <-  oSP "," oSP
+  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
+  VAR       <-  "$" [A-Z0-9_]+  %make_var
+  HEX       <-  "0" [xX] [0-9a-fA-F]+ %make_hex
+  KVs       <-  oSP "=" oSP
+  CBo       <-  "{" oSP
+  CBc       <- oSP "}" _
+  SBo       <-  "[" oSP
+  SBc       <-  oSP "]"
+  COMMA     <-  oSP "," oSP
   TAIL      <-  _ (COMMENT)*
   COMMENT   <-  "#" [^\n\r]* _
   oSP       <-  [ \t]*      # optional space
@@ -117,19 +122,19 @@ struct VARREF : peg::seq<VAR, KVs, VALUE, TAIL> {};
 
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR>, TAIL> {};
 
-struct END : peg::seq<peg::keyword<'e', 'n', 'd'>, SP> {};
+struct END : peg::seq<peg::keyword<'e', 'n', 'd'>, SP, KEY> {};
 
 struct REFs : peg::seq<TAO_PEGTL_KEYWORD("reference"), SP> {};
 struct REFc : peg::plus<peg::sor<VARREF, VARADD>> {};
 struct REFERENCE : peg::seq<REFs, FLAT_KEY, WS_, peg::keyword<'a', 's'>, WS_,
-                            KEY, TAIL, REFc, END, KEY, WS_> {};
+                            KEY, TAIL, REFc, END, WS_> {};
 
 struct STRUCTc;
 struct PROTOs : peg::seq<TAO_PEGTL_KEYWORD("proto"), SP> {};
-struct PROTO : peg::seq<PROTOs, KEY, TAIL, STRUCTc, END, KEY, WS_> {};
+struct PROTO : peg::seq<PROTOs, KEY, TAIL, STRUCTc, END, WS_> {};
 
 struct STRUCTs : peg::seq<TAO_PEGTL_KEYWORD("struct"), SP> {};
-struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, KEY, WS_> {};
+struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, WS_> {};
 
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 
@@ -140,10 +145,13 @@ struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
 template <typename Rule>
 using selector = peg::parse_tree::selector<
-    Rule, // peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR>,
+  Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT>,
+  peg::parse_tree::remove_content::on<END, VARADD, VARREF>,
+  /*
     peg::parse_tree::remove_content::on<WS_, NL, SP, oSP, COMMENT, TAIL, COMMA,
                                         SBo, SBc, CBo, CBc, KVs, HEXTAG, sign,
                                         exp>,
+  */
     peg::parse_tree::fold_one::on<CONFIG, STRUCTc, STRUCT, PROTO, REFERENCE,
                                   VALUE, PAIR, LIST>>;
 
@@ -401,7 +409,7 @@ end outer \n\
 "};
 
   for (const auto &content : config_strs) {
-    runTest<config::grammar>(test_num++, content, pdot);
+    runTest<config::grammar>(test_num++, content, true);
   }
   return 0;
 }
