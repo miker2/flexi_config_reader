@@ -24,7 +24,7 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // The data should consist only of specific types and eliminate all other
 // unecessary data (e.g. whitespace, etc).
 
-namespace jaon_ish {
+namespace json_ish {
 
 /*
 map     <-  CBo PAIR (COMMA PAIR)* CBc
@@ -114,7 +114,7 @@ template <> struct action<NUMBER> {
   }
 };
 */
-} // namespace jaon_ish
+} // namespace json_ish
 
 template <typename GTYPE>
 auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
@@ -131,7 +131,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   std::string out;
   try {
     if (const auto root =
-            peg::parse_tree::parse<GTYPE, jaon_ish::selector>(in)) {
+            peg::parse_tree::parse<GTYPE, json_ish::selector>(in)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
@@ -145,7 +145,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     // won't call both `parse_tree::parse` and `parse` in the same run, we'll
     // re-use the input here for convenience.
     in.restart();
-    ret = peg::parse<GTYPE, jaon_ish::action>(in, out);
+    ret = peg::parse<GTYPE, json_ish::action>(in, out);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
     std::cout << "out: " << out << std::endl;
   } catch (const peg::parse_error &e) {
@@ -166,30 +166,30 @@ auto main() -> int {
 
   const bool pdot = false;
 
-  if (peg::analyze<jaon_ish::grammar>() != 0) {
+  if (peg::analyze<json_ish::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
   }
 
   size_t test_num = 1;
   {
     std::string content = "{";
-    runTest<peg::must<jaon_ish::CBo, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<json_ish::CBo, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "-1001";
-    runTest<peg::must<jaon_ish::INTEGER, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<json_ish::INTEGER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "\"float\": 5.37e+6";
-    runTest<peg::must<jaon_ish::PAIR, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<json_ish::PAIR, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "1234.";
-    runTest<peg::must<jaon_ish::NUMBER, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<json_ish::NUMBER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "0x0ab0";
-    runTest<peg::must<jaon_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
+    runTest<peg::must<json_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
   std::vector map_strs = {
@@ -237,7 +237,7 @@ auto main() -> int {
     // parsing to work. Some of the unsupported features are hexadecimal values
     // and decimal values that end in a decimal without trailing numbers.
     runTest<peg::json::text>(test_num, content, pdot);
-    runTest<jaon_ish::grammar>(test_num++, content, pdot);
+    runTest<json_ish::grammar>(test_num++, content, pdot);
   }
   return 0;
 }
