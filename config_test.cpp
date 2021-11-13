@@ -286,7 +286,9 @@ end test2\n\
   }
 
   for (size_t i = 1; i <= 5; ++i) {
-    peg::file_input in("../examples/config_example" + std::to_string(i) + ".cfg");
+    const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) /
+        ("config_example" + std::to_string(i) + ".cfg");
+    peg::file_input in(cfg_file);
     ret &= runTest<config::grammar>(in, true);
   }
 

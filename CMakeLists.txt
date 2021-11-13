@@ -13,6 +13,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(taocpp_pegtl)
 
 
+add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
 add_executable(jsonish_test jsonish_test.cpp)
 target_link_libraries(jsonish_test PRIVATE taocpp::pegtl)
