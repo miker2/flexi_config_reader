@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <string>
@@ -25,6 +26,10 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // unecessary data (e.g. whitespace, etc).
 
 namespace config {
+
+/*
+  TODO: Add validator to throw on duplicate keys
+ */
 
 /*
 # TODO: Support the following syntax:
@@ -143,6 +148,8 @@ struct CONFIG
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
+// TODO: Strip trailing whitespace from comments!
+
 template <typename Rule>
 using selector = peg::parse_tree::selector<
   Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT>,
@@ -182,35 +189,32 @@ template <> struct action<NUMBER> {
 */
 } // namespace config
 
-template <typename GTYPE>
-auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
-    -> bool {
-  std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  std::cout << "Parsing example " << idx << ":\n";
-  std::cout << test_str << std::endl;
-  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
-  const auto source = "example " + std::to_string(idx);
-  peg::memory_input in(test_str, source);
+template <typename GTYPE, typename SOURCE>
+auto runTest(SOURCE& src, bool pdot = true) -> bool {
+  std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+  std::cout << "Parsing: " << src.source() << "\n----- content -----\n";
+  std::cout << std::string_view(src.begin(), src.size()) << std::endl;
+  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
   bool ret{false};
   std::string out;
   try {
-    if (const auto root = peg::parse_tree::parse<GTYPE, config::selector>(in)) {
+    if (const auto root = peg::parse_tree::parse<GTYPE, config::selector>(src)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
       std::cout << "  Parse tree success.\n";
     } else {
       std::cout << "  Parse tree failure!\n";
-      in.restart();
-      peg::standard_trace<GTYPE>(in);
+      src.restart();
+      peg::standard_trace<GTYPE>(src);
     }
     // Re-use of an input is highly discouraged, but given that we probably
     // won't call both `parse_tree::parse` and `parse` in the same run, we'll
     // re-use the input here for convenience.
-    in.restart();
-    ret = peg::parse<GTYPE, config::action>(in, out);
+    src.restart();
+    ret = peg::parse<GTYPE, config::action>(src, out);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
     std::cout << "out: " << out << std::endl;
   } catch (const peg::parse_error &e) {
@@ -218,7 +222,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
     std::cout << e.what() << '\n'
-              << in.line_at(p) << '\n'
+              << src.line_at(p) << '\n'
               << std::setw(p.column) << '^' << '\n';
     std::cout << "!!!\n";
   }
@@ -227,30 +231,39 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   return ret;
 }
 
+template <typename GTYPE>
+auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool {
+  peg::memory_input in(test_str, "example " + std::to_string(idx));
+
+  return runTest<GTYPE>(in, pdot);
+}
+
 auto main() -> int {
 
   const bool pdot = false;
+  bool ret{ true };
 
   if (peg::analyze<config::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
+    return 1;
   }
 
   size_t test_num = 1;
   {
     std::string content = "-1001";
-    runTest<peg::must<config::INTEGER, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<config::INTEGER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "float.value  =  5.37e+6";
-    runTest<peg::must<config::PAIR, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<config::PAIR, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "1234.";
-    runTest<peg::must<config::NUMBER, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<config::NUMBER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "0x0ab0";
-    runTest<peg::must<config::VALUE, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<config::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
   std::vector config_strs = {"\n\
@@ -265,151 +278,17 @@ struct test2\n\
     my_key = \"foo\"  \n\
     n_key = 1\n\
 end test2\n\
-",
-                             "\n\
-struct test1\n\
-    key1 = \"value\"\n\
-    key2 = 1.342    # test comment here \n\
-    key3 = 10\n\
-    f = \"none\" \n\
-end test1\n\
-\n\
-struct test2\n\
-    my_key = \"foo\"    \n\
-    n_key = 1\n\
-\n\
-    struct inner\n\
-      key = 1\n\
-      pair = \"two\"   \n\
-      val = 1.232e10\n\
-    end inner\n\
-end test2\n\
-    ",
-                             "\n\
-struct test1\n\
-    key1 = \"value\" \n\
-    key2 = 1.342    # test comment here \n\
-    key3 = 10 \n\
-    f = \"none\" \n\
-end test1 \n\
-\n\
-struct outer \n\
-    my_key = \"foo\" \n\
-    n_key = 1 \n\
-\n\
-    struct inner   # Another comment \"here\" \n\
-      key = 1 \n\
-      #pair = \"two\" \n\
-      val = 1.232e10 \n\
-\n\
-      struct test1 \n\
-        key = -5 \n\
-      end test1 \n\
-    end inner \n\
-end outer \n\
-\n\
-struct test1 \n\
-    different = 1 \n\
-    other = 2 \n\
-end test1 \n\
-    ",
-                             "\n\
-struct test1 \n\
-    key1 = \"value\" \n\
-    key2 = 1.342    # test comment here \n\
-    key3 = 10 \n\
-    f = \"none\" \n\
-end test1 \n\
-\n\
-struct protos \n\
-  proto joint_proto \n\
-    key1 = $VAR1 \n\
-    key2 = $VAR2 \n\
-    not_a_var = 27 \n\
-  end joint_proto \n\
-end protos \n\
-\n\
-struct outer \n\
-    my_key = \"foo\" \n\
-    n_key = 1 \n\
-\n\
-    struct inner   # Another comment \"here\" \n\
-      key = 1 \n\
-      #pair = \"two\" \n\
-      val = 1.232e10 \n\
-\n\
-      struct test1 \n\
-        key = -5 \n\
-      end test1 \n\
-    end inner \n\
-end outer \n\
-\n\
-struct ref_in_struct \n\
-  key1 = -0.3492 \n\
-\n\
-  reference protos.joint_proto as hx \n\
-    $VAR1 = \"0xdeadbeef\" \n\
-    $VAR2 = \"3\" \n\
-    +new_var = 5 \n\
-    +add_another = -3.14159 \n\
-  end hx \n\
-end ref_in_struct \n\
-\n\
-struct test1 \n\
-    different = 1 \n\
-    other = 2 \n\
-end test1 \n\
-    ",
-                             "\n\n\n\
-struct protos \n\
-\n\
-    proto joint_proto \n\
-      leg = $LEG \n\
-      dof = $DOF  # This should be $LEG.$DOF, but not supported yet \n\
-    end joint_proto \n\
-\n\
-    proto leg_proto \n\
-      key_1 = \"foo\" \n\
-      key_2 = \"bar\" \n\
-      key_3 = $LEG \n\
-\n\
-      reference protos.joint_proto as hx  # Can we make the 'hx' here be represented by $DOF? \n\
-        $DOF = \"hx\" \n\
-        +extra_key = 1.e-3 \n\
-      end hx \n\
-    end leg_proto \n\
-end protos \n\
-\n\
-struct outer \n\
-    my_key = \"foo\" \n\
-    n_key = 1 \n\
-\n\
-    struct inner   # Another comment \"here\" \n\
-      key = 1 \n\
-      #pair = \"two\" \n\
-      val = 1.232e10 \n\
-\n\
-      struct test1 \n\
-        key = -5 \n\
-      end test1 \n\
-\n\
-      key_afer = 3 \n\
-    end inner \n\
-\n\
-    key_between = 4 \n\
-\n\
-    reference protos.leg_proto as fl \n\
-      $LEG = \"fl\" \n\
-      $DOF = \"hx\" \n\
-    end fl \n\
-end outer \n\
-\n\
-\n\
-\n\
 "};
 
   for (const auto &content : config_strs) {
-    runTest<config::grammar>(test_num++, content, true);
+    peg::memory_input in(content, "example " + std::to_string(test_num++));
+    ret &= runTest<config::grammar>(in, pdot);
   }
-  return 0;
+
+  for (size_t i = 1; i <= 5; ++i) {
+    peg::file_input in("../examples/config_example" + std::to_string(i) + ".cfg");
+    ret &= runTest<config::grammar>(in, true);
+  }
+
+  return (ret ? 0 : 1);
 }
