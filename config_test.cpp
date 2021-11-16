@@ -14,6 +14,8 @@
 #include "config_grammar.h"
 #include "config_actions.h"
 
+// TODO(rose@): Turn this into an actual test suite.
+
 namespace peg = TAO_PEGTL_NAMESPACE;
 
 

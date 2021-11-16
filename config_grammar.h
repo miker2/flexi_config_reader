@@ -133,3 +133,20 @@ struct CONFIG
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
 }
+
+// This grammar parses a filename (path + filename) corresponding to a cfg file.
+namespace filename {
+
+struct DOTDOT : peg::two<'.'> {};
+struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
+struct SEP : peg::one<'/'> {};
+
+// There may be other valid characters in a filename. What might they be?
+struct ALPHAPLUS : peg::plus<peg::sor<peg::ranges<'A','Z','a','z','0','9','_'>, peg::one<'-'>>> {};
+
+struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
+struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
+
+struct grammar : peg::must<FILENAME> {};
+
+}
