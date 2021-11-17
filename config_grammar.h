@@ -110,6 +110,7 @@ struct VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
 struct VARREF : peg::seq<VAR, KVs, VALUE, TAIL> {};
 
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR>, TAIL> {};
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, VALUE, TAIL> {};
 
 struct END : peg::seq<peg::keyword<'e', 'n', 'd'>, SP, KEY> {};
 
@@ -127,8 +128,16 @@ struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, WS_> {};
 
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 
-struct CONFIG
-    : peg::seq<WS_, peg::plus<peg::sor<STRUCT, PROTO, REFERENCE>>, WS_> {};
+// TODO: Improve this. A single file should look like this:
+//
+//  1. Optional list of include files
+//  2. Elements of a config file: struct, proto, reference, pair
+//
+// How do we fit in flat keys? I think we want to support flat keys or structured
+// keys in a single file. But not both.
+
+
+struct CONFIG : peg::seq<TAIL, peg::sor<STRUCTc, peg::plus<FULLPAIR>>, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 

@@ -84,7 +84,7 @@ auto main() -> int {
   }
   {
     std::string content = "float.value  =  5.37e+6";
-    ret &= runTest<peg::must<config::PAIR, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<config::FULLPAIR, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "1234.";
@@ -114,7 +114,7 @@ end test2\n\
     ret &= runTest<config::grammar>(in, pdot);
   }
 
-  for (size_t i = 1; i <= 5; ++i) {
+  for (size_t i = 1; i <= 6; ++i) {
     const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) /
         ("config_example" + std::to_string(i) + ".cfg");
     peg::file_input in(cfg_file);
