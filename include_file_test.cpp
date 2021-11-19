@@ -3,13 +3,12 @@
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <vector>
-
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
+#include <vector>
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -19,7 +18,8 @@ struct DOTDOT : peg::two<'.'> {};
 struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
 struct SEP : peg::one<'/'> {};
 
-struct ALPHAPLUS : peg::plus<peg::sor<peg::ranges<'A','Z','a','z','0','9','_'>, peg::one<'-'>>> {}; 
+struct ALPHAPLUS
+    : peg::plus<peg::sor<peg::ranges<'A', 'Z', 'a', 'z', '0', '9', '_'>, peg::one<'-'>>> {};
 
 struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
 struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
@@ -27,18 +27,17 @@ struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
 struct grammar : peg::must<FILENAME> {};
 
 template <typename Rule>
-using selector = peg::parse_tree::selector<
-  Rule, 
-  peg::parse_tree::store_content::on<FILEPART, FILENAME, EXT>,
-  peg::parse_tree::remove_content::on<ALPHAPLUS>>;
+using selector =
+    peg::parse_tree::selector<Rule, peg::parse_tree::store_content::on<FILEPART, FILENAME, EXT>,
+                              peg::parse_tree::remove_content::on<ALPHAPLUS>>;
 
-}
+}  // namespace filename
 
 namespace include_file {
 struct INCLUDE : TAO_PEGTL_KEYWORD("#include") {};
 
 struct grammar : peg::seq<INCLUDE, peg::plus<peg::blank>, filename::FILENAME> {};
-}
+}  // namespace include_file
 
 #if 0
 template <typename GTYPE>
@@ -109,13 +108,11 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
     src.restart();
     ret = peg::parse<GTYPE>(src);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-  } catch (const peg::parse_error &e) {
+  } catch (const peg::parse_error& e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << src.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n' << src.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -130,9 +127,7 @@ auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool 
   return runTest<GTYPE>(in, pdot);
 }
 
-
 auto main() -> int {
-
   const bool pdot = false;
 
   if (peg::analyze<filename::grammar>() != 0) {
@@ -140,17 +135,13 @@ auto main() -> int {
     return 1;
   }
 
-  bool ret{ true };
+  bool ret{true};
   size_t test_num = 1;
-  
-  std::vector<std::string> test_filenames = {
-      "example1.cfg",
-      "../example2.cfg",
-      "foo/bar/baz.cfg"
-  };
+
+  std::vector<std::string> test_filenames = {"example1.cfg", "../example2.cfg", "foo/bar/baz.cfg"};
 
   for (const auto& e : test_filenames) {
-      ret &= runTest<filename::FILENAME>(test_num++, e);
+    ret &= runTest<filename::FILENAME>(test_num++, e);
   }
 
   runTest<include_file::grammar>(999, "#include ../robot/default.cfg");

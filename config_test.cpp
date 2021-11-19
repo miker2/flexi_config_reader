@@ -3,24 +3,22 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <vector>
-
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
+#include <vector>
 
-#include "config_grammar.h"
 #include "config_actions.h"
+#include "config_grammar.h"
 
 // TODO(rose@): Turn this into an actual test suite.
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
-
 template <typename GTYPE, typename SOURCE>
-auto runTest(SOURCE& src, bool pdot = true) -> bool {
+auto runTest(SOURCE &src, bool pdot = true) -> bool {
   std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   std::cout << "Parsing: " << src.source() << "\n----- content -----\n";
   std::cout << std::string_view(src.begin(), src.size()) << std::endl;
@@ -50,9 +48,7 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << src.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n' << src.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -61,16 +57,15 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
 }
 
 template <typename GTYPE>
-auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool {
+auto runTest(size_t idx, const std::string &test_str, bool pdot = true) -> bool {
   peg::memory_input in(test_str, "example " + std::to_string(idx));
 
   return runTest<GTYPE>(in, pdot);
 }
 
 auto main() -> int {
-
   const bool pdot = false;
-  bool ret{ true };
+  bool ret{true};
 
   if (peg::analyze<config::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
@@ -95,7 +90,8 @@ auto main() -> int {
     ret &= runTest<peg::must<config::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
-  std::vector config_strs = {"\n\
+  std::vector config_strs = {
+      "\n\
 struct test1\n\
     key1 = \"value\"\n\
     key2 = 1.342    # test comment here\n\
@@ -115,8 +111,8 @@ end test2\n\
   }
 
   for (size_t i = 1; i <= 6; ++i) {
-    const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) /
-        ("config_example" + std::to_string(i) + ".cfg");
+    const auto cfg_file =
+        std::filesystem::path(EXAMPLE_DIR) / ("config_example" + std::to_string(i) + ".cfg");
     peg::file_input in(cfg_file);
     ret &= runTest<config::grammar>(in, true);
   }

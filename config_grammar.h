@@ -9,7 +9,6 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // The data should consist only of specific types and eliminate all other
 // unecessary data (e.g. whitespace, etc).
 
-
 // This grammar parses a filename (path + filename) corresponding to a cfg file.
 namespace filename {
 
@@ -18,15 +17,15 @@ struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
 struct SEP : peg::one<'/'> {};
 
 // There may be other valid characters in a filename. What might they be?
-struct ALPHAPLUS : peg::plus<peg::sor<peg::ranges<'A','Z','a','z','0','9','_'>, peg::one<'-'>>> {};
+struct ALPHAPLUS
+    : peg::plus<peg::sor<peg::ranges<'A', 'Z', 'a', 'z', '0', '9', '_'>, peg::one<'-'>>> {};
 
 struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
 struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
 
 struct grammar : peg::must<FILENAME> {};
 
-}
-
+}  // namespace filename
 
 namespace config {
 
@@ -34,6 +33,7 @@ namespace config {
   TODO: Add validator to throw on duplicate keys
  */
 
+// clang-format off
 /*
 # TODO: Support the following syntax:
 #         key = $(path.to.other.key)
@@ -80,6 +80,7 @@ grammar my_config
   NL        <-  [\r\n]+     # (required) new line
   _         <-  [ \t\r\n]*  # All whitespace
 */
+// clang-format on
 
 struct WS_ : peg::star<peg::space> {};
 struct NL : peg::plus<peg::eol> {};
@@ -97,23 +98,17 @@ struct KVs : peg::pad<peg::one<'='>, peg::blank> {};
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
-struct VAR
-    : peg::seq<peg::one<'$'>, peg::plus<peg::ranges<'A', 'Z', '0', '9', '_'>>> {
-};
+struct VAR : peg::seq<peg::one<'$'>, peg::plus<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
 
 struct sign : peg::one<'+', '-'> {};
-struct exp
-    : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
+struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
 struct INTEGER
     : peg::seq<peg::opt<sign>,
-               peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>,
-                                                peg::star<peg::digit>>>> {};
-struct FLOAT
-    : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
+               peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>, peg::star<peg::digit>>>> {};
+struct FLOAT : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
 struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
-struct STRING
-    : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
+struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct VALUE;
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
@@ -122,8 +117,7 @@ struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
 struct VALUE : peg::sor<LIST, HEX, NUMBER, STRING> {};
 
 struct KEY
-    : peg::seq<peg::range<'a', 'z'>,
-               peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
+    : peg::seq<peg::range<'a', 'z'>, peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
 struct VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
 struct VARREF : peg::seq<VAR, KVs, VALUE, TAIL> {};
@@ -135,8 +129,8 @@ struct END : peg::seq<peg::keyword<'e', 'n', 'd'>, SP, KEY> {};
 
 struct REFs : peg::seq<TAO_PEGTL_KEYWORD("reference"), SP> {};
 struct REFc : peg::plus<peg::sor<VARREF, VARADD>> {};
-struct REFERENCE : peg::seq<REFs, FLAT_KEY, WS_, peg::keyword<'a', 's'>, WS_,
-                            KEY, TAIL, REFc, END, WS_> {};
+struct REFERENCE
+    : peg::seq<REFs, FLAT_KEY, WS_, peg::keyword<'a', 's'>, WS_, KEY, TAIL, REFc, END, WS_> {};
 
 struct STRUCTc;
 struct PROTOs : peg::seq<TAO_PEGTL_KEYWORD("proto"), SP> {};
@@ -152,9 +146,8 @@ struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 //  1. Optional list of include files
 //  2. Elements of a config file: struct, proto, reference, pair
 //
-// How do we fit in flat keys? I think we want to support flat keys or structured
-// keys in a single file. But not both.
-
+// How do we fit in flat keys? I think we want to support flat keys or
+// structured keys in a single file. But not both.
 
 struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};
 struct include_list : peg::star<INCLUDE> {};
@@ -163,4 +156,4 @@ struct CONFIG : peg::seq<TAIL, include_list, peg::sor<STRUCTc, peg::plus<FULLPAI
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
-}
+}  // namespace config

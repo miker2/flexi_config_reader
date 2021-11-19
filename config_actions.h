@@ -11,17 +11,18 @@ namespace config {
 
 template <typename Rule>
 using selector = peg::parse_tree::selector<
-  Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT, filename::FILENAME>,
-  peg::parse_tree::remove_content::on<END, VARADD, VARREF, INCLUDE>,
-  /*
-    peg::parse_tree::remove_content::on<WS_, NL, SP, oSP, COMMENT, TAIL, COMMA,
-                                        SBo, SBc, CBo, CBc, KVs, HEXTAG, sign,
-                                        exp>,
-  */
-    peg::parse_tree::fold_one::on<CONFIG, STRUCTc, STRUCT, PROTO, REFERENCE,
-                                  VALUE, PAIR, LIST>>;
+    Rule,
+    peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT,
+                                       filename::FILENAME>,
+    peg::parse_tree::remove_content::on<END, VARADD, VARREF, INCLUDE>,
+    /*
+      peg::parse_tree::remove_content::on<WS_, NL, SP, oSP, COMMENT, TAIL,
+      COMMA, SBo, SBc, CBo, CBc, KVs, HEXTAG, sign, exp>,
+    */
+    peg::parse_tree::fold_one::on<CONFIG, STRUCTc, STRUCT, PROTO, REFERENCE, VALUE, PAIR, LIST>>;
 
-template <typename Rule> struct action : peg::nothing<Rule> {};
+template <typename Rule>
+struct action : peg::nothing<Rule> {};
 
 /*
 template <> struct action<HEX> {
@@ -46,4 +47,4 @@ template <> struct action<NUMBER> {
   }
 };
 */
-} // namespace config
+}  // namespace config

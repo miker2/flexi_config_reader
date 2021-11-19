@@ -5,10 +5,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <typeinfo>
-#include <variant>
-#include <vector>
-
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/abnf.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
@@ -16,6 +12,9 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
+#include <typeinfo>
+#include <variant>
+#include <vector>
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -55,14 +54,11 @@ struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
 struct sign : peg::one<'+', '-'> {};
-struct exp
-    : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
+struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
 struct INTEGER
     : peg::seq<peg::opt<sign>,
-               peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>,
-                                                peg::star<peg::digit>>>> {};
-struct FLOAT
-    : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
+               peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>, peg::star<peg::digit>>>> {};
+struct FLOAT : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
 struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 /*
 struct NUMBER
@@ -70,8 +66,7 @@ struct NUMBER
                peg::opt<peg::seq<peg::one<'.'>, peg::star<peg::digit>>>,
                peg::opt<exp>> {};
 */
-struct STRING
-    : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
+struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct VALUE;
 struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
@@ -85,11 +80,12 @@ struct MAP : peg::seq<CBo, peg::list<PAIR, COMMA, peg::space>, CBc> {};
 struct grammar : peg::seq<MAP, peg::eolf> {};
 
 template <typename Rule>
-using selector = peg::parse_tree::selector<
-    Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING>,
-    peg::parse_tree::fold_one::on<VALUE, MAP, PAIR, LIST>>;
+using selector =
+    peg::parse_tree::selector<Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING>,
+                              peg::parse_tree::fold_one::on<VALUE, MAP, PAIR, LIST>>;
 
-template <typename Rule> struct action : peg::nothing<Rule> {};
+template <typename Rule>
+struct action : peg::nothing<Rule> {};
 
 /*
 template <> struct action<HEX> {
@@ -114,11 +110,10 @@ template <> struct action<NUMBER> {
   }
 };
 */
-} // namespace json_ish
+}  // namespace json_ish
 
 template <typename GTYPE>
-auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
-    -> bool {
+auto runTest(size_t idx, const std::string &test_str, bool pdot = true) -> bool {
   std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   std::cout << "Parsing example " << idx << ":\n";
   std::cout << test_str << std::endl;
@@ -130,8 +125,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   bool ret{false};
   std::string out;
   try {
-    if (const auto root =
-            peg::parse_tree::parse<GTYPE, json_ish::selector>(in)) {
+    if (const auto root = peg::parse_tree::parse<GTYPE, json_ish::selector>(in)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
@@ -152,9 +146,7 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << in.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n' << in.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -163,7 +155,6 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
 }
 
 auto main() -> int {
-
   const bool pdot = false;
 
   if (peg::analyze<json_ish::grammar>() != 0) {
@@ -192,12 +183,11 @@ auto main() -> int {
     runTest<peg::must<json_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
-  std::vector map_strs = {
-      "{\"ints\":[1, 2,  -3 ], \"more_ints\": [1, 2, -5]}",
-      "{\"ints\"  :   \"test\"     }",
-      "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], \n"
-      "\"sci_notation_test\": [1.e3, 1.E-5, -4.3e+5] }",
-      "{\n\
+  std::vector map_strs = {"{\"ints\":[1, 2,  -3 ], \"more_ints\": [1, 2, -5]}",
+                          "{\"ints\"  :   \"test\"     }",
+                          "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], \n"
+                          "\"sci_notation_test\": [1.e3, 1.E-5, -4.3e+5] }",
+                          "{\n\
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\
   \"name\": \"Cake\",\n\
@@ -205,7 +195,7 @@ auto main() -> int {
   \"batters\": [ 0.2, 0.4, 0.6 ] \n\
 }",
 
-      "{\n\
+                          "{\n\
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\
   \"name\": \"Cake\",\n\
