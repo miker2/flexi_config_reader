@@ -9,6 +9,25 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // The data should consist only of specific types and eliminate all other
 // unecessary data (e.g. whitespace, etc).
 
+
+// This grammar parses a filename (path + filename) corresponding to a cfg file.
+namespace filename {
+
+struct DOTDOT : peg::two<'.'> {};
+struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
+struct SEP : peg::one<'/'> {};
+
+// There may be other valid characters in a filename. What might they be?
+struct ALPHAPLUS : peg::plus<peg::sor<peg::ranges<'A','Z','a','z','0','9','_'>, peg::one<'-'>>> {};
+
+struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
+struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
+
+struct grammar : peg::must<FILENAME> {};
+
+}
+
+
 namespace config {
 
 /*
@@ -137,25 +156,11 @@ struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 // keys in a single file. But not both.
 
 
-struct CONFIG : peg::seq<TAIL, peg::sor<STRUCTc, peg::plus<FULLPAIR>>, TAIL> {};
+struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};
+struct include_list : peg::star<INCLUDE> {};
+
+struct CONFIG : peg::seq<TAIL, include_list, peg::sor<STRUCTc, peg::plus<FULLPAIR>>, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
-
-}
-
-// This grammar parses a filename (path + filename) corresponding to a cfg file.
-namespace filename {
-
-struct DOTDOT : peg::two<'.'> {};
-struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
-struct SEP : peg::one<'/'> {};
-
-// There may be other valid characters in a filename. What might they be?
-struct ALPHAPLUS : peg::plus<peg::sor<peg::ranges<'A','Z','a','z','0','9','_'>, peg::one<'-'>>> {};
-
-struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
-struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
-
-struct grammar : peg::must<FILENAME> {};
 
 }

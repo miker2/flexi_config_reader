@@ -3,14 +3,16 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
+#include "config_grammar.h"
+
 namespace config {
 
 // TODO: Strip trailing whitespace from comments!
 
 template <typename Rule>
 using selector = peg::parse_tree::selector<
-  Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT>,
-  peg::parse_tree::remove_content::on<END, VARADD, VARREF>,
+  Rule, peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT, filename::FILENAME>,
+  peg::parse_tree::remove_content::on<END, VARADD, VARREF, INCLUDE>,
   /*
     peg::parse_tree::remove_content::on<WS_, NL, SP, oSP, COMMENT, TAIL, COMMA,
                                         SBo, SBc, CBo, CBc, KVs, HEXTAG, sign,
