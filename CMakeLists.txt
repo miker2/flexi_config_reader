@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.14)
 
+set(CMAKE_CXX_STANDARD 17)
+
 project (PARSER_LEXER)
+
 
 include(FetchContent)
 # Get taocpp::pegtl
 FetchContent_Declare(
 	taocpp_pegtl
 	GIT_REPOSITORY  https://github.com/taocpp/PEGTL.git
-	GIT_TAG         3.2.2
+	GIT_TAG         3.2.5
 	)
 
 FetchContent_MakeAvailable(taocpp_pegtl)
