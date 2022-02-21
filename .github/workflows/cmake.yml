@@ -36,15 +36,19 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G Ninja
 
-    - name: Generate python parser
+    - name: Generate python parsers
       run: |
-        ls -al
         pushd canopy
         npm install
         make test-python
         popd
         canopy/bin/canopy maps.peg --lang python
+        canopy/bin/canopy my_config.peg --lang python
+
+    - name: Run python tests
+      run: |
         python3 maps_test.py
+        python3 my_config_test.py
 
     - name: Build
       # Build your program with the given configuration
