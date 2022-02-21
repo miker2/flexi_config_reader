@@ -23,19 +23,26 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm install -g canopy
         sudo apt-get install -y ninja-build
 
-    - name: Generate python parser
-      run: |
-        which canopy
-        canopy maps.peg --lang python
-        python maps_test.py
+    - uses: actions/checkout@v2
+      with:
+        repository: jcoglan/canopy.git
+        ref: main
+        path: ./canopy
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G Ninja
+
+    - name: Generate python parser
+      run: |
+        ls -al
+        npm install
+        which canopy
+        canopy maps.peg --lang python
+        python maps_test.py
 
     - name: Build
       # Build your program with the given configuration
