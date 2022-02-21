@@ -6,8 +6,6 @@ import functools
 import logging
 import pprint
 
-import ipdb
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
