@@ -43,15 +43,13 @@ jobs:
         make test-python
         popd
         pushd ${{github.workspace}}/python
-        ${{github.workspace}}/canopy/bin/canopy ${{github.workspace}}/maps.peg --lang python
-        ${{github.workspace}}/canopy/bin/canopy ${{github.workspace}}/my_config.peg --lang python
-        ls -al
+        ${{github.workspace}}/canopy/bin/canopy maps.peg --lang python
+        ${{github.workspace}}/canopy/bin/canopy my_config.peg --lang python
         popd
 
     - name: Run python tests
       run: |
         pushd ${{github.workspace}}/python
-        ls -al
         python3 maps_test.py
         python3 my_config_test.py
         popd
