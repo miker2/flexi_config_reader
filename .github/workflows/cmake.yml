@@ -39,10 +39,12 @@ jobs:
     - name: Generate python parser
       run: |
         ls -al
+        pushd canopy
         npm install
-        which canopy
-        canopy maps.peg --lang python
-        python maps_test.py
+        make
+        popd
+        canopy/bin/canopy maps.peg --lang python
+        python3 maps_test.py
 
     - name: Build
       # Build your program with the given configuration
