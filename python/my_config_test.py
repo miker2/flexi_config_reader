@@ -194,5 +194,5 @@ cfg = mcr.ConfigReader(my_config_example, verbose=True)
 pprint.pprint(cfg.cfg)
 
 print("-------- File test ----------")
-cfg = mcr.ConfigReader.parse_from_file("example.cfg", verbose=False)
+cfg = mcr.ConfigReader.parse_from_file("../examples/example.cfg", verbose=False)
 pprint.pprint(cfg.cfg)

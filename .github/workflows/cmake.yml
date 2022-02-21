@@ -38,17 +38,21 @@ jobs:
 
     - name: Generate python parsers
       run: |
-        pushd canopy
+        pushd ${{github.workspace}}/canopy
         npm install
         make test-python
         popd
-        canopy/bin/canopy maps.peg --lang python
-        canopy/bin/canopy my_config.peg --lang python
+        pushd ${{github.workspace}}/python
+        ${{github.workspace}}/canopy/bin/canopy maps.peg --lang python
+        ${{github.workspace}}/canopy/bin/canopy my_config.peg --lang python
+        popd
 
     - name: Run python tests
       run: |
+        pushd ${{github.workspace}}/python
         python3 maps_test.py
         python3 my_config_test.py
+        popd
 
     - name: Build
       # Build your program with the given configuration
@@ -58,5 +62,9 @@ jobs:
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
-      
+      run: |
+        ctest -C ${{env.BUILD_TYPE}}
+        ${{github.workspace}}/build/c++/jsonish_test
+        ${{github.workspace}}/build/c++/include_file_test
+        ${{github.workspace}}/build/c++/config_test
+
