@@ -19,9 +19,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
 
     - name: Install dependencies
-      run: sudo apt-get install -y ninja-build
+      run: |
+        npm install -g canopy
+        sudo apt-get install -y ninja-build
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
