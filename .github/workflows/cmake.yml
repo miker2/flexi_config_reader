@@ -23,7 +23,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install -y ninja-build
+        sudo apt-get install -y ninja-build python-is-python3
 
     - uses: actions/checkout@v2
       with:
@@ -41,7 +41,7 @@ jobs:
         ls -al
         pushd canopy
         npm install
-        make
+        make test-python
         popd
         canopy/bin/canopy maps.peg --lang python
         python3 maps_test.py
