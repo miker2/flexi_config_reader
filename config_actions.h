@@ -61,8 +61,8 @@ struct selector<INCLUDE> : std::true_type {
       new_tree->children.pop_back();
       n->remove_content();
       n = std::move(c);
-      std::cout << "c=" << c << std::endl;
-      std::cout << "n=" << n << std::endl;
+      std::cout << "c=" << c.get() << std::endl;
+      std::cout << "n=" << n.get() << std::endl;
       std::cout << " --- n has " << n->children.size() << " children." << std::endl;
       std::cout << " --- Source: " << n->source << std::endl;
       std::cout << " ------ size: " << n->source.size() << std::endl;
