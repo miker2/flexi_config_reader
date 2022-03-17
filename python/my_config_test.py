@@ -24,6 +24,7 @@ end test1
 struct test2
     my_key = "foo"
     n_key = 1
+    var_ref = $(test1.key3)
 end test2
 '''
 
@@ -37,6 +38,7 @@ struct test1
     key2 = 1.342    # test comment here
     key3 = 10
     f = "none"
+    var_ref = $(test2.inner.val)
 end test1
 
 struct test2
@@ -65,6 +67,7 @@ end test1
 
 struct outer
     my_key = "foo"
+    var_ref = $(outer.inner.test1.key)
     n_key = 1
 
     struct inner   # Another comment "here"
@@ -101,6 +104,7 @@ struct protos
     key1 = $VAR1
     key2 = $VAR2
     not_a_var = 27
+    ref_var = $(ref_in_struct.hx.add_another)  # This one is tricky!
   end joint_proto
 end protos
 
@@ -165,6 +169,7 @@ end protos
 struct outer
     my_key = "foo"
     n_key = 1
+    var_ref = $(outer.fl.key_3)
 
     struct inner   # Another comment "here"
       key = 1

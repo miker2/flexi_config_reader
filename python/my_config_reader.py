@@ -95,6 +95,16 @@ class Reference(collections.abc.Mapping):
     def __iter__(self):
         yield self.name
 
+class ValueLookup:
+    def __init__(self, name):
+        self.keys = name.split('.')
+
+    @property
+    def var(self):
+        return '.'.join(self.keys)
+
+    def __repr__(self):
+        return f"$({self.var})"
 
 class Actions:
     @debugmethod
@@ -152,6 +162,10 @@ class Actions:
     @debugmethod
     def ref_add_var(self, input, start, end, elements):
         return {elements[1] : elements[3]}
+
+    @debugmethod
+    def var_ref(self, input, start, end, elements):
+        return ValueLookup(elements[1])
 
     @debugmethod
     def make_struct(self, input, start, end, elements):
@@ -233,6 +247,26 @@ def _merge_nested_dict(dict1, dict2, allow_overwrite=False):
 
     return out_dict
 
+# Using an array of nested keys, lookup the value from a dictionary
+@debugmethod
+def _find_dict_value(d, keys, ko=None):
+    if ko is None:
+        ko = keys
+
+    k0 = keys[0]
+    keys = keys[1:]
+    v = d[k0]
+
+    if len(keys) == 0:
+        return v
+    elif isinstance(v, dict):
+        return _find_dict_value(v, keys, ko)
+    else:
+        # The resulting value isn't a dictionary, and there are more keys in the list. This is
+        # an error!
+        raise Exception(f"key list contains {len(keys)} elements, but exhausted dictionary search. "
+                        f"Original key={'.'.join(ko)}, Remaining keys={'.'.join(keys)}")
+
 
 def makeName(n1, n2):
     if not n1 or len(n1) == 0:
@@ -254,7 +288,7 @@ class ConfigReader:
             logger.setLevel(logging.DEBUG)
         else:
             logger.setLevel(logging.INFO)
-        
+
         self._parse_result = my_config.parse(self.cfg_str, actions=Actions())
         print("Parsing completed successfully! Result:")
         pprint.pprint(self._parse_result)
@@ -268,7 +302,7 @@ class ConfigReader:
             cfg = ConfigReader(f.read(), verbose)
 
         return cfg
-    
+
     def _resolve_output(self):
         ''' Resolves the output of the PEG parsed data into a fully qualified struct containing
             all of the config entries. '''
@@ -297,7 +331,7 @@ class ConfigReader:
             d = _merge_nested_dict(d, el)
 
         pprint.pprint(d)
-    
+
         print("----- Remove protos from dictionary ----------------")
         # Remove the protos from merged dictionary
         for p in self._protos.keys():
@@ -311,6 +345,10 @@ class ConfigReader:
 
         print("----- Resolve all references  ----------------")
         self._resolve_references(d)
+        pprint.pprint(d)
+
+        print("----- Resolving variable references ----------")
+        self._resolve_var_ref(flat_data, d, d)
         pprint.pprint(d)
 
         print("----- Done! ----------------")
@@ -379,3 +417,16 @@ class ConfigReader:
 
             elif isinstance(v, dict):
                 self._resolve_references(v, new_name, ref_vars)
+
+    @debugmethod
+    def _resolve_var_ref(self, flat_data, root, d):
+        for k, v in d.items():
+            if isinstance(v, ValueLookup):
+                try:
+                    value = flat_data[v.var]
+                except KeyError:
+                    value = _find_dict_value(root, v.keys)
+                print(f"Found instance of ValueLookup: {v}. Has value={value}")
+                d[k] = value
+            elif isinstance(v, dict):
+                self._resolve_var_ref(flat_data, root, v)
