@@ -78,7 +78,7 @@ auto main() -> int {
     ret &= runTest<peg::must<config::INTEGER, peg::eolf>>(test_num++, content, pdot);
   }
   {
-    std::string content = "float.value  =  5.37e+6";
+    std::string content = "float.my.value  =  5.37e+6";
     ret &= runTest<peg::must<config::FULLPAIR, peg::eolf>>(test_num++, content, pdot);
   }
   {
@@ -88,6 +88,14 @@ auto main() -> int {
   {
     std::string content = "0x0ab0";
     ret &= runTest<peg::must<config::VALUE, peg::eolf>>(test_num++, content, pdot);
+  }
+  {
+    std::string content = "this.is.a.var.ref";
+    ret &= runTest<peg::must<config::FLAT_KEY, peg::eolf>>(test_num++, content, pdot);
+  }
+  {
+    std::string content = "$(this.is.a.var.ref)";
+    ret &= runTest<peg::must<config::VAR_REF, peg::eolf>>(test_num++, content, pdot);
   }
 
   std::vector config_strs = {

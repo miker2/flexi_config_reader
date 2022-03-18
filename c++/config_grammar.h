@@ -35,50 +35,41 @@ namespace config {
 
 // clang-format off
 /*
-# TODO: Support the following syntax:
-#         key = $(path.to.other.key)
-#       Where $(path.to.other.key) references the value in another struct
-
-# TODO: Support `FLAT_KEY KVs value` type entries (user can specify fully
-qualified values)
-
-# TODO: Create example with more comments to ensure they're handled properly
-everywhere.
-
 grammar my_config
-  map       <-  _ (struct / proto / reference)+ _ %make_map
-  struct    <-  STRUCTs KEY TAIL STRUCTc END _ %make_struct
-  proto     <-  PROTOs KEY TAIL STRUCTc END _ %make_proto
-  reference <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _ %make_reference
-  STRUCTs   <-  "struct" SP
-  PROTOs    <-  "proto" SP
-  REFs      <-  "reference" SP
-  END       <-  "end" SP KEY
-  STRUCTc   <-  (struct / PAIR / reference / proto)+
-  REFc      <-  (VARREF / VARADD)+
-  PAIR      <-  KEY KVs (value / VAR) TAIL %make_pair
-  VARREF    <-  VAR KVs value TAIL %ref_sub_var
-  VARADD    <-  "+" KEY KVs value TAIL %ref_add_var
-  FLAT_KEY  <-  KEY ("." KEY)?  %found_key  # Flattened struct/reference syntax
-  KEY       <-  [a-z] [a-zA-Z0-9_]*  %found_key
-  value     <-  list / HEX / number / string
-  string    <-  '"' [^"]* '"' %make_string
-  list      <-  SBo value (COMMA value)* SBc %make_list
-  number    <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
-  VAR       <-  "$" [A-Z0-9_]+  %make_var
-  HEX       <-  "0" [xX] [0-9a-fA-F]+ %make_hex
-  KVs       <-  oSP "=" oSP
-  CBo       <-  "{" oSP
-  CBc       <- oSP "}" _
-  SBo       <-  "[" oSP
-  SBc       <-  oSP "]"
-  COMMA     <-  oSP "," oSP
-  TAIL      <-  _ (COMMENT)*
-  COMMENT   <-  "#" [^\n\r]* _
-  oSP       <-  [ \t]*      # optional space
-  SP        <-  [ \t]+      # mandatory space
-  NL        <-  [\r\n]+     # (required) new line
-  _         <-  [ \t\r\n]*  # All whitespace
+  map        <-  _ (struct / proto / reference)+ _ %make_map
+  struct     <-  STRUCTs KEY TAIL STRUCTc END _ %make_struct
+  proto      <-  PROTOs KEY TAIL STRUCTc END _ %make_proto
+  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _ %make_reference
+  STRUCTs    <-  "struct" SP
+  PROTOs     <-  "proto" SP
+  REFs       <-  "reference" SP
+  END        <-  "end" SP KEY
+  STRUCTc    <-  (struct / PAIR / reference / proto)+
+  REFc       <-  (VARREF / VARADD)+
+  PAIR       <-  KEY KVs (value / VAR_REF / VAR) TAIL %make_pair
+  REF_VARSUB <-  VAR KVs value TAIL %ref_sub_var
+  REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
+  FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
+  KEY        <-  [a-z] [a-zA-Z0-9_]*  %found_key
+  value      <-  list / HEX / number / string
+  string     <-  '"' [^"]* '"' %make_string
+  list       <-  SBo value (COMMA value)* SBc %make_list
+  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
+  VAR        <-  "$" [A-Z0-9_]+  %make_var
+  VAR_REF    <-  "$(" FLAT_KEY ")" %var_ref
+  HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
+  KVs        <-  oSP "=" oSP
+  CBo        <-  "{" oSP
+  CBc        <- oSP "}" _
+  SBo        <-  "[" oSP
+  SBc        <-  oSP "]"
+  COMMA      <-  oSP "," oSP
+  TAIL       <-  _ (COMMENT)*
+  COMMENT    <-  "#" [^\n\r]* _
+  oSP        <-  [ \t]*      # optional space
+  SP         <-  [ \t]+      # mandatory space
+  NL         <-  [\r\n]+     # (required) new line
+  _          <-  [ \t\r\n]*  # All whitespace
 */
 // clang-format on
 
@@ -119,16 +110,18 @@ struct VALUE : peg::sor<LIST, HEX, NUMBER, STRING> {};
 struct KEY
     : peg::seq<peg::range<'a', 'z'>, peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
-struct VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
-struct VARREF : peg::seq<VAR, KVs, VALUE, TAIL> {};
+struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
+struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
 
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR>, TAIL> {};
+struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
+
+struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, VALUE, TAIL> {};
 
-struct END : peg::seq<peg::keyword<'e', 'n', 'd'>, SP, KEY> {};
+struct END : peg::seq<TAO_PEGTL_KEYWORD("end"), SP, KEY> {};
 
 struct REFs : peg::seq<TAO_PEGTL_KEYWORD("reference"), SP> {};
-struct REFc : peg::plus<peg::sor<VARREF, VARADD>> {};
+struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
 struct REFERENCE
     : peg::seq<REFs, FLAT_KEY, WS_, peg::keyword<'a', 's'>, WS_, KEY, TAIL, REFc, END, WS_> {};
 
