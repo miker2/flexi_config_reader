@@ -116,7 +116,7 @@ struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
 
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, VALUE, TAIL> {};
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 
 struct END : peg::seq<TAO_PEGTL_KEYWORD("end"), SP, KEY> {};
 

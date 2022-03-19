@@ -1,8 +1,8 @@
-import my_config
-
 import collections
 import copy
 import pprint
+
+import pe
 
 from helpers import *
 
@@ -74,107 +74,95 @@ class ValueLookup:
     def __repr__(self):
         return f"$({self.var})"
 
-class Actions:
-    @debugmethod
-    def make_map(self, input, start, end, elements):
-        print(elements[1])
-        # Skip opening whitespace
-        d = []
-        # More than one pair is optional. Walk through any remaining pairs and
-        # merge them into the dictionary.
-        for el in elements[1]:
-            d.append(el)
-            #d = {**d, **el}
-        return d
 
-    @debugmethod
-    def make_pair(self, input, start, end, elements):
-        return {elements[0]: elements[2]}
+@debugmethod
+def make_map(*elements, **kwargs):
+    # Skip opening whitespace
+    d = []
+    # More than one pair is optional. Walk through any remaining pairs and
+    # merge them into the dictionary.
+    for el in elements:
+        d.append(el)
+        #d = {**d, **el}
+    return d
 
-    @debugmethod
-    def found_key(self, input, start, end, elements):
-        return input[start:end]
+@debugmethod
+def make_pair(*elements, **kwargs):
+    return {elements[0]: elements[1]}
 
-    @debugmethod
-    def make_string(self, input, start, end, elements):
-        return elements[1].text
+@debugmethod
+def found_key(s):
+    return s
 
-    @debugmethod
-    def make_list(self, input, start, end, elements):
-        l = [elements[1]]
-        for el in elements[2]:
-            l.append(el.value)
-        return l
+@debugmethod
+def make_list(*elements, **kwargs):
+    return list(elements)
 
-    @debugmethod
-    def make_hex(self, input, start, end, elements):
-        return int(input[start:end], base=0)
+@debugmethod
+def make_number(v):
+    # Try creating an 'int' from the string first. If the string contains a float, then an
+    # exception will be raised. Fail back to creating a float.
+    try:
+        return int(v, 10)
+    except ValueError:
+        return float(v)
 
-    @debugmethod
-    def make_number(self, input, start, end, elements):
-        # Try creating an 'int' from the string first. If the string contains a float, then
-        # creating an 'int' will fail. Fall back to a float.
-        try:
-            return int(input[start:end], 10)
-        except ValueError:
-            return float(input[start:end])
+@debugmethod
+def make_var(elements):
+    return ProtoVar(elements[1:])
 
-    @debugmethod
-    def make_var(self, input, start, end, elements):
-        return ProtoVar(elements[1].text)
+@debugmethod
+def ref_sub_var(*elements, **kwargs):
+    return ReferenceVar(elements[0].name, elements[1])
 
-    @debugmethod
-    def ref_sub_var(self, input, start, end, elements):
-        return ReferenceVar(elements[0].name, elements[2])
+@debugmethod
+def ref_add_var(*elements, **kwargs):
+    return {elements[0] : elements[1]}
 
-    @debugmethod
-    def ref_add_var(self, input, start, end, elements):
-        return {elements[1] : elements[3]}
+@debugmethod
+def var_ref(*elements, **kwargs):
+    return ValueLookup(elements[0][2:-1])
 
-    @debugmethod
-    def var_ref(self, input, start, end, elements):
-        return ValueLookup(elements[1])
+@debugmethod
+def make_struct(*elements, **kwargs):
+    assert( elements[0] == elements[-1] )
+    d = {}
+    for el in elements[1:-1]:
+        if isinstance(el, Reference) or isinstance(el, Proto):
+            d[el.name] = el
+        elif el is not None:
+            d = {**d, **el}
+    return { elements[0] : d }
 
-    @debugmethod
-    def make_struct(self, input, start, end, elements):
-        assert( elements[1] == elements[5] )
-        d = {}
-        for el in elements[3]:
-            if isinstance(el, Reference) or isinstance(el, Proto):
-                d[el.name] = el
-            elif el is not None:
-                d = {**d, **el}
-        return { elements[1] : d }
+@debugmethod
+def make_proto(*elements, **kwargs):
+    assert( elements[0] == elements[-1] )
+    d = {}
+    for el in elements[1:-1]:
+        if isinstance(el, Reference):
+            d[el.name] = el
+        elif el is not None:
+            d = {**d, **el}
+    return { elements[0] : Proto(elements[0], d) }
 
-    @debugmethod
-    def make_proto(self, input, start, end, elements):
-        assert( elements[1] == elements[5] )
-        d = {}
-        for el in elements[3]:
-            if isinstance(el, Reference):
-                d[el.name] = el
-            elif el is not None:
-                d = {**d, **el}
-        #return Proto(elements[1], d)
-        return { elements[1] : Proto(elements[1], d) }
-
-    @debugmethod
-    def make_reference(self, input, start, end, elements):
-        assert( elements[5] == elements[9] )
-        logger.debug(f"proto: {elements[1]}")
-        logger.debug(f"struct: {elements[5]}")
-        l = []
-        d = {}
-        for el in elements[7]:
-            if el is None:
-                continue
-            if isinstance(el, dict):
-                d = {**d, **el}
-            else:
-                l.append(el)
-        l.append(d)
-        logger.debug(f"contents: {l}")
-        return Reference(elements[5], elements[1], l)
+@debugmethod
+def make_reference(*elements, **kwargs):
+    assert( elements[1] == elements[-1] )
+    logger.debug(f"proto: {elements[0]}")
+    logger.debug(f"struct: {elements[1]}")
+    l = []
+    d = {}
+    for el in elements[2:-1]:
+        print(el)
+        if el is None:
+            continue
+        if isinstance(el, dict):
+            d = {**d, **el}
+        else:
+            l.append(el)
+    l.append(d)
+    logger.debug(f"contents: {l}")
+    return Reference(elements[1], elements[0], l)
 
 
 # TODO: Figure out how to delete empty structs/dicts efficiently (for example, when protos are
@@ -188,7 +176,31 @@ class ConfigReader:
         else:
             logger.setLevel(logging.INFO)
 
-        self._parse_result = my_config.parse(self.cfg_str, actions=Actions())
+        self._grammar = None
+        with open("my_config.peg", 'r') as f:
+            self._grammar = f.read()
+
+        self._parser = pe.compile(self._grammar, flags=pe.OPTIMIZE,
+                                  actions={'map' : make_map,
+                                           'struct' : make_struct,
+                                           'proto' : make_proto,
+                                           'reference' : make_reference,
+                                           'PAIR' : make_pair,
+                                           'REF_VARSUB' : ref_sub_var,
+                                           'REF_VARADD' : ref_add_var,
+                                           'VAR_REF': pe.actions.Capture(var_ref),
+                                           'VAR' : pe.actions.Capture(make_var),
+                                           'KEY' : pe.actions.Capture(found_key),
+                                           'FLAT_KEY' : pe.actions.Capture(found_key),
+                                           'STRING' : pe.actions.Capture(lambda x: x[1:-1]),
+                                           'HEX' : pe.actions.Capture(lambda x: int(x, 16)),
+                                           'NUMBER' : pe.actions.Capture(make_number),
+                                           'list' : make_list})
+
+        out = self._parser.match(self.cfg_str)
+        print(out)
+        print(out.groups())
+        self._parse_result = self._parser.match(self.cfg_str).value()
         print("Parsing completed successfully! Result:")
         pprint.pprint(self._parse_result)
 
