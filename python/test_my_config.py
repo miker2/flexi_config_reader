@@ -18,9 +18,13 @@ class TestMyConfig(unittest.TestCase):
           f = "none"
         end test1
 
+        # Does this comment work here?
+
         struct test2
+          # And another comment.
           my_key = "foo"
           n_key = 1
+          my_hex   =   0x4539
           var_ref = $(test1.key3)
         end test2
         '''
@@ -31,6 +35,7 @@ class TestMyConfig(unittest.TestCase):
                                   'key3': 10},
                         'test2': {'my_key': 'foo',
                                   'n_key': 1,
+                                  'my_hex': 0x4539,
                                   'var_ref': 10}}
         cfg = mcr.ConfigReader(my_config_example, verbose=False)
         self.assertEqual(cfg.cfg, expected_cfg)
