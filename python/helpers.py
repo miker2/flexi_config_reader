@@ -1,5 +1,6 @@
 import functools
 import logging
+import pprint
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -20,7 +21,7 @@ def debugmethod(func):
     def wrapper(*args, **kwargs):
         logger.debug("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
         logger.debug(f'Calling : {func.__name__}')
-        logger.debug(f'args: {args}')
+        logger.debug(f'args: {pprint.pformat(args)}')
         logger.debug(f'kwargs: {kwargs}')
 
         return_value = func(*args, **kwargs)

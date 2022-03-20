@@ -2,34 +2,48 @@
 
 import logging
 import pprint
+import unittest
 
 import my_config_reader as mcr
 
 
+class TestMyConfig(unittest.TestCase):
+    def setUp(self):
+        pass
 
+    def test_basic(self):
 
+        print("----------------- Test 1 ------------------------------------------------------------------")
+        my_config_example = '''
+        struct test1
+          key1 = "value"
+          key2 = 1.342    # test comment here
+          key3 = 10
+          f = "none"
+        end test1
 
+        struct test2
+          my_key = "foo"
+          n_key = 1
+          var_ref = $(test1.key3)
+        end test2
+        '''
+
+        cfg = mcr.ConfigReader(my_config_example, verbose=False)
+
+        expected_cfg = {'test1': {'f': 'none',
+                                  'key1': 'value',
+                                  'key2': 1.342,
+                                  'key3': 10},
+                        'test2': {'my_key': 'foo',
+                                  'n_key': 1,
+                                  'var_ref': 10}}
+        self.assertEqual(cfg.cfg, expected_cfg)
+
+#unittest.main(verbosity=2)
+
+#assert(False)
 ######### TESTS ########################################################################
-
-
-print("----------------- Test 1 ------------------------------------------------------------------")
-my_config_example = '''
-struct test1
-    key1 = "value"
-    key2 = 1.342    # test comment here
-    key3 = 10
-    f = "none"
-end test1
-
-struct test2
-    my_key = "foo"
-    n_key = 1
-    var_ref = $(test1.key3)
-end test2
-'''
-
-cfg = mcr.ConfigReader(my_config_example)
-pprint.pprint(cfg.cfg)
 
 print("----------------- Test 2 ------------------------------------------------------------------")
 my_config_example = '''
@@ -142,7 +156,7 @@ end test1
 
 '''
 
-cfg = mcr.ConfigReader(my_config_example, verbose=True)
+cfg = mcr.ConfigReader(my_config_example, verbose=False)
 pprint.pprint(cfg.cfg)
 
 print("----------------- Test 5 ------------------------------------------------------------------")
@@ -195,7 +209,7 @@ end outer
 
 '''
 
-cfg = mcr.ConfigReader(my_config_example, verbose=True)
+cfg = mcr.ConfigReader(my_config_example, verbose=False)
 pprint.pprint(cfg.cfg)
 
 print("-------- File test ----------")
