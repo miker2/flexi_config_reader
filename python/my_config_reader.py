@@ -206,32 +206,32 @@ class ConfigReader:
         ''' Resolves the output of the PEG parsed data into a fully qualified struct containing
             all of the config entries. '''
         # First, we need to flatten all of the data in the list
-        print("----- Flatten list into dict ----------------")
+        logger.info("----- Flatten list into dict ----------------")
         flat_data = {}
         for el in self._parse_result:
             if isinstance(el, dict):
                 flat_data = {**flat_data, **self._flatten(el)}
             else:
                 flat_data[el.name] = el
-            print(f" *** For {el}: \n +++ flat_data: {flat_data}")
+            logger.info(f" *** For {el}: \n +++ flat_data: {flat_data}")
 
-        print("flat_data:")
-        pprint.pprint(flat_data)
+        logger.info("flat_data:")
+        logger.info(pprint.pformat(flat_data))
 
-        print("----- Find all protos ----------------")
+        logger.info("----- Find all protos ----------------")
         # This is going to be inefficient, but we need to walk the list and create a list of all protos
         self._protos = { k : v for k, v in flat_data.items() if isinstance(v, Proto) }
 
-        pprint.pprint(self._protos)
+        logger.info(pprint.pformat(self._protos))
 
-        print("----- Merge nested dictionaries ----------------")
+        logger.info("----- Merge nested dictionaries ----------------")
         d = {}
         for el in self._parse_result:
             d = merge_nested_dict(d, el)
 
-        pprint.pprint(d)
+        logger.info(pprint.pformat(d))
 
-        print("----- Remove protos from dictionary ----------------")
+        logger.info("----- Remove protos from dictionary ----------------")
         # Remove the protos from merged dictionary
         for p in self._protos.keys():
             parts = p.split('.')
@@ -240,17 +240,17 @@ class ConfigReader:
                 tmp = tmp[parts[i]]
             del tmp[parts[-1]]
 
-        pprint.pprint(d)
+        logger.info(pprint.pformat(d))
 
-        print("----- Resolve all references  ----------------")
+        logger.info("----- Resolve all references  ----------------")
         self._resolve_references(d)
-        pprint.pprint(d)
+        logger.info(pprint.pformat(d))
 
-        print("----- Resolving variable references ----------")
+        logger.info("----- Resolving variable references ----------")
         self._resolve_var_ref(flat_data, d, d)
-        pprint.pprint(d)
+        logger.info(pprint.pformat(d))
 
-        print("----- Done! ----------------")
+        logger.info("----- Done! ----------------")
         return d
 
 
