@@ -44,9 +44,13 @@ jobs:
         popd
         pushd ${{github.workspace}}/python
         ${{github.workspace}}/canopy/bin/canopy maps.peg --lang python
-        ${{github.workspace}}/canopy/bin/canopy my_config.peg --lang python
         popd
 
+    - uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+    - run: pip install -r requirements.txt
     - name: Run python tests
       run: |
         pushd ${{github.workspace}}/python
