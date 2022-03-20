@@ -2,41 +2,9 @@ import my_config
 
 import collections
 import copy
-import functools
-import logging
 import pprint
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-# create formatter
-formatter = logging.Formatter('%(message)s')
-
-# add formatter to ch
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-
-def debugmethod(func):
-    """ Debug a method and return it back"""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        logger.debug("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-        logger.debug(f'Calling : {func.__name__}')
-        logger.debug(f'args: {args}')
-        logger.debug(f'kwargs: {kwargs}')
-
-        return_value = func(*args, **kwargs)
-
-        logger.debug(f"{func.__name__} returned '{return_value}'")
-        logger.debug("========================================================")
-
-        return return_value
-
-    return wrapper
-
+from helpers import *
 
 class ProtoVar:
     def __init__(self, name, value=None):
@@ -209,75 +177,6 @@ class Actions:
         return Reference(elements[5], elements[1], l)
 
 
-######### HELPERS ########################################################################
-def _merge_nested_dict(dict1, dict2, allow_overwrite=False):
-    ''' Merge dictionaries recursively and keep all nested keys combined between
-        the two dictionaries. Any key/value pairs that already exist in the
-        leaves of dict1 will be overwritten by the same key/value pairs from
-        dict2.'''
-
-    def checkForErrors(key):
-        ''' Three cases to check for:
-              - Both are dictionaries     - This is okay
-              - Neither are dictionaries  - This is bad - even if the same value, we don't allow duplicates
-              - Only ones is a dictionary - Also bad. We can't handle this one
-        '''
-        dict_count = isinstance(dict1[key], dict) + isinstance(dict2[key], dict)
-        if dict_count == 0:    # Neither is a dictionary. We don't support duplicate keys
-            print(f"Found duplicate key: '{key}' with values '{dict1[key]}' and '{dict2[key]}'!!!")
-        elif dict_count == 1:  # One dictionary, but not the other, can't merge these
-            print(f"Mismatched types for key '{key}'! One is a dict, the other is a value")
-
-        return dict_count != 2  # All good if both are dictionaries (for now)
-
-    common_keys = set(dict1.keys()).intersection(dict2.keys())
-    #print(f"Common keys: {common_keys}")
-    for k in common_keys:
-        assert(allow_overwrite or not checkForErrors(k))
-
-    # This over-writes the top level keys in dict1 with dict2. If there are
-    # nested dictionaries, we need to handle these appropriately.
-    out_dict = {**dict1, **dict2}
-    for key, value in out_dict.items():
-        if key in dict1 and key in dict2:
-            # Find any values in the top-level keys that are also dictionaries.
-            # Call this function recursively.
-            if type(dict1[key]) == dict and type(dict2[key]) == dict:
-                out_dict[key] = _merge_nested_dict(dict1[key], dict2[key], allow_overwrite)
-
-    return out_dict
-
-# Using an array of nested keys, lookup the value from a dictionary
-@debugmethod
-def _find_dict_value(d, keys, ko=None):
-    if ko is None:
-        ko = keys
-
-    k0 = keys[0]
-    keys = keys[1:]
-    v = d[k0]
-
-    if len(keys) == 0:
-        return v
-    elif isinstance(v, dict):
-        return _find_dict_value(v, keys, ko)
-    else:
-        # The resulting value isn't a dictionary, and there are more keys in the list. This is
-        # an error!
-        raise Exception(f"key list contains {len(keys)} elements, but exhausted dictionary search. "
-                        f"Original key={'.'.join(ko)}, Remaining keys={'.'.join(keys)}")
-
-
-def makeName(n1, n2):
-    if not n1 or len(n1) == 0:
-        return n2
-    elif not n2 or len(n2) == 0:
-        return n1
-
-    return f"{n1}.{n2}"
-
-
-
 # TODO: Figure out how to delete empty structs/dicts efficiently (for example, when protos are
 # removed from the struct, they may leave an empty parent.
 
@@ -328,7 +227,7 @@ class ConfigReader:
         print("----- Merge nested dictionaries ----------------")
         d = {}
         for el in self._parse_result:
-            d = _merge_nested_dict(d, el)
+            d = merge_nested_dict(d, el)
 
         pprint.pprint(d)
 
@@ -361,7 +260,7 @@ class ConfigReader:
         if flat is None:
             flat = {}
         for k, v in d.items():
-            new_name = makeName(name, k)
+            new_name = make_name(name, k)
             if isinstance(v, dict):
                 flat = self._flatten(v, name=new_name, flat=flat)
             else:
@@ -393,7 +292,7 @@ class ConfigReader:
         if ref_vars is None:
             ref_vars = {}
         for k, v in d.items():
-            new_name = makeName(name, k)
+            new_name = make_name(name, k)
             if isinstance(v, Reference):
                 p = self._protos[v.proto]
                 print(f"p: {p}")
@@ -407,13 +306,13 @@ class ConfigReader:
                     elif isinstance(el, dict):
                         # append to proto
                         print(f"new keys: {el}")
-                        r = _merge_nested_dict(r, el)
+                        r = merge_nested_dict(r, el)
 
                 print(f"Ref vars: {ref_vars}")
                 self._replace_proto_var(r, ref_vars)
                 d[k] = r
                 # Call recursively in case the current reference has another reference
-                self._resolve_references(r, makeName(new_name, k), ref_vars)
+                self._resolve_references(r, make_name(new_name, k), ref_vars)
 
             elif isinstance(v, dict):
                 self._resolve_references(v, new_name, ref_vars)
@@ -425,7 +324,7 @@ class ConfigReader:
                 try:
                     value = flat_data[v.var]
                 except KeyError:
-                    value = _find_dict_value(root, v.keys)
+                    value = get_dict_value(root, v.keys)
                 print(f"Found instance of ValueLookup: {v}. Has value={value}")
                 d[k] = value
             elif isinstance(v, dict):
