@@ -52,6 +52,7 @@ jobs:
         pushd ${{github.workspace}}/python
         python3 maps_test.py
         python3 my_config_test.py
+        python3 -m unittest discover -v
         popd
 
     - name: Build
