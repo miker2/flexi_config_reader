@@ -169,8 +169,7 @@ def make_reference(*elements, **kwargs):
 # removed from the struct, they may leave an empty parent.
 
 class ConfigReader:
-    def __init__(self, cfg_str, verbose=False):
-        self.cfg_str = cfg_str
+    def __init__(self, verbose=False):
         if verbose:
             logger.setLevel(logging.DEBUG)
         else:
@@ -197,22 +196,28 @@ class ConfigReader:
                                            'NUMBER' : pe.actions.Capture(make_number),
                                            'list' : make_list})
 
-        out = self._parser.match(self.cfg_str)
-        print(out)
-        print(out.groups())
-        self._parse_result = self._parser.match(self.cfg_str).value()
-        print("Parsing completed successfully! Result:")
-        pprint.pprint(self._parse_result)
 
-        self._protos = {}
-        self.cfg = self._resolve_output()
+    @staticmethod
+    def parse_string(cfg_str, verbose=False):
+        cfg = ConfigReader(verbose)
+        return cfg.parse(cfg_str)
 
     @staticmethod
     def parse_from_file(filename, verbose=False):
-        with open(filename) as f:
-            cfg = ConfigReader(f.read(), verbose)
+        cfg = ConfigReader(verbose)
 
-        return cfg
+        with open(filename) as f:
+            return cfg.parse(f.read())
+
+    def parse(self, cfg_str):
+        out = self._parser.match(cfg_str)
+        self._parse_result = out.value()
+        logger.debug(pprint.pformat(self._parse_result))
+        self._protos = {}
+        self.cfg = self._resolve_output()
+
+        return self.cfg
+
 
     def _resolve_output(self):
         ''' Resolves the output of the PEG parsed data into a fully qualified struct containing

@@ -7,7 +7,7 @@ import my_config_reader as mcr
 
 class TestMyConfig(unittest.TestCase):
     def setUp(self):
-        pass
+        self.cfg = mcr.ConfigReader(verbose=False)
 
     def test_1(self):
         my_config_example = '''
@@ -37,8 +37,8 @@ class TestMyConfig(unittest.TestCase):
                                   'n_key': 1,
                                   'my_hex': 0x4539,
                                   'var_ref': 10}}
-        cfg = mcr.ConfigReader(my_config_example, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        cfg = self.cfg.parse(my_config_example)
+        self.assertEqual(cfg, expected_cfg)
 
     def test_2(self):
         my_config_example = '''
@@ -72,8 +72,8 @@ class TestMyConfig(unittest.TestCase):
                                             'val': 1.232e10},
                                   'my_key': 'foo',
                                   'n_key': 1}}
-        cfg = mcr.ConfigReader(my_config_example, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        cfg = self.cfg.parse(my_config_example)
+        self.assertEqual(cfg, expected_cfg)
 
     def test_3(self):
         my_config_example = '''
@@ -121,8 +121,8 @@ class TestMyConfig(unittest.TestCase):
                                             'test1': {'key': -5}}
                                   }
                         }
-        cfg = mcr.ConfigReader(my_config_example, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        cfg = self.cfg.parse(my_config_example)
+        self.assertEqual(cfg, expected_cfg)
 
 
     def test_4(self):
@@ -200,8 +200,8 @@ class TestMyConfig(unittest.TestCase):
                         }
 
 
-        cfg = mcr.ConfigReader(my_config_example, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        cfg = self.cfg.parse(my_config_example)
+        self.assertEqual(cfg, expected_cfg)
 
 
     def test_5(self):
@@ -275,8 +275,8 @@ class TestMyConfig(unittest.TestCase):
                         }
 
 
-        cfg = mcr.ConfigReader(my_config_example, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        cfg = self.cfg.parse(my_config_example)
+        self.assertEqual(cfg, expected_cfg)
 
 
     def test_parse_from_file(self):
@@ -302,7 +302,7 @@ class TestMyConfig(unittest.TestCase):
                       }
         }
         cfg = mcr.ConfigReader.parse_from_file(input_file, verbose=False)
-        self.assertEqual(cfg.cfg, expected_cfg)
+        self.assertEqual(cfg, expected_cfg)
 
 
 if __name__ == '__main__':
