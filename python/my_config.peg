@@ -29,8 +29,12 @@
   SBc        <-  oSP "]"
   COMMA      <-  oSP "," oSP
   TAIL       <-  _ (COMMENT)*
-  COMMENT    <-  "#" (!NL .)* _
-  oSP        <-  [ \t]*
-  SP         <-  [ \t]+
-  NL         <-  [\r\n]+ / "\r\n"+
+#  COMMENT    <-  "#" (!NL .)* _
+  COMMENT    <-  "#" non_eol* _
+  non_ascii  <-  [\x80-\uD7FF\uE000-\uFFFF]
+  non_eol    <-  [\x09\x20-\x7F] / non_ascii
+  SP_c       <-  [ \t]
+  oSP        <-  SP_c*
+  SP         <-  SP_c+
+  NL         <-  ([\r\n] / "\r\n")+
   _          <-  [ \t\r\n]*
