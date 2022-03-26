@@ -119,9 +119,8 @@ end test2\n\
     ret &= runTest<config::grammar>(in, pdot);
   }
 
-  return 0;
   
-  for (size_t i = 1; i <= 6; ++i) {
+  for (size_t i = 1; i <= 1; ++i) {
     const auto cfg_file =
         std::filesystem::path(EXAMPLE_DIR) / ("config_example" + std::to_string(i) + ".cfg");
     peg::file_input in(cfg_file);

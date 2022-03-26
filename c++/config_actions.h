@@ -10,6 +10,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
 #include "config_grammar.h"
+#include "config_helpers.h"
 
 namespace config {
 
@@ -139,24 +140,48 @@ template <> struct action<KEY> {
 template <> struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << "Found value: " << in.string() << std::endl;
+    // std::cout << "Found value: " << in.string() << std::endl;
     out.result = in.string();
   }
 };
 
 template <> struct action<FLAT_KEY> {
-  static void apply0(ActionData& out) {
-    // TODO: Super inefficient. Also, is this actually what we want to do?
-    std::string flat_key = "";
-    while (out.keys.size() > 1) {
-      flat_key = "." + out.keys.back() + flat_key;
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    // A FLAT_KEY is made up of a bunch of KEYs, but we may not want to consume all keys here (because this could be inside another struct. Nominally, a FLAT_KEY shouldn't be in a struct/proto/reference, but a FLAT_KEY can be used to represent a variable reference, so it might be.
+    auto keys = utils::split(in.string(), '.');
+
+    // Ensure that 'out.keys' has enough keys!
+    if (out.keys.size() < keys.size()) {
+      std::cerr << "[FLAT_KEY] Not enough keys in list!" << std::endl;
+      return;
+    }
+    const auto N_KEYS = keys.size();
+    // Walk through the keys, and pop them off of out.keys
+    for (size_t i = 0; i < N_KEYS; ++i) {
+      // Consume 1 key for every key in "keys"
+      // TODO: Check if the keys are the same?
+      std::cout << "Popping: " << keys.back() << " | " << out.keys.back() << std::endl;
+      keys.pop_back();
       out.keys.pop_back();
     }
-    flat_key = out.keys.back() + flat_key;
-    out.keys.pop_back();
-    out.flat_keys.emplace_back(flat_key);
+    out.flat_keys.emplace_back(in.string());
   }
 };
+
+template <> struct action<VAR_REF> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of the existing key list.
+    out.result = in.string();
+    const auto var_ref = utils::trim(in.string(), "$()");
+    std::cout << "[VAR_REF] Result: " << var_ref << std::endl;
+    // Consume the most recent FLAT_KEY.
+    std::cout << "[VAR_REF] Consuming: '" << out.flat_keys.back() << "'" << std::endl;
+    out.flat_keys.pop_back();
+  }
+};
+    
 
 template <>
 struct action<PAIR> {
@@ -166,7 +191,7 @@ struct action<PAIR> {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       return;
     }
-    std::cout << out.keys.back() << " = " << out.result << std::endl;
+    // std::cout << out.keys.back() << " = " << out.result << std::endl;
 
     out.pairs.push_back({out.keys.back(), out.result});
     out.keys.pop_back();
@@ -176,12 +201,12 @@ struct action<PAIR> {
 
 template <> struct action<FULLPAIR> {
   static void apply0(ActionData& out) {
-    std::cout << "Found Full pair" << std::endl;
+    // std::cout << "Found Full pair" << std::endl;
     if (out.flat_keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       return;
     }
-    std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
+    // std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
 
     out.pairs.push_back({out.flat_keys.back(), out.result});
     out.flat_keys.pop_back();
@@ -208,11 +233,20 @@ template <> struct action<STRUCT> {
   }
 };
 
+template <> struct action<REFERENCE> {
+  static void apply0(ActionData& out) {
+    // std::cout << "Found Struct: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    out.reference_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
+  }
+};
+
 template <> struct action<END> {
   static void apply0(ActionData& out) {
     // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've made a mistake!
     if (out.keys.size() < 2) {
-      std::cerr << "This is bad. Probably should throw here." << std::endl;
+      std::cerr << "[END] This is bad. Probably should throw here." << std::endl;
       return;
     }
     const auto end_key = out.keys.back();
