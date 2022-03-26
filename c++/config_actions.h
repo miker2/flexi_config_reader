@@ -3,11 +3,9 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <vector>
-
-
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
+#include <vector>
 
 #include "config_grammar.h"
 #include "config_helpers.h"
@@ -128,8 +126,8 @@ struct ActionData {
   }
 };
 
-
-template <> struct action<KEY> {
+template <>
+struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     // std::cout << "Found key: '" << in.string() << "'" << std::endl;
@@ -137,7 +135,8 @@ template <> struct action<KEY> {
   }
 };
 
-template <> struct action<VALUE> {
+template <>
+struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     // std::cout << "Found value: " << in.string() << std::endl;
@@ -145,10 +144,14 @@ template <> struct action<VALUE> {
   }
 };
 
-template <> struct action<FLAT_KEY> {
+template <>
+struct action<FLAT_KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // A FLAT_KEY is made up of a bunch of KEYs, but we may not want to consume all keys here (because this could be inside another struct. Nominally, a FLAT_KEY shouldn't be in a struct/proto/reference, but a FLAT_KEY can be used to represent a variable reference, so it might be.
+    // A FLAT_KEY is made up of a bunch of KEYs, but we may not want to consume all keys here
+    // (because this could be inside another struct. Nominally, a FLAT_KEY shouldn't be in a
+    // struct/proto/reference, but a FLAT_KEY can be used to represent a variable reference, so it
+    // might be.
     auto keys = utils::split(in.string(), '.');
 
     // Ensure that 'out.keys' has enough keys!
@@ -169,10 +172,12 @@ template <> struct action<FLAT_KEY> {
   }
 };
 
-template <> struct action<VAR_REF> {
+template <>
+struct action<VAR_REF> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of the existing key list.
+    // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of the
+    // existing key list.
     out.result = in.string();
     const auto var_ref = utils::trim(in.string(), "$()");
     std::cout << "[VAR_REF] Result: " << var_ref << std::endl;
@@ -181,7 +186,6 @@ template <> struct action<VAR_REF> {
     out.flat_keys.pop_back();
   }
 };
-    
 
 template <>
 struct action<PAIR> {
@@ -199,7 +203,8 @@ struct action<PAIR> {
   }
 };
 
-template <> struct action<FULLPAIR> {
+template <>
+struct action<FULLPAIR> {
   static void apply0(ActionData& out) {
     // std::cout << "Found Full pair" << std::endl;
     if (out.flat_keys.empty()) {
@@ -211,11 +216,11 @@ template <> struct action<FULLPAIR> {
     out.pairs.push_back({out.flat_keys.back(), out.result});
     out.flat_keys.pop_back();
     out.result = "";
-
   }
 };
 
-template <> struct action<PROTO> {
+template <>
+struct action<PROTO> {
   static void apply0(ActionData& out) {
     // std::cout << "Found Proto: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
@@ -224,7 +229,8 @@ template <> struct action<PROTO> {
   }
 };
 
-template <> struct action<STRUCT> {
+template <>
+struct action<STRUCT> {
   static void apply0(ActionData& out) {
     // std::cout << "Found Struct: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
@@ -233,7 +239,8 @@ template <> struct action<STRUCT> {
   }
 };
 
-template <> struct action<REFERENCE> {
+template <>
+struct action<REFERENCE> {
   static void apply0(ActionData& out) {
     // std::cout << "Found Struct: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
@@ -242,9 +249,11 @@ template <> struct action<REFERENCE> {
   }
 };
 
-template <> struct action<END> {
+template <>
+struct action<END> {
   static void apply0(ActionData& out) {
-    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've made a mistake!
+    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've
+    // made a mistake!
     if (out.keys.size() < 2) {
       std::cerr << "[END] This is bad. Probably should throw here." << std::endl;
       return;
@@ -254,8 +263,6 @@ template <> struct action<END> {
     std::cout << "End key matches struct key? " << (end_key == out.keys.back()) << std::endl;
   }
 };
-
-
 
 /*
 template <> struct action<HEX> {
