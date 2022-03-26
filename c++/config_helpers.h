@@ -1,6 +1,9 @@
 #pragma once
 
+#include <iostream>
+#include <span>
 #include <string>
+#include <vector>
 
 namespace config::utils {
 auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::string {
@@ -20,3 +23,15 @@ auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
   return tokens;
 }
 }  // namespace config::utils
+
+template <typename T>
+std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec) {
+  std::copy(std::begin(vec), std::end(vec), std::ostream_iterator<T>(o, " "));
+  return o;
+}
+
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+std::ostream& operator<<(std::ostream& o, const std::span<T>& spn) {
+  std::copy(std::begin(spn), std::end(spn), std::ostream_iterator<T>(o, " "));
+  return o;
+}

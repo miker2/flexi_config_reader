@@ -84,6 +84,10 @@ struct selector<INCLUDE> : std::true_type {
 template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
+enum class GroupType { kNone = 0, kStruct, kProto, kReference };
+
+const std::string DEFAULT_RES{"***"};
+
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
   std::vector<std::string> proto_names{};
@@ -91,12 +95,16 @@ struct ActionData {
   std::vector<std::string> reference_names{};
 
   int depth{0};  // Nesting level
+  GroupType type{GroupType::kNone};
+  GroupType type_outer{GroupType::kNone};
 
-  std::string result;
+  std::string result = DEFAULT_RES;
+  std::string var = DEFAULT_RES;
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
 
   std::vector<std::pair<std::string, std::string>> pairs;
+  std::vector<std::pair<std::string, std::string>> special_pairs;
 
   void print() {
     std::cout << "Proto names: \n";
@@ -123,7 +131,12 @@ struct ActionData {
     for (const auto& pair : pairs) {
       std::cout << "  " << pair.first << " = " << pair.second << "\n";
     }
+    std::cout << "Special Pairs: \n";
+    for (const auto& pair : special_pairs) {
+      std::cout << "  " << pair.first << " = " << pair.second << "\n";
+    }
     std::cout << "result: " << result << std::endl;
+    std::cout << "var: " << var << std::endl;
     std::cout << "^^^^^^^^^^" << std::endl;
   }
 };
@@ -132,7 +145,8 @@ template <>
 struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // std::cout << "Found key: '" << in.string() << "'" << std::endl;
+    // std::cout << std::string(out.depth * 2, ' ') << "Found key: '" << in.string() << "'" <<
+    // std::endl;
     out.keys.emplace_back(in.string());
   }
 };
@@ -141,8 +155,20 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // std::cout << "Found value: " << in.string() << std::endl;
+    // std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
     out.result = in.string();
+  }
+};
+
+template <>
+struct action<VAR> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << std::string(out.depth * 2, ' ') << "Found var: " << in.string() << std::endl;
+    // Store in both "result" and "var" for now since we don't know whether this is on the left or
+    // right side of the equals yet.
+    out.result = in.string();
+    out.var = in.string();
   }
 };
 
@@ -152,8 +178,8 @@ struct action<FLAT_KEY> {
   static void apply(const ActionInput& in, ActionData& out) {
     // A FLAT_KEY is made up of a bunch of KEYs, but we may not want to consume all keys here
     // (because this could be inside another struct. Nominally, a FLAT_KEY shouldn't be in a
-    // struct/proto/reference, but a FLAT_KEY can be used to represent a variable reference, so it
-    // might be.
+    // struct/proto/reference, but a FLAT_KEY can be used to represent a variable reference, so
+    // it might be.
     auto keys = utils::split(in.string(), '.');
 
     // Ensure that 'out.keys' has enough keys!
@@ -179,8 +205,8 @@ template <>
 struct action<VAR_REF> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of the
-    // existing key list.
+    // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
+    // the existing key list.
     out.result = in.string();
     const auto var_ref = utils::trim(in.string(), "$()");
     std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Result: " << var_ref << std::endl;
@@ -203,7 +229,7 @@ struct action<PAIR> {
 
     out.pairs.push_back({out.keys.back(), out.result});
     out.keys.pop_back();
-    out.result = "";
+    out.result = DEFAULT_RES;
   }
 };
 
@@ -219,13 +245,33 @@ struct action<FULLPAIR> {
 
     out.pairs.push_back({out.flat_keys.back(), out.result});
     out.flat_keys.pop_back();
-    out.result = "";
+    out.result = DEFAULT_RES;
+  }
+};
+
+template <>
+struct action<REF_VARADD> {
+  static void apply0(ActionData& out) {
+    out.special_pairs.push_back({"+" + out.keys.back(), out.result});
+    out.keys.pop_back();
+    out.result = DEFAULT_RES;
+  }
+};
+
+template <>
+struct action<REF_VARSUB> {
+  static void apply0(ActionData& out) {
+    out.special_pairs.push_back({out.var, out.result});
+    out.var = DEFAULT_RES;
+    out.result = DEFAULT_RES;
   }
 };
 
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
+    out.type_outer = out.type;
+    out.type = GroupType::kStruct;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
   }
@@ -234,6 +280,8 @@ struct action<STRUCTs> {
 template <>
 struct action<PROTOs> {
   static void apply0(ActionData& out) {
+    out.type_outer = out.type;
+    out.type = GroupType::kProto;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
   }
@@ -242,6 +290,8 @@ struct action<PROTOs> {
 template <>
 struct action<REFs> {
   static void apply0(ActionData& out) {
+    out.type_outer = out.type;
+    out.type = GroupType::kReference;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
   }
@@ -270,28 +320,40 @@ struct action<PROTO> {
 template <>
 struct action<REFERENCE> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Struct: " << out.keys.back() << std::endl;
+    // std::cout << "Found Reference: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
-    out.reference_names.emplace_back(out.keys.back());
+
+    // First, we need to consume the proto that is being referenced.
+    std::string ref_info = out.keys.back() + " : " + out.flat_keys.back();
+    out.reference_names.emplace_back(ref_info);
     out.keys.pop_back();
+    out.flat_keys.pop_back();
   }
 };
 
 template <>
 struct action<END> {
   static void apply0(ActionData& out) {
-    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've
-    // made a mistake!
+    // TODO: If we've found an end tag, then the last two keys should match. If they don't,
+    // we've made a mistake!
     if (out.keys.size() < 2) {
       std::cerr << "[END] This is bad. Probably should throw here." << std::endl;
       return;
     }
     const auto end_key = out.keys.back();
     out.keys.pop_back();
-    std::cout << std::string(out.depth * 2, ' ') << "End key matches struct key? "
-              << (end_key == out.keys.back()) << std::endl;
+    const auto is_match = end_key == out.keys.back();
+    std::cout << std::string(out.depth * 2, ' ') << "End key matches struct key? " << is_match
+              << std::endl;
+    if (!is_match) {
+      std::cout << "~~~~~ Debug ~~~~~" << std::endl;
+      std::cout << "End key: " << end_key << std::endl;
+      out.print();
+      std::cout << "##### Debug #####" << std::endl;
+    }
     out.depth--;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+    out.type = out.type_outer;
   }
 };
 
