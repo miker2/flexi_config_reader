@@ -2,6 +2,10 @@
 
 #include <filesystem>
 #include <iostream>
+#include <string>
+#include <vector>
+
+
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
@@ -54,8 +58,14 @@ struct selector<INCLUDE> : std::true_type {
     const auto file_contents = std::string(input_file.begin(), input_file.size());
     auto input = peg::string_input(file_contents, input_file.source());
 
+    // TODO: Convert this to a `parse_nested` call, which will likely fix the issues noted above of
+    // requiring a string input instead of a file input.
+    // See: https://github.com/taocpp/PEGTL/blob/main/doc/Inputs-and-Parsing.md#nested-parsing
+
     if (auto new_tree = peg::parse_tree::parse<config::grammar, config::selector>(input)) {
+#if PRINT_DOT
       peg::parse_tree::print_dot(std::cout, *new_tree->children.back());
+#endif
       auto c = std::move(new_tree->children.back());
       std::cout << " --- Parsed include file has " << c->children.size() << " children.\n";
       new_tree->children.pop_back();
@@ -76,6 +86,128 @@ template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
 // Add action to perform when a `proto` is encountered!
+struct ActionData {
+  std::vector<std::string> proto_names{};
+
+  std::string result;
+  std::vector<std::string> keys;
+  std::vector<std::string> flat_keys;
+
+  std::vector<std::pair<std::string, std::string>> pairs;
+
+  void print() {
+    std::cout << "Proto names: \n";
+    for (const auto& pn : proto_names) {
+      std::cout << "  " << pn << "\n";
+    }
+    std::cout << "Keys: \n";
+    for (const auto& key : keys) {
+      std::cout << "  " << key << "\n";
+    }
+    std::cout << "Flat Keys: \n";
+    for (const auto& key : flat_keys) {
+      std::cout << "  " << key << "\n";
+    }
+    /*
+    std::cout << "Pairs: \n";
+    for (const auto& pair : pairs) {
+      std::cout << "  " << pair.first << " = " << pair.second << "\n";
+    }
+    */
+    std::cout << "^^^^^^^^^^" << std::endl;
+  }
+};
+
+template <> struct action<PROTO> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << "Found Proto: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    out.proto_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
+  }
+};
+
+template <> struct action<STRUCT> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << "Found Struct: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    //out.proto_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
+  }
+};
+
+template <> struct action<END> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've made a mistake!
+    std::cout << "  --  Found end: " << in.string_view() << std::endl;
+  }
+};
+
+template <> struct action<KEY> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << "Found key: '" << in.string() << "'" << std::endl;
+    out.keys.emplace_back(in.string());
+  }
+};
+
+template <> struct action<FLAT_KEY> {
+  static void apply0(ActionData& out) {
+    std::string flat_key = "";
+    while (out.keys.size() > 1) {
+      flat_key = "." + out.keys.back() + flat_key;
+      out.keys.pop_back();
+    }
+    flat_key = out.keys.back() + flat_key;
+    out.keys.pop_back();
+    out.flat_keys.emplace_back(flat_key);
+  }
+};
+
+template <>
+struct action<PAIR> {
+  static void apply0(ActionData& out) {
+    std::cout << "Found pair" << std::endl;
+    if (out.keys.empty()) {
+      std::cerr << "  !!! Something went wrong !!!" << std::endl;
+      return;
+    }
+    std::cout << out.keys.back() << " = " << out.result << std::endl;
+    /*
+    out.pairs.push_back({out.keys.back(), out.result});
+    out.keys.pop_back();
+    out.result = "";
+    */
+  }
+};
+
+template <> struct action<FULLPAIR> {
+  static void apply0(ActionData& out) {
+    std::cout << "Found Full pair" << std::endl;
+    if (out.flat_keys.empty()) {
+      std::cerr << "  !!! Something went wrong !!!" << std::endl;
+      return;
+    }
+    std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
+    /*
+    out.pairs.push_back({out.flat_keys.back(), out.result});
+    out.keys.pop_back();
+    out.result = "";
+    */
+  }
+};
+
+template <> struct action<VALUE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << "Found value: " << in.string() << std::endl;
+    out.result = in.string();
+  }
+};
+
 
 /*
 template <> struct action<HEX> {
