@@ -88,6 +88,8 @@ struct action : peg::nothing<Rule> {};
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
   std::vector<std::string> proto_names{};
+  std::vector<std::string> struct_names{};
+  std::vector<std::string> reference_names{};
 
   std::string result;
   std::vector<std::string> keys;
@@ -100,6 +102,14 @@ struct ActionData {
     for (const auto& pn : proto_names) {
       std::cout << "  " << pn << "\n";
     }
+    std::cout << "Struct names: \n";
+    for (const auto& pn : struct_names) {
+      std::cout << "  " << pn << "\n";
+    }
+    std::cout << "Reference names: \n";
+    for (const auto& pn : reference_names) {
+      std::cout << "  " << pn << "\n";
+    }
     std::cout << "Keys: \n";
     for (const auto& key : keys) {
       std::cout << "  " << key << "\n";
@@ -108,54 +118,35 @@ struct ActionData {
     for (const auto& key : flat_keys) {
       std::cout << "  " << key << "\n";
     }
-    /*
     std::cout << "Pairs: \n";
     for (const auto& pair : pairs) {
       std::cout << "  " << pair.first << " = " << pair.second << "\n";
     }
-    */
+    std::cout << "result: " << result << std::endl;
     std::cout << "^^^^^^^^^^" << std::endl;
   }
 };
 
-template <> struct action<PROTO> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << "Found Proto: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-    out.proto_names.emplace_back(out.keys.back());
-    out.keys.pop_back();
-  }
-};
-
-template <> struct action<STRUCT> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << "Found Struct: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-    //out.proto_names.emplace_back(out.keys.back());
-    out.keys.pop_back();
-  }
-};
-
-template <> struct action<END> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've made a mistake!
-    std::cout << "  --  Found end: " << in.string_view() << std::endl;
-  }
-};
 
 template <> struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << "Found key: '" << in.string() << "'" << std::endl;
+    // std::cout << "Found key: '" << in.string() << "'" << std::endl;
     out.keys.emplace_back(in.string());
+  }
+};
+
+template <> struct action<VALUE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << "Found value: " << in.string() << std::endl;
+    out.result = in.string();
   }
 };
 
 template <> struct action<FLAT_KEY> {
   static void apply0(ActionData& out) {
+    // TODO: Super inefficient. Also, is this actually what we want to do?
     std::string flat_key = "";
     while (out.keys.size() > 1) {
       flat_key = "." + out.keys.back() + flat_key;
@@ -170,17 +161,16 @@ template <> struct action<FLAT_KEY> {
 template <>
 struct action<PAIR> {
   static void apply0(ActionData& out) {
-    std::cout << "Found pair" << std::endl;
+    // std::cout << "Found pair" << std::endl;
     if (out.keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       return;
     }
     std::cout << out.keys.back() << " = " << out.result << std::endl;
-    /*
+
     out.pairs.push_back({out.keys.back(), out.result});
     out.keys.pop_back();
     out.result = "";
-    */
   }
 };
 
@@ -192,21 +182,45 @@ template <> struct action<FULLPAIR> {
       return;
     }
     std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
-    /*
+
     out.pairs.push_back({out.flat_keys.back(), out.result});
-    out.keys.pop_back();
+    out.flat_keys.pop_back();
     out.result = "";
-    */
+
   }
 };
 
-template <> struct action<VALUE> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << "Found value: " << in.string() << std::endl;
-    out.result = in.string();
+template <> struct action<PROTO> {
+  static void apply0(ActionData& out) {
+    // std::cout << "Found Proto: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    out.proto_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
   }
 };
+
+template <> struct action<STRUCT> {
+  static void apply0(ActionData& out) {
+    // std::cout << "Found Struct: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    out.struct_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
+  }
+};
+
+template <> struct action<END> {
+  static void apply0(ActionData& out) {
+    // TODO: If we've found an end tag, then the last two keys should match. If they don't, we've made a mistake!
+    if (out.keys.size() < 2) {
+      std::cerr << "This is bad. Probably should throw here." << std::endl;
+      return;
+    }
+    const auto end_key = out.keys.back();
+    out.keys.pop_back();
+    std::cout << "End key matches struct key? " << (end_key == out.keys.back()) << std::endl;
+  }
+};
+
 
 
 /*
