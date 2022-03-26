@@ -10,6 +10,8 @@
 #include "config_grammar.h"
 #include "config_helpers.h"
 
+#define VERBOSE_DEBUG 0
+
 namespace config {
 
 // TODO: Strip trailing whitespace from comments!
@@ -145,8 +147,10 @@ template <>
 struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // std::cout << std::string(out.depth * 2, ' ') << "Found key: '" << in.string() << "'" <<
-    // std::endl;
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "Found key: '" << in.string() << "'"
+              << std::endl;
+#endif
     out.keys.emplace_back(in.string());
   }
 };
@@ -155,7 +159,9 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
+#endif
     out.result = in.string();
   }
 };
@@ -192,8 +198,10 @@ struct action<FLAT_KEY> {
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
       // TODO: Check if the keys are the same?
+#if VERBOSE_DEBUG
       std::cout << std::string(out.depth * 2, ' ') << "Popping: " << keys.back() << " | "
                 << out.keys.back() << std::endl;
+#endif
       keys.pop_back();
       out.keys.pop_back();
     }
