@@ -86,6 +86,14 @@ struct CBo : peg::pad<peg::one<'{'>, peg::blank> {};
 struct CBc : peg::pad<peg::one<'}'>, peg::blank> {};
 struct KVs : peg::pad<peg::one<'='>, peg::blank> {};
 
+struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
+struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
+struct REFk : TAO_PEGTL_KEYWORD("reference") {};
+struct ASk : TAO_PEGTL_KEYWORD("as") {};
+struct ENDk : TAO_PEGTL_KEYWORD("end") {};
+
+struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
+
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
@@ -107,29 +115,30 @@ struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
 
 struct VALUE : peg::sor<LIST, HEX, NUMBER, STRING> {};
 
-struct KEY
-    : peg::seq<peg::range<'a', 'z'>, peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
+// Account for the reserved keyword: "end" when looking for keys (don't match "end" as a key, ever!)
+struct KEY : peg::seq<peg::not_at<RESERVED>, peg::range<'a', 'z'>,
+                      peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
 struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
 struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
 
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
 
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
 
-struct END : peg::seq<TAO_PEGTL_KEYWORD("end"), SP, KEY> {};
+// TODO: Fix this "end" is being matched as a "KEY", but it shouldn't be.
+struct END : peg::seq<ENDk, SP, KEY> {};
 
-struct REFs : peg::seq<TAO_PEGTL_KEYWORD("reference"), SP> {};
+struct REFs : peg::seq<REFk, SP> {};
 struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
-struct REFERENCE
-    : peg::seq<REFs, FLAT_KEY, WS_, peg::keyword<'a', 's'>, WS_, KEY, TAIL, REFc, END, WS_> {};
+struct REFERENCE : peg::seq<REFs, FLAT_KEY, SP, ASk, SP, KEY, TAIL, REFc, END, WS_> {};
 
 struct STRUCTc;
-struct PROTOs : peg::seq<TAO_PEGTL_KEYWORD("proto"), SP> {};
+struct PROTOs : peg::seq<PROTOk, SP> {};
 struct PROTO : peg::seq<PROTOs, KEY, TAIL, STRUCTc, END, WS_> {};
 
-struct STRUCTs : peg::seq<TAO_PEGTL_KEYWORD("struct"), SP> {};
+struct STRUCTs : peg::seq<STRUCTk, SP> {};
 struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, WS_> {};
 
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
@@ -145,7 +154,13 @@ struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};
 struct include_list : peg::star<INCLUDE> {};
 
-struct CONFIG : peg::seq<TAIL, include_list, peg::sor<STRUCTc, peg::plus<FULLPAIR>>, TAIL> {};
+// This is a little weird, but we need to match the `FULLPAIR` before `STRUCTc`, otherwise the
+// `PAIR` that can be contained by `STRUCTc` will start to match a single key, then fall back to the
+// `FULLPAIR` match, which results in the first `KEY` of the `FLAT_KEY` in the `FULLPAIR` to be
+// matched twice.
+struct CONFIG
+    : peg::seq<TAIL, include_list,
+               peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
