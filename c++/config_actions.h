@@ -75,6 +75,8 @@ struct selector<INCLUDE> : std::true_type {
 template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
+// Add action to perform when a `proto` is encountered!
+
 /*
 template <> struct action<HEX> {
   template <typename ActionInput>
