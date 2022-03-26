@@ -90,6 +90,8 @@ struct ActionData {
   std::vector<std::string> struct_names{};
   std::vector<std::string> reference_names{};
 
+  int depth{0};  // Nesting level
+
   std::string result;
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
@@ -164,7 +166,8 @@ struct action<FLAT_KEY> {
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
       // TODO: Check if the keys are the same?
-      std::cout << "Popping: " << keys.back() << " | " << out.keys.back() << std::endl;
+      std::cout << std::string(out.depth * 2, ' ') << "Popping: " << keys.back() << " | "
+                << out.keys.back() << std::endl;
       keys.pop_back();
       out.keys.pop_back();
     }
@@ -180,9 +183,10 @@ struct action<VAR_REF> {
     // existing key list.
     out.result = in.string();
     const auto var_ref = utils::trim(in.string(), "$()");
-    std::cout << "[VAR_REF] Result: " << var_ref << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Result: " << var_ref << std::endl;
     // Consume the most recent FLAT_KEY.
-    std::cout << "[VAR_REF] Consuming: '" << out.flat_keys.back() << "'" << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Consuming: '" << out.flat_keys.back()
+              << "'" << std::endl;
     out.flat_keys.pop_back();
   }
 };
@@ -220,12 +224,26 @@ struct action<FULLPAIR> {
 };
 
 template <>
-struct action<PROTO> {
+struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Proto: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-    out.proto_names.emplace_back(out.keys.back());
-    out.keys.pop_back();
+    out.depth++;
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+  }
+};
+
+template <>
+struct action<PROTOs> {
+  static void apply0(ActionData& out) {
+    out.depth++;
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+  }
+};
+
+template <>
+struct action<REFs> {
+  static void apply0(ActionData& out) {
+    out.depth++;
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
   }
 };
 
@@ -235,6 +253,16 @@ struct action<STRUCT> {
     // std::cout << "Found Struct: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
     out.struct_names.emplace_back(out.keys.back());
+    out.keys.pop_back();
+  }
+};
+
+template <>
+struct action<PROTO> {
+  static void apply0(ActionData& out) {
+    // std::cout << "Found Proto: " << out.keys.back() << std::endl;
+    // TODO: This isn't really what we want to do, but it's simple enough for now.
+    out.proto_names.emplace_back(out.keys.back());
     out.keys.pop_back();
   }
 };
@@ -260,7 +288,10 @@ struct action<END> {
     }
     const auto end_key = out.keys.back();
     out.keys.pop_back();
-    std::cout << "End key matches struct key? " << (end_key == out.keys.back()) << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "End key matches struct key? "
+              << (end_key == out.keys.back()) << std::endl;
+    out.depth--;
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
   }
 };
 
