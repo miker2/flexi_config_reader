@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <iterator>
+#include <numeric>
 #include <span>
 #include <string>
 #include <vector>
@@ -21,6 +23,15 @@ auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
     tokens.push_back(token);
   }
   return tokens;
+}
+
+auto join(std::vector<const std::string>& keys, const std::string& delim) -> std::string {
+  if (keys.empty()) {
+    return std::string();
+  }
+
+  return std::accumulate(std::next(std::begin(keys), 1), std::end(keys), keys.front(),
+                         [&delim](std::string x, std::string y) { return x + delim + y; });
 }
 }  // namespace config::utils
 

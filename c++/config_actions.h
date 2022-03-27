@@ -191,15 +191,17 @@ template <>
 struct action<INCLUDE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "Found include file: " << out.result << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "Found include file: " << out.result
+              << std::endl;
     try {
-      // NOTE: All include files are relative to `EXAMPLE_DIR` for now. This will eventually be an input.
+      // NOTE: All include files are relative to `EXAMPLE_DIR` for now. This will eventually be an
+      // input.
       const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / out.result;
-      peg::file_input include_file( cfg_file );
+      peg::file_input include_file(cfg_file);
       std::cout << "nested parse: " << include_file.source() << std::endl;
       peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
-    } catch( const std::system_error& e ) {
-      throw peg::parse_error( "Include error", in.position() );
+    } catch (const std::system_error& e) {
+      throw peg::parse_error("Include error", in.position());
     }
   }
 };
