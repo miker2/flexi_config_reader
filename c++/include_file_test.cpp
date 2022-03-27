@@ -10,34 +10,89 @@
 #include <tao/pegtl/contrib/trace.hpp>
 #include <vector>
 
+#include "config_grammar.h"
+
 namespace peg = TAO_PEGTL_NAMESPACE;
+
+namespace dummy {
+struct grammar : peg::star<peg::any> {};
+
+template <typename Rule>
+using selector = peg::parse_tree::selector<Rule,
+                                           peg::parse_tree::store_content::on<peg::any>>;
+}
 
 namespace filename {
 
-struct DOTDOT : peg::two<'.'> {};
-struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
-struct SEP : peg::one<'/'> {};
-
-struct ALPHAPLUS
-    : peg::plus<peg::sor<peg::ranges<'A', 'Z', 'a', 'z', '0', '9', '_'>, peg::one<'-'>>> {};
-
-struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
-struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
-
-struct grammar : peg::must<FILENAME> {};
-
 template <typename Rule>
-using selector =
+struct selector :
     peg::parse_tree::selector<Rule, peg::parse_tree::store_content::on<FILEPART, FILENAME, EXT>,
-                              peg::parse_tree::remove_content::on<ALPHAPLUS>>;
+                              peg::parse_tree::remove_content::on<ALPHAPLUS>> {};
+
+template <>
+struct selector<config::INCLUDE> : std::true_type {
+  template <typename... States>
+  static void transform(std::unique_ptr<peg::parse_tree::node>& n, States&&... st) {
+    std::cout << "Successfully found a " << n->type << " node in " << n->source << "!\n";
+    std::string filename = "";
+    for (const auto& c : n->children) {
+      std::cout << "Has child of type " << c->type << ".\n";
+      if (c->has_content()) {
+        std::cout << "  Content: " << c->string_view() << "\n";
+      }
+      if (c->is_type<filename::FILENAME>()) {
+        filename = c->string();
+      }
+    }
+    std::cout << std::endl;
+
+    std::cout << " --- Node has " << n->children.size() << " children.\n";
+
+    //// Let's try to parse the "include" file and replace this node with the output!
+    // Build the parse path:
+    auto include_path = std::filesystem::path(n->source).parent_path() / filename;
+
+    std::cout << "Trying to parse: " << include_path << std::endl;
+    auto input_file = peg::file_input(include_path);
+
+    // This is a bit of a hack. We need to use a 'string_input' here because if we don't, the
+    // 'file_input' will go out of scope, and the generating the 'dot' output will fail. This would
+    // likely be the case when trying to walk the parse tree later.
+    // TODO: Find a more elegant way of
+    // doing this.
+    const auto file_contents = std::string(input_file.begin(), input_file.size());
+    auto input = peg::string_input(file_contents, input_file.source());
+
+    // TODO: Convert this to a `parse_nested` call, which will likely fix the issues noted above of
+    // requiring a string input instead of a file input.
+    // See: https://github.com/taocpp/PEGTL/blob/main/doc/Inputs-and-Parsing.md#nested-parsing
+
+    if (auto new_tree = peg::parse_tree::parse<dummy::grammar, dummy::selector>(input)) {
+#if PRINT_DOT
+      peg::parse_tree::print_dot(std::cout, *new_tree->children.back());
+#endif
+      auto c = std::move(new_tree->children.back());
+      std::cout << " --- Parsed include file has " << c->children.size() << " children.\n";
+      new_tree->children.pop_back();
+      n->remove_content();
+      n = std::move(c);
+      std::cout << "c=" << c.get() << std::endl;
+      std::cout << "n=" << n.get() << std::endl;
+      std::cout << " --- n has " << n->children.size() << " children." << std::endl;
+      std::cout << " --- Source: " << n->source << std::endl;
+      std::cout << " ------ size: " << n->source.size() << std::endl;
+    } else {
+      std::cout << "Failed to properly parse " << include_path << "." << std::endl;
+    }
+  }
+};
 
 }  // namespace filename
 
 namespace include_file {
-struct INCLUDE : TAO_PEGTL_KEYWORD("#include") {};
-
-struct grammar : peg::seq<INCLUDE, peg::plus<peg::blank>, filename::FILENAME> {};
+struct grammar : peg::seq<config::TAIL, config::include_list> {};
 }  // namespace include_file
+
 
 #if 0
 template <typename GTYPE>
@@ -144,7 +199,7 @@ auto main() -> int {
     ret &= runTest<filename::FILENAME>(test_num++, e);
   }
 
-  runTest<include_file::grammar>(999, "#include ../robot/default.cfg");
+  runTest<include_file::grammar>(999, "include ../robot/default.cfg\n");
 
   return (ret ? 0 : 10);
 }
