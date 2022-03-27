@@ -25,7 +25,7 @@ auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
   return tokens;
 }
 
-auto join(std::vector<const std::string>& keys, const std::string& delim) -> std::string {
+auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
   if (keys.empty()) {
     return std::string();
   }

@@ -7,6 +7,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <vector>
 
+#include "config_classes.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
 
