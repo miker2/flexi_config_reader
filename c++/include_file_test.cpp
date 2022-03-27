@@ -18,16 +18,16 @@ namespace dummy {
 struct grammar : peg::star<peg::any> {};
 
 template <typename Rule>
-using selector = peg::parse_tree::selector<Rule,
-                                           peg::parse_tree::store_content::on<peg::any>>;
-}
+using selector = peg::parse_tree::selector<Rule, peg::parse_tree::store_content::on<peg::any>>;
+}  // namespace dummy
 
 namespace filename {
 
 template <typename Rule>
-struct selector :
-    peg::parse_tree::selector<Rule, peg::parse_tree::store_content::on<FILEPART, FILENAME, EXT>,
-                              peg::parse_tree::remove_content::on<ALPHAPLUS>> {};
+struct selector
+    : peg::parse_tree::selector<
+          Rule, peg::parse_tree::store_content::on<FILENAME, FILEPART, EXT, config::INCLUDE>,
+          peg::parse_tree::remove_content::on<ALPHAPLUS>> {};
 
 template <>
 struct selector<config::INCLUDE> : std::true_type {
@@ -93,10 +93,9 @@ namespace include_file {
 struct grammar : peg::seq<config::TAIL, config::include_list> {};
 }  // namespace include_file
 
-
 #if 0
 template <typename GTYPE>
-auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
+auto runTest(size_t idx, const std::string &test_str, bool pdot)
     -> bool {
   std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   std::cout << "Parsing example " << idx << ":\n";
@@ -136,7 +135,8 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
   std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
   return ret;
 }
-#endif
+
+#else
 
 template <typename GTYPE, typename SOURCE>
 auto runTest(SOURCE& src, bool pdot = true) -> bool {
@@ -147,7 +147,7 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
 
   bool ret{false};
   try {
-    if (const auto root = peg::parse_tree::parse<GTYPE>(src)) {
+    if (const auto root = peg::parse_tree::parse<GTYPE, filename::selector>(src)) {
       if (pdot) {
         peg::parse_tree::print_dot(std::cout, *root);
       }
@@ -175,6 +175,8 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
   return ret;
 }
 
+#endif
+
 template <typename GTYPE>
 auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool {
   peg::memory_input in(test_str, "example " + std::to_string(idx));
@@ -199,7 +201,9 @@ auto main() -> int {
     ret &= runTest<filename::FILENAME>(test_num++, e);
   }
 
-  runTest<include_file::grammar>(999, "include ../robot/default.cfg\n");
+  runTest<include_file::grammar>(999, "include ../examples/robot/default.cfg\n");
+
+  runTest<include_file::grammar>(998, "include ../examples/config_example5.cfg");
 
   return (ret ? 0 : 10);
 }
