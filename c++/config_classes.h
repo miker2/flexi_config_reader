@@ -1,6 +1,7 @@
 #include <any>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "config_helpers.h"
@@ -86,12 +87,12 @@ class ConfigRefVar : public ConfigBase {
   const std::string value{};
 };
 
-class ConfigStruct : public ConfigBase {
+class ConfigStructLike : public ConfigBase {
  public:
-  ConfigStruct(std::string name) : ConfigBase(Type::kStruct), name{std::move(name)} {};
+  ConfigStructLike(Type in_type, std::string name) : ConfigBase(in_type), name{std::move(name)} {};
 
   void stream(std::ostream& os) const override {
-    os << "struct " << name << "\n";
+    os << "struct-like " << name << "\n";
     os << data;
   }
 
@@ -100,9 +101,19 @@ class ConfigStruct : public ConfigBase {
   std::map<std::string, std::shared_ptr<ConfigBase>> data;
 };
 
-class ConfigProto : public ConfigBase {
+class ConfigStruct : public ConfigStructLike {
  public:
-  ConfigProto(std::string name) : ConfigBase(Type::kProto), name{std::move(name)} {}
+  ConfigStruct(std::string name) : ConfigStructLike(Type::kStruct, name){};
+
+  void stream(std::ostream& os) const override {
+    os << "struct " << name << "\n";
+    os << data;
+  }
+};
+
+class ConfigProto : public ConfigStructLike {
+ public:
+  ConfigProto(std::string name) : ConfigStructLike(Type::kProto, name) {}
 
   void stream(std::ostream& os) const override {
     os << "!PROTO! " << name << "\n";
@@ -110,16 +121,13 @@ class ConfigProto : public ConfigBase {
     os << data;
   }
 
-  const std::string name{};
-
   std::map<std::string, std::shared_ptr<ConfigProtoVar>> proto_vars;
-  std::map<std::string, std::shared_ptr<ConfigBase>> data;
 };
 
-class ConfigReference : public ConfigBase {
+class ConfigReference : public ConfigStructLike {
  public:
   ConfigReference(std::string name, std::string proto_name)
-      : ConfigBase(Type::kReference), name{std::move(name)}, proto{std::move(proto_name)} {};
+      : ConfigStructLike(Type::kReference, name), proto{std::move(proto_name)} {};
 
   void stream(std::ostream& os) const override {
     os << "!REFERENCE! " << proto << " as " << name << "\n";
@@ -127,11 +135,9 @@ class ConfigReference : public ConfigBase {
     os << data;
   }
 
-  const std::string name{};
   const std::string proto{};
 
   std::map<std::shared_ptr<ConfigRefVar>, std::shared_ptr<ConfigBase>> ref_vars;
-  std::map<std::string, std::shared_ptr<ConfigBase>> data;
 };
 
 };  // namespace config::types

@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
