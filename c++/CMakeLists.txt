@@ -1,3 +1,7 @@
+set(CMAKE_CXX_STANDARD 20)
+
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "Version:  ${CMAKE_CXX_COMPILER_VERSION}")
 
 
 add_executable(jsonish_test jsonish_test.cpp)
