@@ -12,6 +12,7 @@
 
 #include "config_actions.h"
 #include "config_grammar.h"
+#include "config_selector.h"
 
 // TODO(rose@): Turn this into an actual test suite.
 
