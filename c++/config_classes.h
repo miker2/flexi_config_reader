@@ -79,22 +79,40 @@ class ConfigProtoVar : public ConfigBase {
   ConfigProtoVar(std::string name, std::string value)
       : ConfigBase(Type::kProtoVar), name{std::move(name)}, value{std::move(value)} {};
 
-  void stream(std::ostream& os) const override { os << "$" << name << "=" << value; }
+  void stream(std::ostream& os) const override { os << name << "=" << value; }
 
   const std::string name{};
   const std::string value{};
 };
+
+inline std::ostream& operator<<(std::ostream& os, const ConfigProtoVar& cfg) {
+  cfg.stream(os);
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ConfigProtoVar>& cfg) {
+  return (cfg ? (os << *cfg) : (os << "NULL"));
+}
 
 class ConfigRefVar : public ConfigBase {
  public:
   ConfigRefVar(std::string name, std::string value)
       : ConfigBase(Type::kRefVar), name{std::move(name)}, value{std::move(value)} {};
 
-  void stream(std::ostream& os) const override { os << "$" << name << "=" << value; }
+  void stream(std::ostream& os) const override { os << name << "=" << value; }
 
   const std::string name{};
   std::string value{};
 };
+
+inline std::ostream& operator<<(std::ostream& os, const ConfigRefVar& cfg) {
+  cfg.stream(os);
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ConfigRefVar>& cfg) {
+  return (cfg ? (os << *cfg) : (os << "NULL"));
+}
 
 class ConfigStructLike : public ConfigBase {
  public:

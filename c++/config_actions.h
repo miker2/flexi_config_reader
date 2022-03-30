@@ -296,10 +296,11 @@ struct action<PROTO_PAIR> {
 
     out.keys.pop_back();
     out.var = DEFAULT_RES;
-
+#if VERBOSE_DEBUG
     std::cout << "~~~~~ Debug ~~~~~" << std::endl;
     out.print();
     std::cout << "##### Debug #####" << std::endl;
+#endif
   }
 };
 
