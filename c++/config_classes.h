@@ -6,6 +6,8 @@
 
 #include "config_helpers.h"
 
+#define DEBUG_CLASSES 0
+
 template <typename Key, typename Value>
 inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& data) {
   for (const auto& kv : data) {
@@ -112,8 +114,9 @@ class ConfigStruct : public ConfigStructLike {
 
   void stream(std::ostream& os) const override {
     os << "struct " << name << " {\n";
-    os << "  " << data.size() << " k/v pairs"
-       << "\n";
+#if DEBUG_CLASSES
+    os << "  " << data.size() << " k/v pairs\n";
+#endif
     os << data;
     os << "}";
   }
@@ -125,10 +128,10 @@ class ConfigProto : public ConfigStructLike {
 
   void stream(std::ostream& os) const override {
     os << "!PROTO! " << name << " {\n";
-    os << "  " << proto_vars.size() << " proto vars"
-       << "\n";
-    os << "  " << data.size() << " k/v pairs"
-       << "\n";
+#if DEBUG_CLASSES
+    os << "  " << proto_vars.size() << " proto vars\n";
+    os << "  " << data.size() << " k/v pairs\n";
+#endif
     os << proto_vars << "\n";
     os << data;
     os << "}";
@@ -144,10 +147,10 @@ class ConfigReference : public ConfigStructLike {
 
   void stream(std::ostream& os) const override {
     os << "!REFERENCE! " << proto << " as " << name << " {\n";
-    os << "  " << ref_vars.size() << " ref vars"
-       << "\n";
-    os << "  " << data.size() << " k/v pairs"
-       << "\n";
+#if DEBUG_CLASSES
+    os << "  " << ref_vars.size() << " ref vars\n";
+    os << "  " << data.size() << " k/v pairs\n";
+#endif
     os << ref_vars << "\n";
     os << data;
     os << "}";

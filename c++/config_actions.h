@@ -49,17 +49,17 @@ struct ActionData {
       std::cout << "  " << key << "\n";
     }
     std::cout << "result: " << result << std::endl;
+    std::cout << "obj_res: " << obj_res << std::endl;
+    std::cout << "objects: " << std::endl;
+    for (const auto& obj : objects) {
+      std::cout << obj << std::endl;
+    }
     std::cout << "==========" << std::endl;
     std::cout << "cfg_res: " << std::endl;
     for (const auto& mp : cfg_res) {
       for (const auto& kv : mp) {
         std::cout << kv.first << " = " << kv.second << std::endl;
       }
-    }
-    std::cout << "obj_res: " << obj_res << std::endl;
-    std::cout << "objects: " << std::endl;
-    for (const auto& obj : objects) {
-      std::cout << obj << std::endl;
     }
     std::cout << "^^^^^^^^^^" << std::endl;
   }
@@ -95,7 +95,9 @@ template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "Found var: " << in.string() << std::endl;
+#endif
     // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
@@ -171,11 +173,11 @@ struct action<VAR_REF> {
     // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
     // the existing key list.
     const auto var_ref = utils::trim(in.string(), "$()");
+#if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Result: " << var_ref << std::endl;
-    // Consume the most recent FLAT_KEY.
     std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Consuming: '" << out.flat_keys.back()
               << "'" << std::endl;
-
+#endif
     out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
 
     out.flat_keys.pop_back();
@@ -185,7 +187,6 @@ struct action<VAR_REF> {
 template <>
 struct action<PAIR> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found pair" << std::endl;
     if (out.keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       out.print();
@@ -206,7 +207,6 @@ struct action<PAIR> {
 template <>
 struct action<FULLPAIR> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Full pair" << std::endl;
     if (out.flat_keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       out.print();
@@ -428,17 +428,16 @@ struct action<END> {
     // TODO: If we've found an end tag, then the last two keys should match. If they don't,
     // we've made a mistake!
     if (out.keys.size() < 2) {
-      std::cerr << "[END] This is bad. Probably should throw here." << std::endl;
-      return;
+      std::cerr << "[END] Expected <2 keys, found " << out.keys.size() << "." << std::endl;
+      out.print();
+      throw std::exception();
     }
     const auto end_key = out.keys.back();
     out.keys.pop_back();
     const auto is_match = end_key == out.keys.back();
-    std::cout << std::string(out.depth * 2, ' ') << "End key matches struct key? " << is_match
-              << std::endl;
     if (!is_match) {
       std::cout << "~~~~~ Debug ~~~~~" << std::endl;
-      std::cout << "End key: " << end_key << std::endl;
+      std::cout << "End key mismatch: " << end_key << "|" << out.keys.back() << std::endl;
       out.print();
       std::cout << "##### Debug #####" << std::endl;
       throw std::exception();
