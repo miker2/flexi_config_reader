@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -251,6 +252,7 @@ struct action<FULLPAIR> {
     }
     // std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
 
+    // TODO: Decide what to do about flat keys? Handle specially or store in normal K/V object?
     out.pairs.push_back({out.flat_keys.back(), out.result});
     out.flat_keys.pop_back();
     out.result = DEFAULT_RES;
@@ -261,6 +263,18 @@ template <>
 struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
     out.special_pairs.push_back({"+" + out.keys.back(), out.result});
+
+    // If we're here, then there must be an object and it must be a reference!
+    if (dynamic_pointer_cast<types::ConfigReference>(out.objects.back()) == nullptr) {
+      std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.result << "'."
+                << std::endl;
+      std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
+                << std::endl;
+      throw std::bad_cast();
+    }
+
+    out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
+
     out.keys.pop_back();
     out.result = DEFAULT_RES;
   }
