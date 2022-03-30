@@ -25,7 +25,6 @@ struct ActionData {
   int depth{0};  // Nesting level
 
   std::string result = DEFAULT_RES;
-  std::string var = DEFAULT_RES;
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
 
@@ -50,7 +49,6 @@ struct ActionData {
       std::cout << "  " << key << "\n";
     }
     std::cout << "result: " << result << std::endl;
-    std::cout << "var: " << var << std::endl;
     std::cout << "==========" << std::endl;
     std::cout << "cfg_res: " << std::endl;
     for (const auto& mp : cfg_res) {
@@ -58,12 +56,7 @@ struct ActionData {
         std::cout << kv.first << " = " << kv.second << std::endl;
       }
     }
-    if (obj_res != nullptr) {
-      std::cout << "obj_res: " << obj_res << std::endl;
-    } else {
-      std::cout << "obj_res: "
-                << "empty" << std::endl;
-    }
+    std::cout << "obj_res: " << obj_res << std::endl;
     std::cout << "objects: " << std::endl;
     for (const auto& obj : objects) {
       std::cout << obj << std::endl;
@@ -94,7 +87,6 @@ struct action<VALUE> {
 #if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
 #endif
-    out.result = in.string();
     out.obj_res = std::make_shared<types::ConfigValue>(in.string());
   }
 };
@@ -104,13 +96,12 @@ struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     std::cout << std::string(out.depth * 2, ' ') << "Found var: " << in.string() << std::endl;
-    // Store in both "result" and "var" for now since we don't know whether this is on the left or
-    // right side of the equals yet.
+    // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
+    // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
+    // that is captured.
     out.result = in.string();
-    out.var = in.string();
 
     out.obj_res = std::make_shared<types::ConfigProtoVar>(in.string(), "NULL");
-    // Handle ref vars appropriately in builder.
   }
 };
 
@@ -179,7 +170,6 @@ struct action<VAR_REF> {
   static void apply(const ActionInput& in, ActionData& out) {
     // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
     // the existing key list.
-    out.result = in.string();
     const auto var_ref = utils::trim(in.string(), "$()");
     std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Result: " << var_ref << std::endl;
     // Consume the most recent FLAT_KEY.
@@ -210,7 +200,6 @@ struct action<PAIR> {
     data[out.keys.back()] = std::move(out.obj_res);
 
     out.keys.pop_back();
-    out.result = DEFAULT_RES;
   }
 };
 
@@ -239,7 +228,6 @@ struct action<FULLPAIR> {
     data[out.flat_keys.back()] = std::move(out.obj_res);
 
     out.flat_keys.pop_back();
-    out.result = DEFAULT_RES;
   }
 };
 
@@ -248,7 +236,7 @@ struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
 #if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Result: " << out.keys.back()
-              << " = " << out.var << std::endl;
+              << " = " << out.result << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Key count: " << out.keys.size()
               << std::endl;
 #endif
@@ -256,7 +244,7 @@ struct action<PROTO_PAIR> {
     // If we're here, then there must be an object and it must be a proto!
     auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
     if (proto == nullptr) {
-      std::cerr << "Error while processing '+" << out.keys.back() << " = $" << out.var << "'."
+      std::cerr << "Error while processing '+" << out.keys.back() << " = $" << out.result << "'."
                 << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'proto'."
                 << std::endl;
@@ -275,7 +263,7 @@ struct action<PROTO_PAIR> {
     }
 
     out.keys.pop_back();
-    out.var = DEFAULT_RES;
+    out.result = DEFAULT_RES;
 #if VERBOSE_DEBUG
     std::cout << "~~~~~ Debug ~~~~~" << std::endl;
     out.print();
@@ -289,8 +277,8 @@ struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (dynamic_pointer_cast<types::ConfigReference>(out.objects.back()) == nullptr) {
-      std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.result << "'."
-                << std::endl;
+      std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.objects.back()
+                << "'." << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
                 << std::endl;
       throw std::bad_cast();
@@ -303,7 +291,6 @@ struct action<REF_VARADD> {
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
 
     out.keys.pop_back();
-    out.result = DEFAULT_RES;
   }
 };
 
@@ -313,17 +300,16 @@ struct action<REF_VARSUB> {
     // If we're here, then there must be an object and it must be a reference!
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     if (ref == nullptr) {
-      std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.result << "'."
+      std::cerr << "Error while processing '+" << out.result << " = " << out.obj_res << "'."
                 << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
                 << std::endl;
       throw std::bad_cast();
     }
 
-    ref->ref_vars[std::make_shared<types::ConfigRefVar>(out.var, out.result)] =
+    ref->ref_vars[std::make_shared<types::ConfigRefVar>(out.result, "NULL")] =
         std::move(out.obj_res);
 
-    out.var = DEFAULT_RES;
     out.result = DEFAULT_RES;
   }
 };
