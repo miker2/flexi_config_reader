@@ -101,7 +101,7 @@ struct action<VAR> {
     // that is captured.
     out.result = in.string();
 
-    out.obj_res = std::make_shared<types::ConfigProtoVar>(in.string(), "NULL");
+    out.obj_res = std::make_shared<types::ConfigVar>(in.string());
   }
 };
 
@@ -254,9 +254,8 @@ struct action<PROTO_PAIR> {
     // TODO: Consider changing this. We currently put the proto vars in a separate map, but do we
     // need to?
     // TODO: Check for duplicate keys here!
-    auto proto_var = dynamic_pointer_cast<types::ConfigProtoVar>(out.obj_res);
+    auto proto_var = dynamic_pointer_cast<types::ConfigVar>(out.obj_res);
     if (proto_var != nullptr) {
-      // ConfigProtoVar
       proto->proto_vars[out.keys.back()] = std::move(proto_var);
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
@@ -307,8 +306,7 @@ struct action<REF_VARSUB> {
       throw std::bad_cast();
     }
 
-    ref->ref_vars[std::make_shared<types::ConfigRefVar>(out.result, "NULL")] =
-        std::move(out.obj_res);
+    ref->ref_vars[std::make_shared<types::ConfigVar>(out.result)] = std::move(out.obj_res);
 
     out.result = DEFAULT_RES;
   }

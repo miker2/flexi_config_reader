@@ -16,7 +16,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& da
 
 namespace config::types {
 
-enum class Type { kStruct, kProto, kReference, kProtoVar, kRefVar, kValueLookup, kValue, kUnknown };
+enum class Type { kStruct, kProto, kReference, kVar, kValueLookup, kValue, kUnknown };
 
 // This is the base-class from which all config nodes shall derive
 class ConfigBase {
@@ -74,43 +74,21 @@ class ConfigValueLookup : public ConfigBase {
   auto var() const -> std::string { return config::utils::join(keys, "."); }
 };
 
-class ConfigProtoVar : public ConfigBase {
+class ConfigVar : public ConfigBase {
  public:
-  ConfigProtoVar(std::string name, std::string value)
-      : ConfigBase(Type::kProtoVar), name{std::move(name)}, value{std::move(value)} {};
+  ConfigVar(std::string name) : ConfigBase(Type::kVar), name{std::move(name)} {};
 
-  void stream(std::ostream& os) const override { os << name << "=" << value; }
+  void stream(std::ostream& os) const override { os << name; }
 
   const std::string name{};
-  const std::string value{};
 };
 
-inline std::ostream& operator<<(std::ostream& os, const ConfigProtoVar& cfg) {
+inline std::ostream& operator<<(std::ostream& os, const ConfigVar& cfg) {
   cfg.stream(os);
   return os;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ConfigProtoVar>& cfg) {
-  return (cfg ? (os << *cfg) : (os << "NULL"));
-}
-
-class ConfigRefVar : public ConfigBase {
- public:
-  ConfigRefVar(std::string name, std::string value)
-      : ConfigBase(Type::kRefVar), name{std::move(name)}, value{std::move(value)} {};
-
-  void stream(std::ostream& os) const override { os << name << "=" << value; }
-
-  const std::string name{};
-  std::string value{};
-};
-
-inline std::ostream& operator<<(std::ostream& os, const ConfigRefVar& cfg) {
-  cfg.stream(os);
-  return os;
-}
-
-inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ConfigRefVar>& cfg) {
+inline std::ostream& operator<<(std::ostream& os, const std::shared_ptr<ConfigVar>& cfg) {
   return (cfg ? (os << *cfg) : (os << "NULL"));
 }
 
@@ -156,7 +134,7 @@ class ConfigProto : public ConfigStructLike {
     os << "}";
   }
 
-  std::map<std::string, std::shared_ptr<ConfigProtoVar>> proto_vars;
+  std::map<std::string, std::shared_ptr<ConfigVar>> proto_vars;
 };
 
 class ConfigReference : public ConfigStructLike {
@@ -177,7 +155,7 @@ class ConfigReference : public ConfigStructLike {
 
   const std::string proto{};
 
-  std::map<std::shared_ptr<ConfigRefVar>, std::shared_ptr<ConfigBase>> ref_vars;
+  std::map<std::shared_ptr<ConfigVar>, std::shared_ptr<ConfigBase>> ref_vars;
 };
 
 };  // namespace config::types
