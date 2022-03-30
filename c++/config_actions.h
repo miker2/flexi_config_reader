@@ -139,6 +139,8 @@ struct action<VAR> {
     // right side of the equals yet.
     out.result = in.string();
     out.var = in.string();
+
+    // Handle ref vars appropriately in builder.
   }
 };
 
@@ -284,6 +286,20 @@ template <>
 struct action<REF_VARSUB> {
   static void apply0(ActionData& out) {
     out.special_pairs.push_back({out.var, out.result});
+
+    // If we're here, then there must be an object and it must be a reference!
+    auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
+    if (ref == nullptr) {
+      std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.result << "'."
+                << std::endl;
+      std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
+                << std::endl;
+      throw std::bad_cast();
+    }
+
+    ref->ref_vars[std::make_shared<types::ConfigRefVar>(out.var, out.result)] =
+        std::move(out.obj_res);
+
     out.var = DEFAULT_RES;
     out.result = DEFAULT_RES;
   }
