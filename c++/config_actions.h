@@ -40,26 +40,30 @@ struct ActionData {
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
   void print() {
-    std::cout << "Keys: \n";
-    for (const auto& key : keys) {
-      std::cout << "  " << key << "\n";
+    if (!keys.empty()) {
+      std::cout << "Keys: \n";
+      for (const auto& key : keys) {
+        std::cout << "  " << key << "\n";
+      }
     }
-    std::cout << "Flat Keys: \n";
-    for (const auto& key : flat_keys) {
-      std::cout << "  " << key << "\n";
+    if (!flat_keys.empty()) {
+      std::cout << "Flat Keys: \n";
+      for (const auto& key : flat_keys) {
+        std::cout << "  " << key << "\n";
+      }
     }
     std::cout << "result: " << result << std::endl;
     std::cout << "obj_res: " << obj_res << std::endl;
-    std::cout << "objects: " << std::endl;
-    for (const auto& obj : objects) {
-      std::cout << obj << std::endl;
+    if (!objects.empty()) {
+      std::cout << "objects: " << std::endl;
+      for (const auto& obj : objects) {
+        std::cout << obj << std::endl;
+      }
     }
     std::cout << "==========" << std::endl;
     std::cout << "cfg_res: " << std::endl;
     for (const auto& mp : cfg_res) {
-      for (const auto& kv : mp) {
-        std::cout << kv.first << " = " << kv.second << std::endl;
-      }
+      std::cout << mp << std::endl;
     }
     std::cout << "^^^^^^^^^^" << std::endl;
   }
@@ -88,6 +92,8 @@ struct action<VALUE> {
     std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
 #endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
   }
 };
 
@@ -104,6 +110,8 @@ struct action<VAR> {
     out.result = in.string();
 
     out.obj_res = std::make_shared<types::ConfigVar>(in.string());
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
   }
 };
 
@@ -179,6 +187,8 @@ struct action<VAR_REF> {
               << "'" << std::endl;
 #endif
     out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
+    out.obj_res->source = in.position().source;
+    out.obj_res->line = in.position().line;
 
     out.flat_keys.pop_back();
   }
@@ -318,7 +328,7 @@ struct action<STRUCTs> {
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back()));
+    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth));
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -330,7 +340,7 @@ struct action<PROTOs> {
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back()));
+    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth));
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -344,7 +354,7 @@ struct action<REFs> {
     std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
               << out.keys.back() << std::endl;
     out.objects.push_back(
-        std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back()));
+        std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back(), out.depth));
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
