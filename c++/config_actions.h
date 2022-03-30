@@ -39,6 +39,17 @@ struct ActionData {
   std::vector<std::pair<std::string, std::string>> pairs;
   std::vector<std::pair<std::string, std::string>> special_pairs;
 
+  // NOTE: A struct, is just a fancy way of describing a key, that contains an array of key/value
+  // pairs (much like a json object). We want to be able to represent both a struct and a simple
+  // key/value pair, so the top level can't be a struct, but must be more generically representable.
+
+  // Nominally, we'd have just a `types::ConfigBase` at the very root (which we could still do,
+  // maybe), but we need to be able to represent an array of items here in order to support
+  // duplicate structs, etc. We'll join these all up later.
+  std::vector<std::map<std::string, std::shared_ptr<types::ConfigBase>>> cfg_res{1};
+  std::shared_ptr<types::ConfigBase> obj_res;
+  std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
+
   void print() {
     std::cout << "Proto names: \n";
     for (const auto& pn : proto_names) {
@@ -70,9 +81,29 @@ struct ActionData {
     }
     std::cout << "result: " << result << std::endl;
     std::cout << "var: " << var << std::endl;
+    std::cout << "==========" << std::endl;
+    std::cout << "cfg_res: " << std::endl;
+    for (const auto& mp : cfg_res) {
+      for (const auto& kv : mp) {
+        std::cout << kv.first << " = " << kv.second << std::endl;
+      }
+    }
+    if (obj_res != nullptr) {
+      std::cout << "obj_res: " << obj_res << std::endl;
+    } else {
+      std::cout << "obj_res: "
+                << "empty" << std::endl;
+    }
+    std::cout << "objects: " << std::endl;
+    for (const auto& obj : objects) {
+      std::cout << obj << std::endl;
+    }
     std::cout << "^^^^^^^^^^" << std::endl;
   }
 };
+
+template <typename Rule>
+struct action : peg::nothing<Rule> {};
 
 template <>
 struct action<KEY> {
@@ -94,6 +125,7 @@ struct action<VALUE> {
     std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
 #endif
     out.result = in.string();
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string());
   }
 };
 
@@ -192,7 +224,16 @@ struct action<PAIR> {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       return;
     }
+    // TODO: Decide if we should put this check here, or at the end. Eventually, we'll combine all
+    // of these maps, but for now, we need separate ones in case multiple struct-like's exist with
+    // different contents. If we do this here, then we'll have a separate map for each top-level
+    // key.
+    if (out.objects.empty()) {
+      out.cfg_res.push_back({});
+    }
     // std::cout << out.keys.back() << " = " << out.result << std::endl;
+    auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    data[out.keys.back()] = std::move(out.obj_res);
 
     out.pairs.push_back({out.keys.back(), out.result});
     out.keys.pop_back();
@@ -241,6 +282,10 @@ struct action<STRUCTs> {
     out.type = GroupType::kStruct;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
+    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back()));
+    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
+              << std::endl;
   }
 };
 
@@ -251,6 +296,10 @@ struct action<PROTOs> {
     out.type = GroupType::kProto;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
+    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back()));
+    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
+              << std::endl;
   }
 };
 
@@ -261,6 +310,12 @@ struct action<REFs> {
     out.type = GroupType::kReference;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
+              << out.keys.back() << std::endl;
+    out.objects.push_back(
+        std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back()));
+    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
+              << std::endl;
   }
 };
 
@@ -270,6 +325,14 @@ struct action<STRUCT> {
     // std::cout << "Found Struct: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
     out.struct_names.emplace_back(out.keys.back());
+
+    const auto this_obj = std::move(out.objects.back());
+    out.objects.pop_back();
+    auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    data[out.keys.back()] = std::move(this_obj);
+
+    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
+              << std::endl;
     out.keys.pop_back();
   }
 };
@@ -280,6 +343,12 @@ struct action<PROTO> {
     // std::cout << "Found Proto: " << out.keys.back() << std::endl;
     // TODO: This isn't really what we want to do, but it's simple enough for now.
     out.proto_names.emplace_back(out.keys.back());
+
+    const auto this_obj = std::move(out.objects.back());
+    out.objects.pop_back();
+    auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    data[out.keys.back()] = std::move(this_obj);
+
     out.keys.pop_back();
   }
 };
@@ -293,6 +362,12 @@ struct action<REFERENCE> {
     // First, we need to consume the proto that is being referenced.
     std::string ref_info = out.keys.back() + " : " + out.flat_keys.back();
     out.reference_names.emplace_back(ref_info);
+
+    const auto this_obj = std::move(out.objects.back());
+    out.objects.pop_back();
+    auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    data[out.keys.back()] = std::move(this_obj);
+
     out.keys.pop_back();
     out.flat_keys.pop_back();
   }

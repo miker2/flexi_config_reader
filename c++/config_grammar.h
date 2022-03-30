@@ -130,16 +130,16 @@ struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
 // TODO: Fix this "end" is being matched as a "KEY", but it shouldn't be.
 struct END : peg::seq<ENDk, SP, KEY> {};
 
-struct REFs : peg::seq<REFk, SP> {};
+struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, TAIL> {};
 struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
-struct REFERENCE : peg::seq<REFs, FLAT_KEY, SP, ASk, SP, KEY, TAIL, REFc, END, WS_> {};
+struct REFERENCE : peg::seq<REFs, REFc, END, WS_> {};
 
 struct STRUCTc;
-struct PROTOs : peg::seq<PROTOk, SP> {};
-struct PROTO : peg::seq<PROTOs, KEY, TAIL, STRUCTc, END, WS_> {};
+struct PROTOs : peg::seq<PROTOk, SP, KEY, TAIL> {};
+struct PROTO : peg::seq<PROTOs, STRUCTc, END, WS_> {};
 
-struct STRUCTs : peg::seq<STRUCTk, SP> {};
-struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, WS_> {};
+struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
+struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
 
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 

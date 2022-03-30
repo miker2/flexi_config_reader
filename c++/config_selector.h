@@ -75,4 +75,4 @@ struct selector<INCLUDE> : std::true_type {
   }
 };
 
-}
+}  // namespace config

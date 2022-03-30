@@ -6,6 +6,14 @@
 
 #include "config_helpers.h"
 
+template <typename Key, typename Value>
+inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& data) {
+  for (const auto& kv : data) {
+    os << kv.first << " = " << kv.second << "\n";
+  }
+  return os;
+}
+
 namespace config::types {
 
 enum class Type { kStruct, kProto, kReference, kProtoVar, kRefVar, kValueLookup, kValue, kUnknown };
@@ -106,8 +114,11 @@ class ConfigStruct : public ConfigStructLike {
   ConfigStruct(std::string name) : ConfigStructLike(Type::kStruct, name){};
 
   void stream(std::ostream& os) const override {
-    os << "struct " << name << "\n";
+    os << "struct " << name << " {\n";
+    os << "  " << data.size() << " k/v pairs"
+       << "\n";
     os << data;
+    os << "}";
   }
 };
 
@@ -116,9 +127,14 @@ class ConfigProto : public ConfigStructLike {
   ConfigProto(std::string name) : ConfigStructLike(Type::kProto, name) {}
 
   void stream(std::ostream& os) const override {
-    os << "!PROTO! " << name << "\n";
+    os << "!PROTO! " << name << " {\n";
+    os << "  " << proto_vars.size() << " proto vars"
+       << "\n";
+    os << "  " << data.size() << " k/v pairs"
+       << "\n";
     os << proto_vars << "\n";
     os << data;
+    os << "}";
   }
 
   std::map<std::string, std::shared_ptr<ConfigProtoVar>> proto_vars;
@@ -130,9 +146,14 @@ class ConfigReference : public ConfigStructLike {
       : ConfigStructLike(Type::kReference, name), proto{std::move(proto_name)} {};
 
   void stream(std::ostream& os) const override {
-    os << "!REFERENCE! " << proto << " as " << name << "\n";
+    os << "!REFERENCE! " << proto << " as " << name << " {\n";
+    os << "  " << ref_vars.size() << " ref vars"
+       << "\n";
+    os << "  " << data.size() << " k/v pairs"
+       << "\n";
     os << ref_vars << "\n";
     os << data;
+    os << "}";
   }
 
   const std::string proto{};
