@@ -18,27 +18,16 @@
 
 namespace config {
 
-enum class GroupType { kNone = 0, kStruct, kProto, kReference };
-
 const std::string DEFAULT_RES{"***"};
 
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
-  std::vector<std::string> proto_names{};
-  std::vector<std::string> struct_names{};
-  std::vector<std::string> reference_names{};
-
   int depth{0};  // Nesting level
-  GroupType type{GroupType::kNone};
-  GroupType type_outer{GroupType::kNone};
 
   std::string result = DEFAULT_RES;
   std::string var = DEFAULT_RES;
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
-
-  std::vector<std::pair<std::string, std::string>> pairs;
-  std::vector<std::pair<std::string, std::string>> special_pairs;
 
   // NOTE: A struct, is just a fancy way of describing a key, that contains an array of key/value
   // pairs (much like a json object). We want to be able to represent both a struct and a simple
@@ -52,18 +41,6 @@ struct ActionData {
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
   void print() {
-    std::cout << "Proto names: \n";
-    for (const auto& pn : proto_names) {
-      std::cout << "  " << pn << "\n";
-    }
-    std::cout << "Struct names: \n";
-    for (const auto& pn : struct_names) {
-      std::cout << "  " << pn << "\n";
-    }
-    std::cout << "Reference names: \n";
-    for (const auto& pn : reference_names) {
-      std::cout << "  " << pn << "\n";
-    }
     std::cout << "Keys: \n";
     for (const auto& key : keys) {
       std::cout << "  " << key << "\n";
@@ -71,14 +48,6 @@ struct ActionData {
     std::cout << "Flat Keys: \n";
     for (const auto& key : flat_keys) {
       std::cout << "  " << key << "\n";
-    }
-    std::cout << "Pairs: \n";
-    for (const auto& pair : pairs) {
-      std::cout << "  " << pair.first << " = " << pair.second << "\n";
-    }
-    std::cout << "Special Pairs: \n";
-    for (const auto& pair : special_pairs) {
-      std::cout << "  " << pair.first << " = " << pair.second << "\n";
     }
     std::cout << "result: " << result << std::endl;
     std::cout << "var: " << var << std::endl;
@@ -229,10 +198,10 @@ struct action<PAIR> {
     // std::cout << "Found pair" << std::endl;
     if (out.keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
-      return;
+      out.print();
+      throw std::exception();
     }
 
-    // std::cout << out.keys.back() << " = " << out.result << std::endl;
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
       std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
@@ -240,7 +209,6 @@ struct action<PAIR> {
     }
     data[out.keys.back()] = std::move(out.obj_res);
 
-    out.pairs.push_back({out.keys.back(), out.result});
     out.keys.pop_back();
     out.result = DEFAULT_RES;
   }
@@ -252,12 +220,24 @@ struct action<FULLPAIR> {
     // std::cout << "Found Full pair" << std::endl;
     if (out.flat_keys.empty()) {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
-      return;
+      out.print();
+      throw std::exception();
     }
-    // std::cout << out.flat_keys.back() << " = " << out.result << std::endl;
+
+    if (!out.objects.empty()) {
+      std::cerr << " Found a `FULLPAIR` but expected `objects` list to be empty." << std::endl;
+      out.print();
+      throw std::exception();
+    }
 
     // TODO: Decide what to do about flat keys? Handle specially or store in normal K/V object?
-    out.pairs.push_back({out.flat_keys.back(), out.result});
+    auto& data = out.cfg_res.back();
+    if (data.contains(out.flat_keys.back())) {
+      std::cerr << "Duplicate key '" << out.flat_keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
+    data[out.flat_keys.back()] = std::move(out.obj_res);
+
     out.flat_keys.pop_back();
     out.result = DEFAULT_RES;
   }
@@ -266,12 +246,12 @@ struct action<FULLPAIR> {
 template <>
 struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
-    out.special_pairs.push_back({out.keys.back(), "$" + out.var});
-
+#if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Result: " << out.keys.back()
               << " = " << out.var << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Key count: " << out.keys.size()
               << std::endl;
+#endif
 
     // If we're here, then there must be an object and it must be a proto!
     auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
@@ -307,8 +287,6 @@ struct action<PROTO_PAIR> {
 template <>
 struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
-    out.special_pairs.push_back({"+" + out.keys.back(), out.result});
-
     // If we're here, then there must be an object and it must be a reference!
     if (dynamic_pointer_cast<types::ConfigReference>(out.objects.back()) == nullptr) {
       std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.result << "'."
@@ -332,8 +310,6 @@ struct action<REF_VARADD> {
 template <>
 struct action<REF_VARSUB> {
   static void apply0(ActionData& out) {
-    out.special_pairs.push_back({out.var, out.result});
-
     // If we're here, then there must be an object and it must be a reference!
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     if (ref == nullptr) {
@@ -355,8 +331,6 @@ struct action<REF_VARSUB> {
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    out.type_outer = out.type;
-    out.type = GroupType::kStruct;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
@@ -369,8 +343,6 @@ struct action<STRUCTs> {
 template <>
 struct action<PROTOs> {
   static void apply0(ActionData& out) {
-    out.type_outer = out.type;
-    out.type = GroupType::kProto;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
@@ -383,8 +355,6 @@ struct action<PROTOs> {
 template <>
 struct action<REFs> {
   static void apply0(ActionData& out) {
-    out.type_outer = out.type;
-    out.type = GroupType::kReference;
     out.depth++;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
@@ -399,10 +369,6 @@ struct action<REFs> {
 template <>
 struct action<STRUCT> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Struct: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-    out.struct_names.emplace_back(out.keys.back());
-
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
@@ -428,10 +394,6 @@ struct action<STRUCT> {
 template <>
 struct action<PROTO> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Proto: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-    out.proto_names.emplace_back(out.keys.back());
-
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
@@ -455,13 +417,6 @@ struct action<PROTO> {
 template <>
 struct action<REFERENCE> {
   static void apply0(ActionData& out) {
-    // std::cout << "Found Reference: " << out.keys.back() << std::endl;
-    // TODO: This isn't really what we want to do, but it's simple enough for now.
-
-    // First, we need to consume the proto that is being referenced.
-    std::string ref_info = out.keys.back() + " : " + out.flat_keys.back();
-    out.reference_names.emplace_back(ref_info);
-
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
@@ -506,7 +461,6 @@ struct action<END> {
     }
     out.depth--;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
-    out.type = out.type_outer;
   }
 };
 
