@@ -64,11 +64,12 @@ class ConfigValue : public ConfigBase {
 
 class ConfigValueLookup : public ConfigBase {
  public:
-  ConfigValueLookup() : ConfigBase(Type::kValueLookup){};
+  ConfigValueLookup(const std::string& var_ref)
+      : ConfigBase(Type::kValueLookup), keys{config::utils::split(var_ref, '.')} {};
 
   void stream(std::ostream& os) const override { os << "$(" << var() << ")"; }
 
-  std::vector<std::string> keys{};
+  const std::vector<std::string> keys{};
 
   auto var() const -> std::string { return config::utils::join(keys, "."); }
 };
@@ -92,7 +93,7 @@ class ConfigRefVar : public ConfigBase {
   void stream(std::ostream& os) const override { os << "$" << name << "=" << value; }
 
   const std::string name{};
-  const std::string value{};
+  std::string value{};
 };
 
 class ConfigStructLike : public ConfigBase {

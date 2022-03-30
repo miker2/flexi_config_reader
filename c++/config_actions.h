@@ -140,6 +140,7 @@ struct action<VAR> {
     out.result = in.string();
     out.var = in.string();
 
+    out.obj_res = std::make_shared<types::ConfigProtoVar>(in.string(), "NULL");
     // Handle ref vars appropriately in builder.
   }
 };
@@ -215,6 +216,9 @@ struct action<VAR_REF> {
     // Consume the most recent FLAT_KEY.
     std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Consuming: '" << out.flat_keys.back()
               << "'" << std::endl;
+
+    out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
+
     out.flat_keys.pop_back();
   }
 };
@@ -258,6 +262,45 @@ struct action<FULLPAIR> {
     out.pairs.push_back({out.flat_keys.back(), out.result});
     out.flat_keys.pop_back();
     out.result = DEFAULT_RES;
+  }
+};
+
+template <>
+struct action<PROTO_PAIR> {
+  static void apply0(ActionData& out) {
+    out.special_pairs.push_back({out.keys.back(), "$" + out.var});
+
+    std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Result: " << out.keys.back()
+              << " = " << out.var << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Key count: " << out.keys.size()
+              << std::endl;
+
+    // If we're here, then there must be an object and it must be a proto!
+    auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
+    if (proto == nullptr) {
+      std::cerr << "Error while processing '+" << out.keys.back() << " = $" << out.var << "'."
+                << std::endl;
+      std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'proto'."
+                << std::endl;
+      throw std::bad_cast();
+    }
+
+    // TODO: Consider changing this. We currently put the proto vars in a separate map, but do we
+    // need to?
+    auto proto_var = dynamic_pointer_cast<types::ConfigProtoVar>(out.obj_res);
+    if (proto_var != nullptr) {
+      // ConfigProtoVar
+      proto->proto_vars[out.keys.back()] = std::move(proto_var);
+    } else {
+      out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
+    }
+
+    out.keys.pop_back();
+    out.var = DEFAULT_RES;
+
+    std::cout << "~~~~~ Debug ~~~~~" << std::endl;
+    out.print();
+    std::cout << "##### Debug #####" << std::endl;
   }
 };
 
@@ -422,6 +465,7 @@ struct action<END> {
       std::cout << "End key: " << end_key << std::endl;
       out.print();
       std::cout << "##### Debug #####" << std::endl;
+      throw std::exception();
     }
     out.depth--;
     std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
