@@ -231,15 +231,13 @@ struct action<PAIR> {
       std::cerr << "  !!! Something went wrong !!!" << std::endl;
       return;
     }
-    // TODO: Decide if we should put this check here, or at the end. Eventually, we'll combine all
-    // of these maps, but for now, we need separate ones in case multiple struct-like's exist with
-    // different contents. If we do this here, then we'll have a separate map for each top-level
-    // key.
-    if (out.objects.empty()) {
-      out.cfg_res.push_back({});
-    }
+
     // std::cout << out.keys.back() << " = " << out.result << std::endl;
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    if (data.contains(out.keys.back())) {
+      std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
     data[out.keys.back()] = std::move(out.obj_res);
 
     out.pairs.push_back({out.keys.back(), out.result});
@@ -287,6 +285,7 @@ struct action<PROTO_PAIR> {
 
     // TODO: Consider changing this. We currently put the proto vars in a separate map, but do we
     // need to?
+    // TODO: Check for duplicate keys here!
     auto proto_var = dynamic_pointer_cast<types::ConfigProtoVar>(out.obj_res);
     if (proto_var != nullptr) {
       // ConfigProtoVar
@@ -318,6 +317,10 @@ struct action<REF_VARADD> {
       throw std::bad_cast();
     }
 
+    if (out.objects.back()->data.contains(out.keys.back())) {
+      std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
 
     out.keys.pop_back();
@@ -402,7 +405,18 @@ struct action<STRUCT> {
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    if (data.contains(out.keys.back())) {
+      std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
     data[out.keys.back()] = std::move(this_obj);
+
+    // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
+    // in case we have a duplicat struct later. We won't resolve that now, but later in another
+    // pass.
+    if (out.objects.empty()) {
+      out.cfg_res.push_back({});
+    }
 
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
@@ -420,7 +434,18 @@ struct action<PROTO> {
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    if (data.contains(out.keys.back())) {
+      std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
     data[out.keys.back()] = std::move(this_obj);
+
+    // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
+    // in case we have a duplicat struct later. We won't resolve that now, but later in another
+    // pass.
+    if (out.objects.empty()) {
+      out.cfg_res.push_back({});
+    }
 
     out.keys.pop_back();
   }
@@ -439,7 +464,18 @@ struct action<REFERENCE> {
     const auto this_obj = std::move(out.objects.back());
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+    if (data.contains(out.keys.back())) {
+      std::cerr << "Duplicate key '" << out.keys.back() << "' found!" << std::endl;
+      throw std::exception();
+    }
     data[out.keys.back()] = std::move(this_obj);
+
+    // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
+    // in case we have a duplicat struct later. We won't resolve that now, but later in another
+    // pass.
+    if (out.objects.empty()) {
+      out.cfg_res.push_back({});
+    }
 
     out.keys.pop_back();
     out.flat_keys.pop_back();
