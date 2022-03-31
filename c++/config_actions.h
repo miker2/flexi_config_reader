@@ -252,8 +252,7 @@ struct action<PROTO_PAIR> {
 #endif
 
     // If we're here, then there must be an object and it must be a proto!
-    auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
-    if (proto == nullptr) {
+    if (out.objects.back()->type != types::Type::kProto) {
       std::cerr << "Error while processing '+" << out.keys.back() << " = $" << out.result << "'."
                 << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'proto'."
@@ -264,8 +263,9 @@ struct action<PROTO_PAIR> {
     // TODO: Consider changing this. We currently put the proto vars in a separate map, but do we
     // need to?
     // TODO: Check for duplicate keys here!
-    auto proto_var = dynamic_pointer_cast<types::ConfigVar>(out.obj_res);
-    if (proto_var != nullptr) {
+    if (out.obj_res->type == types::Type::kVar) {
+      auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
+      auto proto_var = dynamic_pointer_cast<types::ConfigVar>(out.obj_res);
       proto->proto_vars[out.keys.back()] = std::move(proto_var);
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
@@ -285,7 +285,7 @@ template <>
 struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
-    if (dynamic_pointer_cast<types::ConfigReference>(out.objects.back()) == nullptr) {
+    if (out.objects.back()->type != types::Type::kReference) {
       std::cerr << "Error while processing '+" << out.keys.back() << " = " << out.objects.back()
                 << "'." << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
@@ -307,8 +307,7 @@ template <>
 struct action<REF_VARSUB> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
-    auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
-    if (ref == nullptr) {
+    if (out.objects.back()->type != types::Type::kReference) {
       std::cerr << "Error while processing '+" << out.result << " = " << out.obj_res << "'."
                 << std::endl;
       std::cerr << "Struct-like: '" << out.objects.back()->name << "' is not a 'reference'."
@@ -316,6 +315,7 @@ struct action<REF_VARSUB> {
       throw std::bad_cast();
     }
 
+    auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     ref->ref_vars[std::make_shared<types::ConfigVar>(out.result)] = std::move(out.obj_res);
 
     out.result = DEFAULT_RES;
