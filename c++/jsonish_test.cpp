@@ -161,26 +161,27 @@ auto main() -> int {
     std::cout << "Something in the grammar is broken!" << std::endl;
   }
 
+  bool ret = true;
   size_t test_num = 1;
   {
     std::string content = "{";
-    runTest<peg::must<json_ish::CBo, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<json_ish::CBo, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "-1001";
-    runTest<peg::must<json_ish::INTEGER, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<json_ish::INTEGER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "\"float\": 5.37e+6";
-    runTest<peg::must<json_ish::PAIR, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<json_ish::PAIR, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "1234.";
-    runTest<peg::must<json_ish::NUMBER, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<json_ish::NUMBER, peg::eolf>>(test_num++, content, pdot);
   }
   {
     std::string content = "0x0ab0";
-    runTest<peg::must<json_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
+    ret &= runTest<peg::must<json_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
   std::vector map_strs = {"{\"ints\":[1, 2,  -3 ], \"more_ints\": [1, 2, -5]}",
@@ -227,7 +228,7 @@ auto main() -> int {
     // parsing to work. Some of the unsupported features are hexadecimal values
     // and decimal values that end in a decimal without trailing numbers.
     runTest<peg::json::text>(test_num, content, pdot);
-    runTest<json_ish::grammar>(test_num++, content, pdot);
+    ret &= runTest<json_ish::grammar>(test_num++, content, pdot);
   }
-  return 0;
+  return (ret ? 0 : 1);
 }

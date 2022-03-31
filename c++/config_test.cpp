@@ -12,6 +12,7 @@
 
 #include "config_actions.h"
 #include "config_grammar.h"
+#include "config_selector.h"
 
 // TODO(rose@): Turn this into an actual test suite.
 
@@ -25,7 +26,7 @@ auto runTest(SOURCE &src, bool pdot = true) -> bool {
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
   bool ret{false};
-  std::string out;
+  config::ActionData out;
   try {
     if (const auto root = peg::parse_tree::parse<GTYPE, config::selector>(src)) {
       if (pdot) {
@@ -43,7 +44,8 @@ auto runTest(SOURCE &src, bool pdot = true) -> bool {
     src.restart();
     ret = peg::parse<GTYPE, config::action>(src, out);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-    std::cout << "out: " << out << std::endl;
+    std::cout << "output: \n";
+    out.print();
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
@@ -118,11 +120,13 @@ end test2\n\
     ret &= runTest<config::grammar>(in, pdot);
   }
 
+  // Need to fix # 4
+
   for (size_t i = 1; i <= 6; ++i) {
     const auto cfg_file =
         std::filesystem::path(EXAMPLE_DIR) / ("config_example" + std::to_string(i) + ".cfg");
     peg::file_input in(cfg_file);
-    ret &= runTest<config::grammar>(in, true);
+    ret &= runTest<config::grammar>(in, pdot);
   }
 
   return (ret ? 0 : 1);

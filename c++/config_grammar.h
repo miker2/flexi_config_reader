@@ -46,7 +46,7 @@ grammar my_config
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto)+
   REFc       <-  (VARREF / VARADD)+
-  PAIR       <-  KEY KVs (value / VAR_REF / VAR) TAIL %make_pair
+  PAIR       <-  KEY KVs (value / VAR_REF) TAIL %make_pair
   REF_VARSUB <-  VAR KVs value TAIL %ref_sub_var
   REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
   FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
@@ -97,6 +97,7 @@ struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
+// TODO: Enforce that variables start with a letter?
 struct VAR : peg::seq<peg::one<'$'>, peg::plus<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
 
 struct sign : peg::one<'+', '-'> {};
@@ -125,22 +126,25 @@ struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
 
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VAR, VAR_REF, VALUE>, TAIL> {};
 
 // TODO: Fix this "end" is being matched as a "KEY", but it shouldn't be.
 struct END : peg::seq<ENDk, SP, KEY> {};
 
-struct REFs : peg::seq<REFk, SP> {};
+struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, TAIL> {};
 struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
-struct REFERENCE : peg::seq<REFs, FLAT_KEY, SP, ASk, SP, KEY, TAIL, REFc, END, WS_> {};
+struct REFERENCE : peg::seq<REFs, REFc, END, WS_> {};
+
+struct PROTOc;
+struct PROTOs : peg::seq<PROTOk, SP, KEY, TAIL> {};
+struct PROTO : peg::seq<PROTOs, PROTOc, END, WS_> {};
 
 struct STRUCTc;
-struct PROTOs : peg::seq<PROTOk, SP> {};
-struct PROTO : peg::seq<PROTOs, KEY, TAIL, STRUCTc, END, WS_> {};
+struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
+struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
 
-struct STRUCTs : peg::seq<STRUCTk, SP> {};
-struct STRUCT : peg::seq<STRUCTs, KEY, TAIL, STRUCTc, END, WS_> {};
-
+struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT, REFERENCE, PROTO>> {};
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 
 // TODO: Improve this. A single file should look like this:
