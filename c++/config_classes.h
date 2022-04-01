@@ -1,4 +1,5 @@
-#include <any>
+#include <fmt/format.h>
+
 #include <iostream>
 #include <map>
 #include <memory>
@@ -190,3 +191,14 @@ class ConfigReference : public ConfigStructLike {
 };
 
 };  // namespace config::types
+
+template <>
+struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<std::string> {
+  // parse is inherited from formatter<string_view>
+  template <typename FormatContext>
+  auto format(const std::shared_ptr<config::types::ConfigBase>& cfg, FormatContext& ctx) {
+    std::stringstream ss;
+    cfg->stream(ss);
+    return formatter<std::string>::format(ss.str(), ctx);
+  }
+};
