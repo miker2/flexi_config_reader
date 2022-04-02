@@ -16,6 +16,14 @@ target_link_libraries(config_test
   magic_enum::magic_enum
   fmt::fmt)
 
+add_executable(config_reader config_reader.cpp)
+target_link_libraries(config_reader
+  PRIVATE
+  taocpp::pegtl
+  magic_enum::magic_enum
+  fmt::fmt
+  range-v3::range-v3)
+
 add_executable(include_file_test include_file_test.cpp)
 target_link_libraries(include_file_test PRIVATE taocpp::pegtl)
 

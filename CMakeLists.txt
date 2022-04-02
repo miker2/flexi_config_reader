@@ -41,6 +41,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
+# range-v3
+FetchContent_Declare(
+  range-v3
+  GIT_REPOSITORY "https://github.com/ericniebler/range-v3.git"
+  GIT_TAG d800a032132512a54c291ce55a2a43e0460591c7  # 0.11.0 is broken on clang-13, but master works
+)
+FetchContent_MakeAvailable(range-v3)
+
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
