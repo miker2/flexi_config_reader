@@ -71,6 +71,6 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         ctest -C ${{env.BUILD_TYPE}}
-        ${{github.workspace}}/build/c++/jsonish_test
-        ${{github.workspace}}/build/c++/include_file_test
-        ${{github.workspace}}/build/c++/config_test
+        ${{github.workspace}}/build/cpp/jsonish_test
+        ${{github.workspace}}/build/cpp/include_file_test
+        ${{github.workspace}}/build/cpp/config_test
