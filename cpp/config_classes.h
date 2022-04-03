@@ -20,7 +20,7 @@ namespace config::types {
 class ConfigBase;
 class ConfigVar;
 using CfgMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
-using RefMap = std::map<std::shared_ptr<ConfigVar>, std::shared_ptr<ConfigBase>>;
+using RefMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
 
 enum class Type {
   kStruct,

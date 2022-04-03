@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
-//#include <range/v3/action/remove_if.hpp>
+#include <regex>
 #include <tao/pegtl.hpp>
 
 #include "config_actions.h"
@@ -141,7 +141,9 @@ class ConfigReader {
 
     std::cout << "===== Resolving References ========" << std::endl;
     resolveReferences(resolved, "", {});
+    std::cout << resolved;
 
+    std::cout << "===== Resolve variable references ====" << std::endl;
     resolveVarRefs();
 
     return success;
@@ -203,55 +205,84 @@ class ConfigReader {
     */
   }
 
-  void replaceProtoVar(config::types::CfgMap& d, config::types::RefMap& ref_var) {
-    for (auto& kv : d) {
+  /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
+  /// \param[in/out] cfg_map - Contents of a proto
+  /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
+  void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
+    std::cout << "replaceProtoVars --- \n";
+    std::cout << cfg_map << std::endl;
+    std::cout << "  -- ref_vars: \n";
+    std::cout << ref_vars << std::endl;
+
+    for (auto& kv : cfg_map) {
       const auto& k = kv.first;
       auto& v = kv.second;
       if (v->type == config::types::Type::kVar) {
         auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
         std::cout << v_var << std::endl;
-        // TODO: @@@ Fix this line
-        // d[k] = ref_var[v_var->name];
+        // Pull the value from the reference vars and add it to the structure.
+        cfg_map[k] = ref_vars.at(v_var->name);
       } else if (v->type == config::types::Type::kValue) {
+        // TODO: We don't currently distinguish between the various value types here, but we
+        // probably should because we really only want to do this if there is an actual string
+        // (rather than some other value type).
         auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
-        // Find instances of 'ref_var' in 'v' and replace.
-        for (auto& rkv : ref_var) {
+
+        // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
+        // sense in doing this loop.
+        const auto var_pos = v_value->value.find('$');
+        if (var_pos == std::string::npos) {
+          // No variables. Let's skip.
+          std::cout << "No variables in " << v_value << ". Skipping..." << std::endl;
+          continue;
+        }
+
+        // Find instances of 'ref_vars' in 'v' and replace.
+        for (auto& rkv : ref_vars) {
           const auto& rk = rkv.first;
-          auto& rv = rkv.second;
-          /*
-          // TODO: @@@ Fix these lines
-          std::cout << fmt::format("v: {}, rk: ${}, rv: {}", v, rk, rv) << std::endl;
-          v = v.replace(f "${rk}", rv);
-          std::cout << fmt::format("v: {}, rk: ${{{}}}, rv: {}", v, rk, rv);
-          v = v.replace(f "${{{rk}}}", rv);
-          std::cout << fmt::format("v: {}", v) << std::endl;
-          d[k] = v;
-          */
+          auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
+
+          std::cout << "v: " << v << ", rk: " << rk << ", rv: " << rv << std::endl;
+          auto out = std::regex_replace(v_value->value, std::regex("\\" + rk), rv->value);
+          // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
+          // in escape characters as this will be used in a regular expression.
+          const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
+          std::cout << "v: " << v << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
+          out = std::regex_replace(out, std::regex(bracket_var), rv->value);
+          std::cout << "out: " << out << std::endl;
+
+          // Replace the existing value with the new value.
+          cfg_map[k] = std::make_shared<config::types::ConfigValue>(out);
         }
       } else if (isStructLike(v)) {
-        replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_var);
+        replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_vars);
       }
     }
+    std::cout << cfg_map << std::endl;
+    std::cout << "===== RPV DONE =====\n";
   }
 
-  void resolveReferences(config::types::CfgMap& d, const std::string& name,
+  /// \brief Walk through CfgMap and find all references. Convert them to structs
+  /// \param[in/out] cfg_map
+  /// \param[in] base_name - ???
+  /// \param[in] ref_vars - map of all reference variables available in the current context
+  void resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
                          config::types::RefMap ref_vars) {
-    /*
-    if (ref_vars is None) {
-      ref_vars = {};
-    }
-    */
-    for (auto& kv : d) {
+    for (auto& kv : cfg_map) {
       const auto& k = kv.first;
       auto& v = kv.second;
       if (v == nullptr) {
-        std::cerr << "name: " << name << std::endl;
+        std::cerr << "base_name: " << base_name << std::endl;
         std::cerr << "Something seems off. Key '" << k << "' is null." << std::endl;
-        std::cerr << "Contents of d: \n" << d << std::endl;
+        std::cerr << "Contents of cfg_map: \n" << cfg_map << std::endl;
         continue;
       }
-      const auto new_name = config::utils::makeName(name, k);
+      const auto new_name = utils::makeName(base_name, k);
       if (v->type == config::types::Type::kReference) {
+        // TODO: When finding a reference, we want to create a new 'struct' given the name, copy any
+        // existing reference key/value pairs, and also add any 'proto' key/value pairs. Then, all
+        // references need to be resolved. This all needs to be done without destroying the 'proto'
+        // as it may be used elsewhere!
         auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
         auto& p = protos_.at(v_ref->proto);
         std::cout << "p: " << p << std::endl;
@@ -259,6 +290,8 @@ class ConfigReader {
         // copy of this data.
         auto r = p->data;
         std::cout << fmt::format("r: {}", v) << std::endl;
+        // If there's a nested dictionary, we probably want to merge this into the existing
+        // ref_vars, rather than overwrite it completely.
         ref_vars = v_ref->ref_vars;
         for (auto& el : v_ref->data) {
           if (isStructLike(el.second)) {
@@ -271,7 +304,7 @@ class ConfigReader {
         std::cout << "Ref vars: \n" << ref_vars << std::endl;
         replaceProtoVar(r, ref_vars);
         /* // TODO: Figure out what is supposed to happen on the next line
-        d[k] = r;
+        cfg_map[k] = r;
         */
         // Call recursively in case the current reference has another reference
         resolveReferences(r, utils::makeName(new_name, k), ref_vars);

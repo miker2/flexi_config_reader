@@ -386,7 +386,7 @@ struct action<REF_VARSUB> {
     }
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
-    ref->ref_vars[std::make_shared<types::ConfigVar>(out.result)] = std::move(out.obj_res);
+    ref->ref_vars[out.result] = std::move(out.obj_res);
 
     out.result = DEFAULT_RES;
   }
