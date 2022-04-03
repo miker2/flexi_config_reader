@@ -135,7 +135,14 @@ class ConfigReader {
       std::cout << s << std::endl;
     }
 
-    mergeNested(out_.cfg_res);
+    auto resolved = mergeNested(out_.cfg_res);
+
+    stripProtos();
+
+    std::cout << "===== Resolving References ========" << std::endl;
+    resolveReferences(resolved, "", {});
+
+    resolveVarRefs();
 
     return success;
   }
@@ -183,6 +190,100 @@ class ConfigReader {
     }
     return squashed_cfg;
   }
+
+  void stripProtos() {
+    // Remove the protos from merged dictionary
+    /*
+    for p in self._protos.keys():
+      parts = p.split('.')
+      tmp = d
+      for i in range(len(parts)-1):
+        tmp = tmp[parts[i]]
+      del tmp[parts[-1]]
+    */
+  }
+
+  void replaceProtoVar(config::types::CfgMap& d, config::types::RefMap& ref_var) {
+    for (auto& kv : d) {
+      const auto& k = kv.first;
+      auto& v = kv.second;
+      if (v->type == config::types::Type::kVar) {
+        auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
+        std::cout << v_var << std::endl;
+        // TODO: @@@ Fix this line
+        // d[k] = ref_var[v_var->name];
+      } else if (v->type == config::types::Type::kValue) {
+        auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
+        // Find instances of 'ref_var' in 'v' and replace.
+        for (auto& rkv : ref_var) {
+          const auto& rk = rkv.first;
+          auto& rv = rkv.second;
+          /*
+          // TODO: @@@ Fix these lines
+          std::cout << fmt::format("v: {}, rk: ${}, rv: {}", v, rk, rv) << std::endl;
+          v = v.replace(f "${rk}", rv);
+          std::cout << fmt::format("v: {}, rk: ${{{}}}, rv: {}", v, rk, rv);
+          v = v.replace(f "${{{rk}}}", rv);
+          std::cout << fmt::format("v: {}", v) << std::endl;
+          d[k] = v;
+          */
+        }
+      } else if (isStructLike(v)) {
+        replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_var);
+      }
+    }
+  }
+
+  void resolveReferences(config::types::CfgMap& d, const std::string& name,
+                         config::types::RefMap ref_vars) {
+    /*
+    if (ref_vars is None) {
+      ref_vars = {};
+    }
+    */
+    for (auto& kv : d) {
+      const auto& k = kv.first;
+      auto& v = kv.second;
+      if (v == nullptr) {
+        std::cerr << "name: " << name << std::endl;
+        std::cerr << "Something seems off. Key '" << k << "' is null." << std::endl;
+        std::cerr << "Contents of d: \n" << d << std::endl;
+        continue;
+      }
+      const auto new_name = config::utils::makeName(name, k);
+      if (v->type == config::types::Type::kReference) {
+        auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
+        auto& p = protos_.at(v_ref->proto);
+        std::cout << "p: " << p << std::endl;
+        // Make a copy of the data contained in the proto. Careful here, as we might need a deep
+        // copy of this data.
+        auto r = p->data;
+        std::cout << fmt::format("r: {}", v) << std::endl;
+        ref_vars = v_ref->ref_vars;
+        for (auto& el : v_ref->data) {
+          if (isStructLike(el.second)) {
+            // append to proto
+            std::cout << fmt::format("new keys: {}", el.second) << std::endl;
+            r = mergeNestedMaps(
+                r, dynamic_pointer_cast<config::types::ConfigStructLike>(el.second)->data);
+          }
+        }
+        std::cout << "Ref vars: \n" << ref_vars << std::endl;
+        replaceProtoVar(r, ref_vars);
+        /* // TODO: Figure out what is supposed to happen on the next line
+        d[k] = r;
+        */
+        // Call recursively in case the current reference has another reference
+        resolveReferences(r, utils::makeName(new_name, k), ref_vars);
+
+      } else if (isStructLike(v)) {
+        resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
+                          ref_vars);
+      }
+    }
+  }
+
+  void resolveVarRefs() {}
 
   config::ActionData out_;
   std::map<std::string, std::shared_ptr<config::types::ConfigStructLike>> protos_{};
