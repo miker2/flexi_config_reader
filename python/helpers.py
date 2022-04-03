@@ -68,7 +68,7 @@ def merge_nested_dict(dict1, dict2, allow_overwrite=False):
         elif dict_count == 1:  # One dictionary, but not the other, can't merge these
             raise MismatchKeyException(key, dict1, dict2)
 
-        return dict_count != 2  # All good if both are dictionaries (for now)
+        return not (dict_count == 2)  # All good if both are dictionaries (for now)
 
     common_keys = set(dict1.keys()).intersection(dict2.keys())
     #print(f"Common keys: {common_keys}")

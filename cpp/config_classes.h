@@ -95,6 +95,18 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
   }
 }
 
+template <typename Key, typename Value>
+inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size_t depth) {
+  const auto ws = std::string(depth * tw, ' ');
+  for (const auto& kv : data) {
+    os << ws << kv.first << " = " << kv.second
+#if PRINT_SRC
+       << "  # " << kv.second->source << ":" << kv.second->line
+#endif
+       << "\n";
+  }
+}
+
 class ConfigValue : public ConfigBase {
  public:
   ConfigValue(std::string value_in, Type type = Type::kValue, std::any val = {})
@@ -176,14 +188,13 @@ class ConfigProto : public ConfigStructLike {
     os << "  " << proto_vars.size() << " proto vars\n";
     os << "  " << data.size() << " k/v pairs\n";
 #endif
-    pprint(os, proto_vars, depth);
     pprint(os, data, depth);
-    // os << proto_vars << "\n";
     // os << data;
     os << std::string((depth - 1) * tw, ' ') << "}";
   }
 
-  std::map<std::string, std::shared_ptr<ConfigVar>> proto_vars;
+  // TODO: Think about this more. What if a var is used more than once?
+  std::map<std::shared_ptr<ConfigVar>, std::string> proto_vars;
 };
 
 class ConfigReference : public ConfigStructLike {
@@ -210,6 +221,16 @@ class ConfigReference : public ConfigStructLike {
 };
 
 };  // namespace config::types
+
+template <>
+struct fmt::formatter<config::types::Type> : formatter<std::string_view> {
+  // parse is inherited from formatter<string_view>
+  template <typename FormatContext>
+  auto format(const config::types::Type& type, FormatContext& ctx) {
+    const auto type_s = magic_enum::enum_name<config::types::Type>(type);
+    return formatter<std::string_view>::format(type_s, ctx);
+  }
+};
 
 template <>
 struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<std::string> {

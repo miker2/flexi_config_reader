@@ -335,8 +335,9 @@ struct action<PROTO_PAIR> {
     // TODO: Check for duplicate keys here!
     if (out.obj_res->type == types::Type::kVar) {
       auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
-      auto proto_var = dynamic_pointer_cast<types::ConfigVar>(out.obj_res);
-      proto->proto_vars[out.keys.back()] = std::move(proto_var);
+      auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
+      proto->data[out.keys.back()] = proto_var;
+      proto->proto_vars[proto_var] = out.keys.back();
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
     }
