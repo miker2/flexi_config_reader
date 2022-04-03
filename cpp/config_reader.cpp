@@ -55,6 +55,8 @@ auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::Cfg
     std::cout << k << std::endl;
     check_for_errors(cfg1, cfg2, k);
   }
+  std::cout << "~~~~~~~~~~~~~~~~~~~~\n";
+
   // This over-writes the top level keys in dict1 with dict2. If there are
   // nested dictionaries, we need to handle these appropriately.
   config::types::CfgMap cfg_out{};
@@ -158,10 +160,18 @@ class ConfigReader {
   }
 
   auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types::CfgMap {
-    // Inefficient, but a start:
-    config::types::CfgMap squashed_cfg{};
+    if (in.empty()) {
+      // TODO: Throw exception here? How to handle empty vector?
+      return {};
+    }
 
-    for (auto& cfg : in) {
+    // This whole function is quite inefficient, but it works, which is a start:
+
+    // Start with the first element:
+    config::types::CfgMap squashed_cfg = in[0];
+
+    // Accumulate all of the other elements of the vector into the CfgMap.
+    for (auto& cfg : ranges::views::tail(in)) {
       std::cout << "======= Working on merging: =======\n";
       std::cout << squashed_cfg << std::endl;
       std::cout << "++++++++++++++ and ++++++++++++++++\n";
@@ -175,7 +185,7 @@ class ConfigReader {
   }
 
   config::ActionData out_;
-  config::types::CfgMap protos_{};
+  std::map<std::string, std::shared_ptr<config::types::ConfigStructLike>> protos_{};
 };
 
 auto main(int argc, char* argv[]) -> int {
