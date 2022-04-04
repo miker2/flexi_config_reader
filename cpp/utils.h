@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace config::utils {
+namespace utils {
 auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::string {
   std::string str(std::move(s));
   str.erase(0, str.find_first_not_of(sep));
@@ -52,7 +52,7 @@ auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string 
   return n1 + "." + n2;
 }
 
-}  // namespace config::utils
+}  // namespace utils
 
 template <typename T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec) {
