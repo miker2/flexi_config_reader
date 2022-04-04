@@ -30,9 +30,28 @@ auto join(const std::vector<std::string>& keys, const std::string& delim) -> std
     return std::string();
   }
 
-  return std::accumulate(std::next(std::begin(keys), 1), std::end(keys), keys.front(),
-                         [&delim](std::string x, std::string y) { return x + delim + y; });
+  return std::accumulate(std::begin(keys), std::end(keys), std::string(),
+                         [&delim](const std::string& x, const std::string& y) {
+                           return x.empty() ? y : x + delim + y;
+                         });
 }
+
+auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string {
+  // Check that at least one argument is valid. We could just return an empty string, but that seems
+  // silly.
+  if (n1.empty() && n2.empty()) {
+    throw std::runtime_error("At least one argument must be non-empty");
+  }
+
+  if (n1.empty()) {
+    return n2;
+  } else if (n2.empty()) {
+    return n1;
+  }
+
+  return n1 + "." + n2;
+}
+
 }  // namespace config::utils
 
 template <typename T>
