@@ -45,3 +45,6 @@ FetchContent_MakeAvailable(fmt)
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
 add_subdirectory(cpp)
+
+enable_testing()
+add_subdirectory(tests)
