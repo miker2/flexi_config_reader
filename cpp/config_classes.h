@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-#include "config_helpers.h"
+#include "utils.h"
 
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0
@@ -91,13 +91,13 @@ class ConfigValue : public ConfigBase {
 class ConfigValueLookup : public ConfigBase {
  public:
   ConfigValueLookup(const std::string& var_ref)
-      : ConfigBase(Type::kValueLookup), keys{config::utils::split(var_ref, '.')} {};
+      : ConfigBase(Type::kValueLookup), keys{utils::split(var_ref, '.')} {};
 
   void stream(std::ostream& os) const override { os << "$(" << var() << ")"; }
 
   const std::vector<std::string> keys{};
 
-  auto var() const -> std::string { return config::utils::join(keys, "."); }
+  auto var() const -> std::string { return utils::join(keys, "."); }
 };
 
 class ConfigVar : public ConfigBase {
