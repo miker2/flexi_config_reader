@@ -39,7 +39,7 @@ struct ActionData {
   // Nominally, we'd have just a `types::ConfigBase` at the very root (which we could still do,
   // maybe), but we need to be able to represent an array of items here in order to support
   // duplicate structs, etc. We'll join these all up later.
-  std::vector<std::map<std::string, std::shared_ptr<types::ConfigBase>>> cfg_res{1};
+  std::vector<types::CfgMap> cfg_res{1};
   std::shared_ptr<types::ConfigBase> obj_res;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
@@ -98,6 +98,72 @@ struct action<VALUE> {
     out.obj_res = std::make_shared<types::ConfigValue>(in.string());
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<HEX> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    const auto hex = std::stoi(in.string(), nullptr, 16);
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In HEX action: " << in.string() << "|" << hex
+              << "|0x" << std::hex << hex << "\n";
+#endif
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<STRING> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In STRING action: " << in.string() << "\n";
+#endif
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<NUMBER> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In NUMBER action: " << in.string();
+#endif
+    std::any any_val{};
+    try {
+      const auto num = std::stod(in.string());
+#if VERBOSE_DEBUG
+      std::cout << "|" << num << "\n";
+#endif
+      any_val = num;
+    } catch (std::invalid_argument) {
+      const auto num = std::stoll(in.string());
+#if VERBOSE_DEBUG
+      std::cout << "|" << num << "\n";
+#endif
+      any_val = num;
+    }
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<LIST> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << std::string(out.depth * 2, ' ') << "In LIST action: " << in.string() << "\n";
+    const auto entries = utils::split(utils::trim(in.string(), "[] \t\n\r"), ',');
+    std::cout << std::string(out.depth * 2, ' ') << " --- "
+              << "Has " << entries.size() << " elements: " << utils::join(entries, "; ") << "\n";
   }
 };
 

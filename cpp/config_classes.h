@@ -1,5 +1,6 @@
 #include <fmt/format.h>
 
+#include <any>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -16,7 +17,20 @@ constexpr std::size_t tw{4};  // The width of the indentation
 
 namespace config::types {
 
-enum class Type { kStruct, kProto, kReference, kVar, kValueLookup, kValue, kUnknown };
+class ConfigBase;
+using CfgMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
+
+enum class Type {
+  kStruct,
+  kProto,
+  kReference,
+  kVar,
+  kValueLookup,
+  kValue,
+  kString,
+  kNumber,
+  kUnknown
+};
 
 // This is the base-class from which all config nodes shall derive
 class ConfigBase {
@@ -37,6 +51,8 @@ class ConfigBase {
 
   std::size_t line{0};
   std::string source{};
+
+  auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const ConfigBase& cfg) {
@@ -81,11 +97,14 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
 
 class ConfigValue : public ConfigBase {
  public:
-  ConfigValue(std::string value_in) : ConfigBase(Type::kValue), value{value_in} {};
+  ConfigValue(std::string value_in, Type type = Type::kValue, std::any val = {})
+      : ConfigBase(type), value{value_in}, value_any{std::move(val)} {};
 
   void stream(std::ostream& os) const override { os << value; }
 
   const std::string value{};
+
+  const std::any value_any{};
 };
 
 class ConfigValueLookup : public ConfigBase {
@@ -128,7 +147,7 @@ class ConfigStructLike : public ConfigBase {
 
   const std::size_t depth{};
 
-  std::map<std::string, std::shared_ptr<ConfigBase>> data;
+  CfgMap data;
 };
 
 class ConfigStruct : public ConfigStructLike {
