@@ -1,7 +1,10 @@
+#pragma once
+
 #include <fmt/format.h>
 
 #include <any>
 #include <iostream>
+#include <magic_enum.hpp>
 #include <map>
 #include <memory>
 #include <string>
