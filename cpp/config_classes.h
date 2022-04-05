@@ -7,6 +7,7 @@
 #include <magic_enum.hpp>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 
 #include "utils.h"
