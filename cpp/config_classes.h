@@ -15,6 +15,15 @@
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0
 
+// Macros, ick! But... These can be used in place of the CRTP below (maybe easier to manage?)
+#define CLONABLE_BASE(Base) virtual auto clone() const->std::shared_ptr<Base> = 0;
+
+#define CLONABLE(Base)                                                       \
+  auto clone() const->std::shared_ptr<Base> override {                       \
+    using Self = std::remove_cv_t<std::remove_reference_t<decltype(*this)>>; \
+    return std::shared_ptr<Self>(new Self(*this));                           \
+  }
+
 namespace {
 constexpr std::size_t tw{4};  // The width of the indentation
 }
@@ -27,14 +36,14 @@ using CfgMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
 using RefMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
 
 enum class Type {
-  kStruct,
-  kProto,
-  kReference,
-  kVar,
-  kValueLookup,
   kValue,
   kString,
   kNumber,
+  kValueLookup,
+  kVar,
+  kStruct,
+  kProto,
+  kReference,
   kUnknown
 };
 
@@ -42,23 +51,41 @@ enum class Type {
 class ConfigBase {
  protected:
   explicit ConfigBase(const Type in_type) : type{in_type} {}
-  virtual ~ConfigBase() = default;
 
- public:
-  ConfigBase(const ConfigBase&) = delete;
-  ConfigBase(ConfigBase&&) = delete;
+  ConfigBase(const ConfigBase&) = default;
 
   ConfigBase& operator=(const ConfigBase&) = delete;
-  ConfigBase& operator=(ConfigBase&&) = delete;
+
+ public:
+  virtual ~ConfigBase() noexcept = default;
 
   virtual void stream(std::ostream&) const = 0;
+
+  virtual auto clone() const -> std::shared_ptr<ConfigBase> = 0;
+
+  auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
 
   const Type type;
 
   std::size_t line{0};
   std::string source{};
+};
 
-  auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
+// Use CRTP to add "clone" method to each class.
+// A slight modification of the concept found here:
+//  https://herbsutter.com/2019/10/03/gotw-ish-solution-the-clonable-pattern/
+// To bad meta-classes and reflection aren't supported. The result from that post is very clean.
+template <typename Base, typename Derived>
+class ConfigBaseClonable : public Base {
+ public:
+  using Base::Base;
+
+  virtual auto clone() const -> std::shared_ptr<ConfigBase> override {
+    // This sort of feels like a dirty hack, but appears to work.
+    // See: https://stackoverflow.com/a/25069711
+    struct make_shared_enabler : public Derived {};
+    return std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+  }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const ConfigBase& cfg) {
@@ -113,37 +140,55 @@ inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size
   }
 }
 
-class ConfigValue : public ConfigBase {
+class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
  public:
-  ConfigValue(std::string value_in, Type type = Type::kValue, std::any val = {})
-      : ConfigBase(type), value{value_in}, value_any{std::move(val)} {};
+  explicit ConfigValue(std::string value_in, Type type = Type::kValue, std::any val = {})
+      : ConfigBaseClonable(type), value{value_in}, value_any{std::move(val)} {};
 
   void stream(std::ostream& os) const override { os << value; }
 
   const std::string value{};
 
   const std::any value_any{};
+
+  ~ConfigValue() noexcept override = default;
+
+ protected:
+  ConfigValue(const ConfigValue&) = default;
+  ConfigValue& operator=(const ConfigValue&) = delete;
 };
 
-class ConfigValueLookup : public ConfigBase {
+class ConfigValueLookup : public ConfigBaseClonable<ConfigBase, ConfigValueLookup> {
  public:
   ConfigValueLookup(const std::string& var_ref)
-      : ConfigBase(Type::kValueLookup), keys{utils::split(var_ref, '.')} {};
+      : ConfigBaseClonable(Type::kValueLookup), keys{utils::split(var_ref, '.')} {};
 
   void stream(std::ostream& os) const override { os << "$(" << var() << ")"; }
 
   const std::vector<std::string> keys{};
 
   auto var() const -> std::string { return utils::join(keys, "."); }
+
+  ~ConfigValueLookup() noexcept override = default;
+
+ protected:
+  ConfigValueLookup(const ConfigValueLookup&) = default;
+  ConfigValueLookup& operator=(const ConfigValueLookup&) = delete;
 };
 
-class ConfigVar : public ConfigBase {
+class ConfigVar : public ConfigBaseClonable<ConfigBase, ConfigVar> {
  public:
-  ConfigVar(std::string name) : ConfigBase(Type::kVar), name{std::move(name)} {};
+  ConfigVar(std::string name) : ConfigBaseClonable(Type::kVar), name{std::move(name)} {};
 
   void stream(std::ostream& os) const override { os << name; }
 
   const std::string name{};
+
+  ~ConfigVar() noexcept override = default;
+
+ protected:
+  ConfigVar(const ConfigVar&) = default;
+  ConfigVar& operator=(const ConfigVar&) = delete;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const ConfigVar& cfg) {
@@ -151,10 +196,10 @@ inline std::ostream& operator<<(std::ostream& os, const ConfigVar& cfg) {
   return os;
 }
 
-class ConfigStructLike : public ConfigBase {
+class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike> {
  public:
   ConfigStructLike(Type in_type, std::string name, std::size_t depth)
-      : ConfigBase(in_type), name{std::move(name)}, depth{depth} {};
+      : ConfigBaseClonable(in_type), name{std::move(name)}, depth{depth} {};
 
   void stream(std::ostream& os) const override {
     os << "struct-like " << name << "\n";
@@ -166,12 +211,18 @@ class ConfigStructLike : public ConfigBase {
   const std::size_t depth{};
 
   CfgMap data;
+
+  ~ConfigStructLike() noexcept override = default;
+
+ protected:
+  ConfigStructLike(const ConfigStructLike&) = default;
+  ConfigStructLike& operator=(const ConfigStructLike&) = delete;
 };
 
-class ConfigStruct : public ConfigStructLike {
+class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
  public:
   ConfigStruct(std::string name, std::size_t depth)
-      : ConfigStructLike(Type::kStruct, name, depth){};
+      : ConfigBaseClonable(Type::kStruct, name, depth){};
 
   void stream(std::ostream& os) const override {
     os << "struct " << name << " {\n";
@@ -182,11 +233,18 @@ class ConfigStruct : public ConfigStructLike {
     // os << data;
     os << std::string((depth - 1) * tw, ' ') << "}";
   }
+
+  ~ConfigStruct() noexcept override = default;
+
+ protected:
+  ConfigStruct(const ConfigStruct&) = default;
+  ConfigStruct& operator=(const ConfigStruct&) = delete;
 };
 
-class ConfigProto : public ConfigStructLike {
+class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
  public:
-  ConfigProto(std::string name, std::size_t depth) : ConfigStructLike(Type::kProto, name, depth) {}
+  ConfigProto(std::string name, std::size_t depth)
+      : ConfigBaseClonable(Type::kProto, name, depth) {}
 
   void stream(std::ostream& os) const override {
     os << "proto " << name << " {\n";
@@ -201,12 +259,18 @@ class ConfigProto : public ConfigStructLike {
 
   // TODO: Think about this more. What if a var is used more than once?
   std::map<std::shared_ptr<ConfigVar>, std::string> proto_vars;
+
+  ~ConfigProto() noexcept override = default;
+
+ protected:
+  ConfigProto(const ConfigProto&) = default;
+  ConfigProto& operator=(const ConfigProto&) = delete;
 };
 
-class ConfigReference : public ConfigStructLike {
+class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigReference> {
  public:
   ConfigReference(std::string name, std::string proto_name, std::size_t depth)
-      : ConfigStructLike(Type::kReference, name, depth), proto{std::move(proto_name)} {};
+      : ConfigBaseClonable(Type::kReference, name, depth), proto{std::move(proto_name)} {};
 
   void stream(std::ostream& os) const override {
     os << "reference " << proto << " as " << name << " {\n";
@@ -224,6 +288,12 @@ class ConfigReference : public ConfigStructLike {
   const std::string proto{};
 
   RefMap ref_vars;
+
+  ~ConfigReference() noexcept override = default;
+
+ protected:
+  ConfigReference(const ConfigReference&) = default;
+  ConfigReference& operator=(const ConfigReference&) = delete;
 };
 
 };  // namespace config::types
