@@ -221,7 +221,9 @@ class ConfigReader {
         std::cout << fmt::format("r: {}", v) << std::endl;
         // If there's a nested dictionary, we probably want to merge this into the existing
         // ref_vars, rather than overwrite it completely.
-        ref_vars = v_ref->ref_vars;
+        std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
+                  std::inserter(ref_vars, ref_vars.end()));
+        // ref_vars = v_ref->ref_vars;
         for (auto& el : v_ref->data) {
           if (config::helpers::isStructLike(el.second)) {
             // append to proto

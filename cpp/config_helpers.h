@@ -99,7 +99,9 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
   // the proto.
   for (const auto& el : proto->data) {
-    config::helpers::checkForErrors(struct_out->data, proto->data, el.first);
+    if (struct_out->data.contains(el.first) && proto->data.contains(el.first)) {
+      config::helpers::checkForErrors(struct_out->data, proto->data, el.first);
+    }
     // std::shared_ptr<config::types::ConfigBase> value = el.second->clone();
     struct_out->data[el.first] = std::move(el.second->clone());
   }

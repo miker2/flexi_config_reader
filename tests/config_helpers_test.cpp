@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <magic_enum.hpp>
+
 #include "config_classes.h"
 
 namespace {
@@ -243,5 +245,91 @@ TEST(config_helpers_test, mergeNestedMaps) {
     for (const auto& k : keys) {
       ASSERT_TRUE(inner_map->data.contains(k));
     }
+  }
+}
+
+TEST(config_helpers_test, structFromReference) {
+  {
+    // This test should succeed (no exceptions thrown)
+    const std::string ref_name = "hx";
+    const std::string proto_name = "key";
+    const std::vector<std::string> keys = {"key1", "key2", "key3", "key4", "key5"};
+    // NOTE: The value of the keys below don't matter for this test, so we'll use some dummy values.
+
+    // Set up reference as such:
+    //  reference key as hx
+    //    +key1 = 0.14
+    //    +key2 = "fizz_buzz"
+    //    $KEY3 = "foo"
+    //    $KEY4 = "bar"
+    auto reference = std::make_shared<config::types::ConfigReference>(ref_name, proto_name,
+                                                                      4 /* depth doesn't matter */);
+    reference->data = {{keys[0], std::make_shared<config::types::ConfigValue>(
+                                     "0.14", config::types::Type::kNumber, 0.14)},
+                       {keys[1], std::make_shared<config::types::ConfigValue>("fizz_buzz")}};
+    reference->ref_vars = {{"$KEY3", std::make_shared<config::types::ConfigValue>("foo")},
+                           {"$KEY4", std::make_shared<config::types::ConfigValue>("bar")}};
+
+    // Set up proto as such:
+    //  proto key
+    //    key3 = $KEY3
+    //    key4 = $KEY4
+    std::map<std::string, std::string> expected_proto_values = {
+        {keys[2], "$KEY3"}, {keys[3], "$KEY4"}, {keys[4], "-2"}};
+    auto proto =
+        std::make_shared<config::types::ConfigProto>(proto_name, 0 /* depth doesn't matter */);
+    proto->data = {
+        {keys[2], std::make_shared<config::types::ConfigVar>(expected_proto_values[keys[2]])},
+        {keys[3], std::make_shared<config::types::ConfigVar>(expected_proto_values[keys[3]])},
+        {keys[4], std::make_shared<config::types::ConfigValue>(expected_proto_values[keys[4]])}};
+
+    std::shared_ptr<config::types::ConfigStruct> struct_out{};
+    ASSERT_NO_THROW(struct_out = config::helpers::structFromReference(reference, proto));
+
+    // Ensure that the struct was created properly from the reference
+    ASSERT_EQ(reference->name, struct_out->name);
+    ASSERT_EQ(reference->depth, struct_out->depth);
+
+    // Reference data should be empty (moved to struct)
+    ASSERT_TRUE(reference->data.empty());
+
+    // Ensure that the proto still has all of it's keys.
+    for (size_t i = 2; i < keys.size(); ++i) {
+      ASSERT_TRUE(proto->data.contains(keys[i]));
+    }
+
+    // Verify that the produced struct contains all of the expected keys.
+    for (const auto& k : keys) {
+      ASSERT_TRUE(struct_out->data.contains(k));
+    }
+
+    // We want to ensure that if we modify a value in the struct that came from the proto, the proto
+    // value isn't modified.
+    for (auto& kv : struct_out->data) {
+      if (kv.second->type == config::types::Type::kVar) {
+        auto var = dynamic_pointer_cast<config::types::ConfigVar>(kv.second);
+        if (reference->ref_vars.contains(var->name)) {
+          kv.second = reference->ref_vars[var->name];
+        }
+      }
+    }
+
+    // Check that the contents are as expected.
+    for (const auto& kv : proto->data) {
+      if (kv.second->type == config::types::Type::kVar) {
+        EXPECT_EQ(expected_proto_values[kv.first],
+                  dynamic_pointer_cast<config::types::ConfigVar>(kv.second)->name);
+      } else if (kv.second->type == config::types::Type::kValue) {
+        EXPECT_EQ(expected_proto_values[kv.first],
+                  dynamic_pointer_cast<config::types::ConfigValue>(kv.second)->value);
+      } else {
+        EXPECT_TRUE(false) << "Unexpected type "
+                           << magic_enum::enum_name<config::types::Type>(kv.second->type)
+                           << " found in proto!";
+      }
+    }
+  }
+  {
+    // TODO: Consider adding a more complex test with a proto that has nested values.
   }
 }
