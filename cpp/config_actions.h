@@ -395,10 +395,9 @@ struct action<REF_VARSUB> {
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -407,10 +406,9 @@ struct action<STRUCTs> {
 template <>
 struct action<PROTOs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -419,12 +417,11 @@ struct action<PROTOs> {
 template <>
 struct action<REFs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
               << out.keys.back() << std::endl;
-    out.objects.push_back(
-        std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigReference>(
+        out.keys.back(), out.flat_keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }

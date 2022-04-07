@@ -117,7 +117,8 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
-      os << "\n" << ws << kv.second << "\n\n";
+      // Don't add extra whitespace, as this is handled entirely by the StructLike objects
+      os << "\n" << kv.second << "\n\n";
     } else {
       os << ws << kv.first << " = " << kv.second
 #if PRINT_SRC
@@ -225,13 +226,14 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
       : ConfigBaseClonable(Type::kStruct, name, depth){};
 
   void stream(std::ostream& os) const override {
-    os << "struct " << name << " {\n";
+    const auto ws = std::string(depth * tw, ' ');
+    os << ws << "struct " << name << " {\n";
 #if DEBUG_CLASSES
-    os << "  " << data.size() << " k/v pairs\n";
+    os << ws << "-- " << data.size() << " k/v pairs\n";
 #endif
-    pprint(os, data, depth);
+    pprint(os, data, depth + 1);
     // os << data;
-    os << std::string((depth - 1) * tw, ' ') << "}";
+    os << ws << "}";
   }
 
   ~ConfigStruct() noexcept override = default;
@@ -247,18 +249,18 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
       : ConfigBaseClonable(Type::kProto, name, depth) {}
 
   void stream(std::ostream& os) const override {
-    os << "proto " << name << " {\n";
+    const auto ws = std::string(depth * tw, ' ');
+    os << ws << "proto " << name << " {\n";
 #if DEBUG_CLASSES
-    os << "  " << proto_vars.size() << " proto vars\n";
-    os << "  " << data.size() << " k/v pairs\n";
+    os << ws << "-- " << proto_vars.size() << " proto vars\n";
+    os << ws << "-- " << data.size() << " k/v pairs\n";
 #endif
-    pprint(os, data, depth);
-    // os << data;
-    os << std::string((depth - 1) * tw, ' ') << "}";
+    pprint(os, data, depth + 1);
+    os << ws << "}";
   }
 
   // TODO: Think about this more. What if a var is used more than once?
-  std::map<std::shared_ptr<ConfigVar>, std::string> proto_vars;
+  std::map<std::shared_ptr<ConfigVar>, std::string> proto_vars{};
 
   ~ConfigProto() noexcept override = default;
 
@@ -273,16 +275,15 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
       : ConfigBaseClonable(Type::kReference, name, depth), proto{std::move(proto_name)} {};
 
   void stream(std::ostream& os) const override {
-    os << "reference " << proto << " as " << name << " {\n";
+    const auto ws = std::string(depth * tw, ' ');
+    os << ws << "reference " << proto << " as " << name << " {\n";
 #if DEBUG_CLASSES
-    os << "  " << ref_vars.size() << " ref vars\n";
-    os << "  " << data.size() << " k/v pairs\n";
+    os << ws << "-- " << ref_vars.size() << " ref vars\n";
+    os << ws << "-- " << data.size() << " k/v pairs\n";
 #endif
-    pprint(os, ref_vars, depth);
-    pprint(os, data, depth);
-    // os << ref_vars << "\n";
-    // os << data;
-    os << std::string((depth - 1) * tw, ' ') << "}";
+    pprint(os, ref_vars, depth + 1);
+    pprint(os, data, depth + 1);
+    os << ws << "}";
   }
 
   const std::string proto{};
