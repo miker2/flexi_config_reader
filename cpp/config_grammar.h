@@ -102,10 +102,16 @@ struct VAR : peg::seq<peg::one<'$'>, peg::plus<peg::ranges<'A', 'Z', '0', '9', '
 
 struct sign : peg::one<'+', '-'> {};
 struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
-struct INTEGER
+
+// NOTE: We want to use the same common part for an "INTEGER" and a "FLOAT", but we don't want the
+// "INTEGER" sub-rule to match when looking at the beginning of a float, so we do this trick here.
+// "INTEGER_" is the same for both an "INTEGER" and a "FLOAT", but when matching an "INTEGER" we
+// ensure that there is no decimal point at the end.
+struct INTEGER_
     : peg::seq<peg::opt<sign>,
                peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>, peg::star<peg::digit>>>> {};
-struct FLOAT : peg::seq<INTEGER, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
+struct INTEGER : peg::seq<INTEGER_, peg::not_at<peg::one<'.'>>> {};
+struct FLOAT : peg::seq<INTEGER_, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
 struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};

@@ -93,9 +93,14 @@ struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "In VALUE action: " << in.string() << std::endl;
 #endif
-    out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    if (out.obj_res == nullptr) {
+      // NOTE: This should only happen if the object is a `LIST` which isn't explicitly handled yet!
+      std::cout << std::string(10, '!') << " Creating default ConfigValue object "
+                << std::string(10, '!') << std::endl;
+      out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    }
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
   }
@@ -111,8 +116,6 @@ struct action<HEX> {
               << "|0x" << std::hex << hex << "\n";
 #endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
-    out.obj_res->line = in.position().line;
-    out.obj_res->source = in.position().source;
   }
 };
 
@@ -124,35 +127,33 @@ struct action<STRING> {
     std::cout << std::string(out.depth * 2, ' ') << "In STRING action: " << in.string() << "\n";
 #endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
-    out.obj_res->line = in.position().line;
-    out.obj_res->source = in.position().source;
   }
 };
 
 template <>
-struct action<NUMBER> {
+struct action<FLOAT> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In NUMBER action: " << in.string();
+    std::cout << std::string(out.depth * 2, ' ') << "In FLOAT action: " << in.string() << std::endl;
 #endif
-    std::any any_val{};
-    try {
-      const auto num = std::stod(in.string());
-#if VERBOSE_DEBUG
-      std::cout << "|" << num << "\n";
-#endif
-      any_val = num;
-    } catch (std::invalid_argument) {
-      const auto num = std::stoll(in.string());
-#if VERBOSE_DEBUG
-      std::cout << "|" << num << "\n";
-#endif
-      any_val = num;
-    }
+    std::any any_val = std::stod(in.string());
+
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
-    out.obj_res->line = in.position().line;
-    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<INTEGER> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In INTEGER action: " << in.string()
+              << std::endl;
+#endif
+    std::any any_val = std::stoi(in.string());
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
   }
 };
 
