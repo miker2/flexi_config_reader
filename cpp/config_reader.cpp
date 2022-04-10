@@ -66,7 +66,11 @@ class ConfigReader {
 
     auto resolved = mergeNested(out_.cfg_res);
 
-    stripProtos();
+    std::cout << std::string(35, '=') << " Strip Protos " << std::string(35, '=') << std::endl;
+    stripProtos(resolved);
+    std::cout << " --- Result of 'stripProtos':\n";
+    std::cout << protos_ << std::endl;
+    std::cout << resolved << std::endl;
 
     std::cout << std::string(35, '=') << " Resolving References " << std::string(35, '=')
               << std::endl;
@@ -123,76 +127,45 @@ class ConfigReader {
     return squashed_cfg;
   }
 
-  void stripProtos() {
-    // Remove the protos from merged dictionary
-    /*
-    for p in self._protos.keys():
-      parts = p.split('.')
-      tmp = d
-      for i in range(len(parts)-1):
-        tmp = tmp[parts[i]]
-      del tmp[parts[-1]]
-    */
-  }
-
-  /*
-  /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
-  /// \param[in/out] cfg_map - Contents of a proto
-  /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
-  void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
-    std::cout << "replaceProtoVars --- \n";
-    std::cout << cfg_map << std::endl;
-    std::cout << "  -- ref_vars: \n";
-    std::cout << ref_vars << std::endl;
-
-    for (auto& kv : cfg_map) {
-      const auto& k = kv.first;
-      auto& v = kv.second;
-      if (v->type == config::types::Type::kVar) {
-        auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
-        std::cout << v_var << std::endl;
-        // Pull the value from the reference vars and add it to the structure.
-        cfg_map[k] = ref_vars.at(v_var->name);
-      } else if (v->type == config::types::Type::kString) {
-        // TODO: We don't currently distinguish between the various value types here, but we
-        // probably should because we really only want to do this if there is an actual string
-        // (rather than some other value type).
-        auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
-
-        // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
-        // sense in doing this loop.
-        const auto var_pos = v_value->value.find('$');
-        if (var_pos == std::string::npos) {
-          // No variables. Let's skip.
-          std::cout << "No variables in " << v_value << ". Skipping..." << std::endl;
-          continue;
+  /// \brief Remove the protos from merged dictionary
+  /// \param[in/out] cfg_map - The top level (resolved) config map
+  void stripProtos(config::types::CfgMap& cfg_map) {
+    // For each entry in the protos map, find the corresponding entry in the resolved config and
+    // remove the proto. This isn't strictly necessary, but it simplifies some things later when
+    // trying to resolve references and other variables.
+    for (auto& kv : protos_) {
+      std::cout << "Removing '" << kv.first << "' from config." << std::endl;
+      // Split the keys so we can use them to recurse into the map.
+      const auto parts = utils::split(kv.first, '.');
+      // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
+      // order to make error messages more useful.
+      std::string rejoined = "";
+      // This isn't very efficient as there may be common trunks between the different protos, but
+      // restart with the root node each time.
+      config::types::CfgMap* content = &cfg_map;
+      // Walk through each part of the flat key (except the last one, as it will be the one to be
+      // removed).
+      for (size_t i = 0; i < parts.size() - 1; ++i) {
+        rejoined = utils::makeName(rejoined, parts[i]);
+        // This may be uneccessary error checking (if this is a part of a flat key, then it must be
+        // a nested structure), but we check here that this object is a `StructLike` object,
+        // otherwise we can't access the data member.
+        const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(parts[i]));
+        if (v == nullptr) {
+          throw config::InvalidTypeException(fmt::format(
+              "Expected value at '{}' to be a struct-like object, but got {} type instead.",
+              rejoined, content->at(parts[i])->type));
         }
-
-        // Find instances of 'ref_vars' in 'v' and replace.
-        for (auto& rkv : ref_vars) {
-          const auto& rk = rkv.first;
-          auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
-
-          std::cout << "v: " << v << ", rk: " << rk << ", rv: " << rv << std::endl;
-          auto out = std::regex_replace(v_value->value, std::regex("\\" + rk), rv->value);
-          // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
-          // in escape characters as this will be used in a regular expression.
-          const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
-          std::cout << "v: " << v << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
-          out = std::regex_replace(out, std::regex(bracket_var), rv->value);
-          std::cout << "out: " << out << std::endl;
-
-          // Replace the existing value with the new value.
-          cfg_map[k] = std::make_shared<config::types::ConfigValue>(out);
-        }
-      } else if (config::helpers::isStructLike(v)) {
-        replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_vars);
+        // Pull out the contents of the struct-like and move on to the next iteration.
+        content = &(v->data);
+        std::cout << "At '" << parts[i] << "':\n";
+        std::cout << *content << std::endl;
       }
+      std::cout << "Final component: " << parts.back() << " = " << content->at(parts.back())
+                << std::endl;
+      content->erase(parts.back());
     }
-    std::cout << cfg_map << std::endl;
-    std::cout << "===== RPV DONE =====\n";
   }
-  */
 
   /// \brief Walk through CfgMap and find all references. Convert them to structs
   /// \param[in/out] cfg_map
@@ -217,13 +190,13 @@ class ConfigReader {
         // as it may be used elsewhere!
         auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
         auto& p = protos_.at(v_ref->proto);
+        std::cout << fmt::format("r: {}", v) << std::endl;
         std::cout << "p: " << p << std::endl;
         auto new_struct = config::helpers::structFromReference(v_ref, p);
         std::cout << "struct from reference: \n" << new_struct << std::endl;
         // Make a copy of the data contained in the proto. Careful here, as we might need a deep
         // copy of this data.
         auto r = p->data;
-        std::cout << fmt::format("r: {}", v) << std::endl;
         // If there's a nested dictionary, we want to add any new ref_vars into the existing
         // ref_vars.
         std::cout << "Current ref_vars: \n" << ref_vars << std::endl;
