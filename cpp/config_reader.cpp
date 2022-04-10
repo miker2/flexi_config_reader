@@ -81,7 +81,10 @@ class ConfigReader {
     std::cout << resolved;
 
     std::cout << "===== Resolve variable references ====" << std::endl;
-    resolveVarRefs();
+    resolveVarRefs(resolved, resolved);
+
+    std::cout << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
+    std::cout << resolved;
 
     return success;
   }
@@ -148,20 +151,20 @@ class ConfigReader {
       config::types::CfgMap* content = &cfg_map;
       // Walk through each part of the flat key (except the last one, as it will be the one to be
       // removed).
-      for (size_t i = 0; i < parts.size() - 1; ++i) {
-        rejoined = utils::makeName(rejoined, parts[i]);
+      for (const auto& key : parts | ranges::views::drop_last(1)) {
+        rejoined = utils::makeName(rejoined, key);
         // This may be uneccessary error checking (if this is a part of a flat key, then it must be
         // a nested structure), but we check here that this object is a `StructLike` object,
         // otherwise we can't access the data member.
-        const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(parts[i]));
+        const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
         if (v == nullptr) {
           throw config::InvalidTypeException(fmt::format(
               "Expected value at '{}' to be a struct-like object, but got {} type instead.",
-              rejoined, content->at(parts[i])->type));
+              rejoined, content->at(key)->type));
         }
         // Pull out the contents of the struct-like and move on to the next iteration.
         content = &(v->data);
-        std::cout << "At '" << parts[i] << "':\n";
+        std::cout << "At '" << key << "':\n";
         std::cout << *content << std::endl;
       }
       std::cout << "Final component: " << parts.back() << " = " << content->at(parts.back())
@@ -197,15 +200,17 @@ class ConfigReader {
         std::cout << "p: " << p << std::endl;
         auto new_struct = config::helpers::structFromReference(v_ref, p);
         std::cout << "struct from reference: \n" << new_struct << std::endl;
-        // Make a copy of the data contained in the proto. Careful here, as we might need a deep
-        // copy of this data.
-        auto r = p->data;
         // If there's a nested dictionary, we want to add any new ref_vars into the existing
         // ref_vars.
         std::cout << "Current ref_vars: \n" << ref_vars << std::endl;
         std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
                   std::inserter(ref_vars, ref_vars.end()));
         std::cout << "Updated ref_vars: \n" << ref_vars << std::endl;
+#if 0
+        // TODO: Figure out what this block of code was meant to do!
+        // Make a copy of the data contained in the proto. Careful here, as we might need a deep
+        // copy of this data.
+        auto r = p->data;
         for (auto& el : v_ref->data) {
           if (config::helpers::isStructLike(el.second)) {
             // append to proto
@@ -214,12 +219,13 @@ class ConfigReader {
                 r, dynamic_pointer_cast<config::types::ConfigStructLike>(el.second)->data);
           }
         }
+#endif
         std::cout << "Ref vars: \n" << ref_vars << std::endl;
         config::helpers::replaceProtoVar(new_struct->data, ref_vars);
         // Replace the existing reference with the new struct that was created.
         cfg_map[k] = new_struct;
         // Call recursively in case the current reference has another reference
-        resolveReferences(r, utils::makeName(new_name, k), ref_vars);
+        resolveReferences(new_struct->data, utils::makeName(new_name, k), ref_vars);
 
       } else if (v->type == config::types::Type::kStruct) {
         resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
@@ -228,7 +234,21 @@ class ConfigReader {
     }
   }
 
-  void resolveVarRefs() {}
+  void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree) {
+    for (const auto& kv : sub_tree) {
+      if (kv.second->type == config::types::Type::kValueLookup) {
+        const auto value = config::helpers::getConfigValue(
+            root, dynamic_pointer_cast<config::types::ConfigValueLookup>(kv.second));
+        std::cout << fmt::format("Found instance of ValueLookup: {}. Has value={}", kv.second,
+                                 value)
+                  << std::endl;
+        sub_tree[kv.first] = value;
+      } else if (config::helpers::isStructLike(kv.second)) {
+        resolveVarRefs(root,
+                       dynamic_pointer_cast<config::types::ConfigStructLike>(kv.second)->data);
+      }
+    }
+  }
 
   config::ActionData out_;
   std::map<std::string, std::shared_ptr<config::types::ConfigProto>> protos_{};

@@ -7,12 +7,15 @@
 #include <map>
 #include <memory>
 #include <range/v3/algorithm/find.hpp>
+#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/map.hpp>
 #include <range/v3/view/set_algorithm.hpp>
 #include <regex>
 
 #include "config_classes.h"
 #include "config_exceptions.h"
+
+#define CONFIG_HELPERS_DEBUG 0
 
 namespace config::helpers {
 
@@ -94,12 +97,16 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
 
   // First, create the new struct based on the reference data.
   auto struct_out = std::make_shared<config::types::ConfigStruct>(ref->name, ref->depth);
+#if CONFIG_HELPERS_DEBUG
   std::cout << "New struct: \n";
   std::cout << struct_out << "\n";
+#endif
   // Next, move the data from the reference to the struct:
   struct_out->data.merge(ref->data);
+#if CONFIG_HELPERS_DEBUG
   std::cout << "Data added: \n";
   std::cout << struct_out << "\n";
+#endif
   // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
   // the proto.
@@ -176,6 +183,33 @@ void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap
   std::cout << "~~~~~ Result ~~~~~\n";
   std::cout << cfg_map << std::endl;
   std::cout << "===== RPV DONE =====\n";
+}
+
+auto getConfigValue(const config::types::CfgMap& cfg,
+                    const std::shared_ptr<config::types::ConfigValueLookup>& var)
+    -> std::shared_ptr<config::types::ConfigBase> {
+  // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
+  // order to make error messages more useful.
+  std::string rejoined = "";
+  // Start with the base config tree and work our way down through the keys.
+  auto* content = &cfg;
+  // Walk through each part of the flat key (except the last one, as it will be the one that
+  // contains the data.
+  for (const auto& key : var->keys | ranges::views::drop_last(1)) {
+    rejoined = utils::makeName(rejoined, key);
+    // This may be uneccessary error checking (if this is a part of a flat key, then it must be
+    // a nested structure), but we check here that this object is a `StructLike` object,
+    // otherwise we can't access the `data` member.
+    const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
+    if (v == nullptr) {
+      throw config::InvalidTypeException(
+          fmt::format("Expected value at '{}' to be a struct-like object, but got {} type instead.",
+                      rejoined, content->at(key)->type));
+    }
+    // Pull out the contents of the struct-like and move on to the next iteration.
+    content = &(v->data);
+  }
+  return content->at(var->keys.back());
 }
 
 }  // namespace config::helpers
