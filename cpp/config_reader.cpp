@@ -66,11 +66,14 @@ class ConfigReader {
 
     auto resolved = mergeNested(out_.cfg_res);
 
+#if 1
+    // TODO: Determine if this is actually necessary.
     std::cout << std::string(35, '=') << " Strip Protos " << std::string(35, '=') << std::endl;
     stripProtos(resolved);
     std::cout << " --- Result of 'stripProtos':\n";
     std::cout << protos_ << std::endl;
     std::cout << resolved << std::endl;
+#endif
 
     std::cout << std::string(35, '=') << " Resolving References " << std::string(35, '=')
               << std::endl;
@@ -218,7 +221,7 @@ class ConfigReader {
         // Call recursively in case the current reference has another reference
         resolveReferences(r, utils::makeName(new_name, k), ref_vars);
 
-      } else if (config::helpers::isStructLike(v)) {
+      } else if (v->type == config::types::Type::kStruct) {
         resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
                           ref_vars);
       }
