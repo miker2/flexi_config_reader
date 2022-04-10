@@ -9,6 +9,7 @@
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/view/map.hpp>
 #include <range/v3/view/set_algorithm.hpp>
+#include <regex>
 
 #include "config_classes.h"
 #include "config_exceptions.h"
@@ -93,8 +94,12 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
 
   // First, create the new struct based on the reference data.
   auto struct_out = std::make_shared<config::types::ConfigStruct>(ref->name, ref->depth);
+  std::cout << "New struct: \n";
+  std::cout << struct_out << "\n";
   // Next, move the data from the reference to the struct:
   struct_out->data.merge(ref->data);
+  std::cout << "Data added: \n";
+  std::cout << struct_out << "\n";
   // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
   // the proto.
@@ -106,6 +111,71 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
     struct_out->data[el.first] = std::move(el.second->clone());
   }
   return struct_out;
+}
+
+/// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
+/// \param[in/out] cfg_map - Contents of a proto
+/// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
+void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
+  std::cout << "replaceProtoVars --- \n";
+  std::cout << cfg_map << std::endl;
+  std::cout << "  -- ref_vars: \n";
+  std::cout << ref_vars << std::endl;
+  std::cout << "  -- END --\n";
+
+  for (auto& kv : cfg_map) {
+    const auto& k = kv.first;
+    auto& v = kv.second;
+    if (v->type == config::types::Type::kVar) {
+      auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
+      std::cout << v_var << std::endl;
+      // Pull the value from the reference vars and add it to the structure.
+      if (!ref_vars.contains(v_var->name)) {
+        throw config::UndefinedReferenceVarException(
+            fmt::format("Attempting to replace '{}' with undefined var: '{}'.", k, v_var->name));
+      }
+      cfg_map[k] = ref_vars.at(v_var->name);
+    } else if (v->type == config::types::Type::kString) {
+      // TODO: We don't currently distinguish between the various value types here, but we
+      // probably should because we really only want to do this if there is an actual string
+      // (rather than some other value type).
+      auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
+
+      // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
+      // sense in doing this loop.
+      const auto var_pos = v_value->value.find('$');
+      if (var_pos == std::string::npos) {
+        // No variables. Let's skip.
+        std::cout << "No variables in " << v_value << ". Skipping..." << std::endl;
+        continue;
+      }
+
+      // Find instances of 'ref_vars' in 'v' and replace.
+      for (auto& rkv : ref_vars) {
+        const auto& rk = rkv.first;
+        auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
+
+        std::cout << "v: " << v << ", rk: " << rk << ", rv: " << rv << std::endl;
+        auto out = std::regex_replace(v_value->value, std::regex("\\" + rk), rv->value);
+        // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
+        // in escape characters as this will be used in a regular expression.
+        const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
+        std::cout << "v: " << v << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
+        out = std::regex_replace(out, std::regex(bracket_var), rv->value);
+        std::cout << "out: " << out << std::endl;
+
+        // Replace the existing value with the new value.
+        cfg_map[k] = std::make_shared<config::types::ConfigValue>(out);
+      }
+    } else if (config::helpers::isStructLike(v)) {
+      std::cout << "At '" << k << "', found " << v->type << std::endl;
+      // Recurse deeper into the structure in order to replace more variables.
+      replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_vars);
+    }
+  }
+  std::cout << "~~~~~ Result ~~~~~\n";
+  std::cout << cfg_map << std::endl;
+  std::cout << "===== RPV DONE =====\n";
 }
 
 }  // namespace config::helpers

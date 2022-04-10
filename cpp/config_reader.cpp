@@ -68,7 +68,8 @@ class ConfigReader {
 
     stripProtos();
 
-    std::cout << "===== Resolving References ========" << std::endl;
+    std::cout << std::string(35, '=') << " Resolving References " << std::string(35, '=')
+              << std::endl;
     resolveReferences(resolved, "", {});
     std::cout << resolved;
 
@@ -86,7 +87,7 @@ class ConfigReader {
       const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(e.second);
       if (struct_like != nullptr) {
         if (struct_like->type == config::types::Type::kProto) {
-          protos_[new_name] = struct_like;
+          protos_[new_name] = dynamic_pointer_cast<config::types::ConfigProto>(struct_like);
         }
         flattened = flattenAndFindProtos(struct_like->data, new_name, flattened);
       } else {
@@ -134,6 +135,7 @@ class ConfigReader {
     */
   }
 
+  /*
   /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
   /// \param[in/out] cfg_map - Contents of a proto
   /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
@@ -190,6 +192,7 @@ class ConfigReader {
     std::cout << cfg_map << std::endl;
     std::cout << "===== RPV DONE =====\n";
   }
+  */
 
   /// \brief Walk through CfgMap and find all references. Convert them to structs
   /// \param[in/out] cfg_map
@@ -215,15 +218,18 @@ class ConfigReader {
         auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
         auto& p = protos_.at(v_ref->proto);
         std::cout << "p: " << p << std::endl;
+        auto new_struct = config::helpers::structFromReference(v_ref, p);
+        std::cout << "struct from reference: \n" << new_struct << std::endl;
         // Make a copy of the data contained in the proto. Careful here, as we might need a deep
         // copy of this data.
         auto r = p->data;
         std::cout << fmt::format("r: {}", v) << std::endl;
-        // If there's a nested dictionary, we probably want to merge this into the existing
-        // ref_vars, rather than overwrite it completely.
+        // If there's a nested dictionary, we want to add any new ref_vars into the existing
+        // ref_vars.
+        std::cout << "Current ref_vars: \n" << ref_vars << std::endl;
         std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
                   std::inserter(ref_vars, ref_vars.end()));
-        // ref_vars = v_ref->ref_vars;
+        std::cout << "Updated ref_vars: \n" << ref_vars << std::endl;
         for (auto& el : v_ref->data) {
           if (config::helpers::isStructLike(el.second)) {
             // append to proto
@@ -233,10 +239,9 @@ class ConfigReader {
           }
         }
         std::cout << "Ref vars: \n" << ref_vars << std::endl;
-        replaceProtoVar(r, ref_vars);
-        /* // TODO: Figure out what is supposed to happen on the next line
-        cfg_map[k] = r;
-        */
+        config::helpers::replaceProtoVar(new_struct->data, ref_vars);
+        // Replace the existing reference with the new struct that was created.
+        cfg_map[k] = new_struct;
         // Call recursively in case the current reference has another reference
         resolveReferences(r, utils::makeName(new_name, k), ref_vars);
 
@@ -250,7 +255,7 @@ class ConfigReader {
   void resolveVarRefs() {}
 
   config::ActionData out_;
-  std::map<std::string, std::shared_ptr<config::types::ConfigStructLike>> protos_{};
+  std::map<std::string, std::shared_ptr<config::types::ConfigProto>> protos_{};
 };
 
 auto main(int argc, char* argv[]) -> int {

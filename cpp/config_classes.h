@@ -47,6 +47,10 @@ enum class Type {
   kUnknown
 };
 
+inline std::ostream& operator<<(std::ostream& os, const Type& type) {
+  return os << magic_enum::enum_name<config::types::Type>(type);
+}
+
 // This is the base-class from which all config nodes shall derive
 class ConfigBase {
  protected:

@@ -34,4 +34,9 @@ class MismatchTypeException : public std::runtime_error {
   explicit MismatchTypeException(const std::string& message) : std::runtime_error(message){};
 };
 
+class UndefinedReferenceVarException : public std::runtime_error {
+ public:
+  explicit UndefinedReferenceVarException(const std::string& message)
+      : std::runtime_error(message){};
+};
 }  // namespace config
