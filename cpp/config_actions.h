@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <exception>
 #include <filesystem>
 #include <iostream>
@@ -96,7 +97,7 @@ struct action<VALUE> {
     std::cout << std::string(out.depth * 2, ' ') << "In VALUE action: " << in.string() << std::endl;
 #endif
     if (out.obj_res == nullptr) {
-      // NOTE: This should only happen if the object is a `LIST` which isn't explicitly handled yet!
+      // NOTE: This should never happen!
       std::cout << std::string(10, '!') << " Creating default ConfigValue object "
                 << std::string(10, '!') << std::endl;
       out.obj_res = std::make_shared<types::ConfigValue>(in.string());
@@ -161,10 +162,18 @@ template <>
 struct action<LIST> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
+    // Split the list into elements
+    auto entries = utils::split(utils::trim(in.string(), "[] \t\n\r"), ',');
+    // Remove any leading/trailing whitespace from each list element.
+    std::transform(entries.begin(), entries.end(), entries.begin(),
+                   [](auto s) { return utils::trim(s); });
+#if VERBOSE_DEBUG
     std::cout << std::string(out.depth * 2, ' ') << "In LIST action: " << in.string() << "\n";
-    const auto entries = utils::split(utils::trim(in.string(), "[] \t\n\r"), ',');
     std::cout << std::string(out.depth * 2, ' ') << " --- "
               << "Has " << entries.size() << " elements: " << utils::join(entries, "; ") << "\n";
+#endif
+    // TODO: Create a custom type for lists.
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kList, entries);
   }
 };
 
