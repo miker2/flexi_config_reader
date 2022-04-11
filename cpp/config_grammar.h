@@ -116,11 +116,11 @@ struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
-struct VALUE;
+struct VAL_ : peg::sor<HEX, NUMBER, STRING> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct LIST : peg::seq<SBo, peg::list<VALUE, COMMA, peg::space>, SBc> {};
+struct LIST : peg::seq<SBo, peg::list<VAL_, COMMA, peg::space>, SBc> {};
 
-struct VALUE : peg::sor<LIST, HEX, NUMBER, STRING> {};
+struct VALUE : peg::sor<VAL_, LIST> {};
 
 // Account for the reserved keyword: "end" when looking for keys (don't match "end" as a key, ever!)
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::range<'a', 'z'>,
@@ -150,7 +150,7 @@ struct STRUCTc;
 struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
 struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
 
-struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT, REFERENCE, PROTO>> {};
+struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 
 // TODO: Improve this. A single file should look like this:

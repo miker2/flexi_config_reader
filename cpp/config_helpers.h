@@ -163,17 +163,23 @@ void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap
         const auto& rk = rkv.first;
         auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
 
-        std::cout << "v: " << v << ", rk: " << rk << ", rv: " << rv << std::endl;
-        out = std::regex_replace(out, std::regex("\\" + rk), rv->value);
+        std::cout << "v: " << out << ", rk: " << rk << ", rv: " << rv << std::endl;
+        // Strip off any leading or trailing quotes from the replacement value. If the replacement
+        // value is not a string, this is a no-op.
+        const auto replacement = utils::trim(rv->value, "\\\"");
+        out = std::regex_replace(out, std::regex("\\" + rk), replacement);
         // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
         // in escape characters as this will be used in a regular expression.
         const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
-        std::cout << "v: " << v << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
-        out = std::regex_replace(out, std::regex(bracket_var), rv->value);
+        std::cout << "v: " << out << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
+        out = std::regex_replace(out, std::regex(bracket_var), replacement);
         std::cout << "out: " << out << std::endl;
       }
       // Replace the existing value with the new value.
-      cfg_map[k] = std::make_shared<config::types::ConfigValue>(out, v->type);
+      auto new_value = std::make_shared<config::types::ConfigValue>(out, v->type);
+      new_value->line = v->line;
+      new_value->source = v->source;
+      cfg_map[k] = std::move(new_value);
     } else if (config::helpers::isStructLike(v)) {
       std::cout << "At '" << k << "', found " << v->type << std::endl;
       // Recurse deeper into the structure in order to replace more variables.

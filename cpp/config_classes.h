@@ -110,7 +110,11 @@ inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& da
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       os << "\n" << kv.second << "\n\n";
     } else {
-      os << kv.first << " = " << kv.second << "\n";
+      os << kv.first << " = " << kv.second
+#if PRINT_SRC
+         << "  # " << kv.second->loc()
+#endif
+         << "\n";
     }
   }
   return os;
@@ -127,7 +131,7 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
     } else {
       os << ws << kv.first << " = " << kv.second
 #if PRINT_SRC
-         << "  # " << kv.second->source << ":" << kv.second->line
+         << "  # " << kv.second->loc()
 #endif
          << "\n";
     }
@@ -140,7 +144,7 @@ inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size
   for (const auto& kv : data) {
     os << ws << kv.first << " = " << kv.second
 #if PRINT_SRC
-       << "  # " << kv.second->source << ":" << kv.second->line
+       << "  # " << kv.second->loc()
 #endif
        << "\n";
   }
