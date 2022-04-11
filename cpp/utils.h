@@ -4,6 +4,7 @@
 #include <iterator>
 #include <numeric>
 #include <span>
+#include <sstream>
 #include <string>
 #include <vector>
 

@@ -1,8 +1,9 @@
+#include "utils.h"
+
 #include <gtest/gtest.h>
+
 #include <string>
 #include <vector>
-
-#include "utils.h"
 
 namespace {
 void compareVecEq(const std::vector<std::string>& expected, const std::vector<std::string>& test) {
@@ -11,14 +12,14 @@ void compareVecEq(const std::vector<std::string>& expected, const std::vector<st
     EXPECT_EQ(expected[i], test[i]);
   }
 };
-}
+}  // namespace
 
 TEST(utils_test, trim) {
   std::string base = "This is a test";
 
   {
     // Leading whitespace
-    std::string test_str = "   " + base;  
+    std::string test_str = "   " + base;
     EXPECT_EQ(utils::trim(test_str), base);
   }
   {
@@ -44,17 +45,17 @@ TEST(utils_test, split) {
 
   const std::vector<std::string> parts = {"this", "is", "a", "test"};
   {
-    const auto combined = combine_str(parts, ".");  
+    const auto combined = combine_str(parts, ".");
     const auto split = utils::split(combined, '.');
     compareVecEq(parts, split);
   }
   {
-    const auto combined = combine_str(parts, ";");  
+    const auto combined = combine_str(parts, ";");
     const auto split = utils::split(combined, ';');
     compareVecEq(parts, split);
   }
   {
-    const auto combined = combine_str(parts, "\t");  
+    const auto combined = combine_str(parts, "\t");
     const auto split = utils::split(combined, '\t');
     compareVecEq(parts, split);
   }
@@ -62,7 +63,7 @@ TEST(utils_test, split) {
 
 TEST(utils_test, join) {
   {
-    const std::vector<std::string> input {"this", "is", "a", "test"};
+    const std::vector<std::string> input{"this", "is", "a", "test"};
     const std::string expected = "this.is.a.test";
 
     const auto output = utils::join(input, ".");
@@ -70,7 +71,7 @@ TEST(utils_test, join) {
     EXPECT_EQ(expected, output);
   }
   {
-    const std::vector<std::string> input {"just_one"};
+    const std::vector<std::string> input{"just_one"};
     const std::string expected = input[0];
 
     const auto output = utils::join(input, ".");
@@ -83,7 +84,6 @@ TEST(utils_test, join) {
 
     EXPECT_EQ(expected, output);
   }
-  
 }
 
 TEST(utils_test, splitAndJoin) {

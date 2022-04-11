@@ -6,10 +6,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <typeinfo>
-#include <variant>
-#include <vector>
-
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/abnf.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
@@ -17,6 +13,9 @@
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
 #include <tao/pegtl/contrib/utf32.hpp>
+#include <typeinfo>
+#include <variant>
+#include <vector>
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -108,11 +107,13 @@ struct grammar : peg::must<toml> {};
 
 #endif
 
-template <typename Rule> struct selector : std::true_type {};
+template <typename Rule>
+struct selector : std::true_type {};
 
-template <typename Rule> struct action : peg::nothing<Rule> {};
+template <typename Rule>
+struct action : peg::nothing<Rule> {};
 
-} // namespace toml
+}  // namespace toml
 
 template <typename GTYPE>
 auto runTest(size_t idx, const std::string &infile, bool pdot = true) -> bool {
@@ -145,9 +146,7 @@ auto runTest(size_t idx, const std::string &infile, bool pdot = true) -> bool {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << in.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n' << in.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -156,7 +155,6 @@ auto runTest(size_t idx, const std::string &infile, bool pdot = true) -> bool {
 }
 
 auto main(int argc, char *argv[]) -> int {
-
   const bool pdot = true;
 
   if (peg::analyze<toml::grammar>(1) != 0) {
