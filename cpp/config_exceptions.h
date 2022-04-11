@@ -24,4 +24,19 @@ class InvalidConfigException : public std::runtime_error {
   explicit InvalidConfigException(const std::string& message) : std::runtime_error(message){};
 };
 
+class MismatchKeyException : public std::runtime_error {
+ public:
+  explicit MismatchKeyException(const std::string& message) : std::runtime_error(message){};
+};
+
+class MismatchTypeException : public std::runtime_error {
+ public:
+  explicit MismatchTypeException(const std::string& message) : std::runtime_error(message){};
+};
+
+class UndefinedReferenceVarException : public std::runtime_error {
+ public:
+  explicit UndefinedReferenceVarException(const std::string& message)
+      : std::runtime_error(message){};
+};
 }  // namespace config

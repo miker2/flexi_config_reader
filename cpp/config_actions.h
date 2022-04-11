@@ -39,7 +39,7 @@ struct ActionData {
   // Nominally, we'd have just a `types::ConfigBase` at the very root (which we could still do,
   // maybe), but we need to be able to represent an array of items here in order to support
   // duplicate structs, etc. We'll join these all up later.
-  std::vector<std::map<std::string, std::shared_ptr<types::ConfigBase>>> cfg_res{1};
+  std::vector<types::CfgMap> cfg_res{1};
   std::shared_ptr<types::ConfigBase> obj_res;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
@@ -93,11 +93,78 @@ struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "Found value: " << in.string() << std::endl;
+    std::cout << std::string(out.depth * 2, ' ') << "In VALUE action: " << in.string() << std::endl;
 #endif
-    out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    if (out.obj_res == nullptr) {
+      // NOTE: This should only happen if the object is a `LIST` which isn't explicitly handled yet!
+      std::cout << std::string(10, '!') << " Creating default ConfigValue object "
+                << std::string(10, '!') << std::endl;
+      out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    }
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
+struct action<HEX> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    const auto hex = std::stoi(in.string(), nullptr, 16);
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In HEX action: " << in.string() << "|" << hex
+              << "|0x" << std::hex << hex << "\n";
+#endif
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
+  }
+};
+
+template <>
+struct action<STRING> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In STRING action: " << in.string() << "\n";
+#endif
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
+  }
+};
+
+template <>
+struct action<FLOAT> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In FLOAT action: " << in.string() << std::endl;
+#endif
+    std::any any_val = std::stod(in.string());
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
+  }
+};
+
+template <>
+struct action<INTEGER> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    std::cout << std::string(out.depth * 2, ' ') << "In INTEGER action: " << in.string()
+              << std::endl;
+#endif
+    std::any any_val = std::stoi(in.string());
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
+  }
+};
+
+template <>
+struct action<LIST> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    std::cout << std::string(out.depth * 2, ' ') << "In LIST action: " << in.string() << "\n";
+    const auto entries = utils::split(utils::trim(in.string(), "[] \t\n\r"), ',');
+    std::cout << std::string(out.depth * 2, ' ') << " --- "
+              << "Has " << entries.size() << " elements: " << utils::join(entries, "; ") << "\n";
   }
 };
 
@@ -269,8 +336,9 @@ struct action<PROTO_PAIR> {
     // TODO: Check for duplicate keys here!
     if (out.obj_res->type == types::Type::kVar) {
       auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
-      auto proto_var = dynamic_pointer_cast<types::ConfigVar>(out.obj_res);
-      proto->proto_vars[out.keys.back()] = std::move(proto_var);
+      auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
+      proto->data[out.keys.back()] = proto_var;
+      proto->proto_vars[proto_var] = out.keys.back();
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
     }
@@ -319,7 +387,7 @@ struct action<REF_VARSUB> {
     }
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
-    ref->ref_vars[std::make_shared<types::ConfigVar>(out.result)] = std::move(out.obj_res);
+    ref->ref_vars[out.result] = std::move(out.obj_res);
 
     out.result = DEFAULT_RES;
   }
@@ -328,10 +396,9 @@ struct action<REF_VARSUB> {
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -340,10 +407,9 @@ struct action<STRUCTs> {
 template <>
 struct action<PROTOs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
-    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
@@ -352,12 +418,11 @@ struct action<PROTOs> {
 template <>
 struct action<REFs> {
   static void apply0(ActionData& out) {
-    out.depth++;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
               << out.keys.back() << std::endl;
-    out.objects.push_back(
-        std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back(), out.depth));
+    out.objects.push_back(std::make_shared<types::ConfigReference>(
+        out.keys.back(), out.flat_keys.back(), out.depth++));
+    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
     std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
               << std::endl;
   }
