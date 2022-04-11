@@ -84,4 +84,26 @@ auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::Cfg
 
   return cfg_out;
 }
+
+auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
+                         const std::shared_ptr<config::types::ConfigProto>& proto)
+    -> std::shared_ptr<config::types::ConfigStruct> {
+  // NOTE: This will not fill in any of the reference variables. It will only generate a struct from
+  // an existing reference and proto object.
+
+  // First, create the new struct based on the reference data.
+  auto struct_out = std::make_shared<config::types::ConfigStruct>(ref->name, ref->depth);
+  // Next, move the data from the reference to the struct:
+  struct_out->data.merge(ref->data);
+  // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
+  // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
+  // the proto.
+  for (const auto& el : proto->data) {
+    config::helpers::checkForErrors(struct_out->data, proto->data, el.first);
+    // std::shared_ptr<config::types::ConfigBase> value = el.second->clone();
+    struct_out->data[el.first] = std::move(el.second->clone());
+  }
+  return struct_out;
+}
+
 }  // namespace config::helpers
