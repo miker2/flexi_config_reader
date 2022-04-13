@@ -64,35 +64,148 @@ class ConfigReader {
       std::cout << s << std::endl;
     }
 
-    auto resolved = mergeNested(out_.cfg_res);
+    cfg_data_ = mergeNested(out_.cfg_res);
 
 #if 1
     // TODO: Determine if this is actually necessary.
     std::cout << std::string(35, '=') << " Strip Protos " << std::string(35, '=') << std::endl;
-    stripProtos(resolved);
+    stripProtos(cfg_data_);
     std::cout << " --- Result of 'stripProtos':\n";
     std::cout << protos_ << std::endl;
-    std::cout << resolved << std::endl;
+    std::cout << cfg_data_ << std::endl;
 #endif
 
     std::cout << std::string(35, '=') << " Resolving References " << std::string(35, '=')
               << std::endl;
-    resolveReferences(resolved, "", {});
-    std::cout << resolved;
+    resolveReferences(cfg_data_, "", {});
+    std::cout << cfg_data_;
 
     std::cout << "===== Resolve variable references ====" << std::endl;
-    resolveVarRefs(resolved, resolved);
+    resolveVarRefs(cfg_data_, cfg_data_);
 
     // This isn't entirely necessary, but it cleans up the tree.
     config::helpers::removeEmpty(resolved);
 
     std::cout << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
-    std::cout << resolved;
+    std::cout << cfg_data_;
 
+    {
+      const std::string int_key = "outer.inner.key";
+      const auto out = getValue<int>(int_key);
+      std::cout << "Value of '" << int_key << "' is: " << out << std::endl;
+    }
+    {
+      const std::string float_key = "outer.inner.val";
+      const auto out = getValue<float>(float_key);
+      std::cout << "Value of '" << float_key << "' is: " << out << std::endl;
+    }
+    {
+      const std::string vec_key = "outer.inner.test1.key";
+      const auto var = getValue<std::vector<std::string>>(vec_key);
+      std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
+    }
     return success;
   }
 
+  // TODO: Refactor so that `getConfigValue` and `getValue` don't duplicate so much code.
+  template <typename T>
+  auto getValue(const std::string& name) -> T {
+    // Split the key into parts
+    const auto parts = utils::split(name, '.');
+
+    // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
+    // order to make error messages more useful.
+    std::string rejoined = "";
+    // Start with the base config tree and work our way down through the keys.
+    auto* content = &cfg_data_;
+    // Walk through each part of the flat key (except the last one, as it will be the one that
+    // contains the data.
+    for (const auto& key : parts | ranges::views::drop_last(1)) {
+      rejoined = utils::makeName(rejoined, key);
+      // This may be uneccessary error checking (if this is a part of a flat key, then it must be
+      // a nested structure), but we check here that this object is a `StructLike` object,
+      // otherwise we can't access the `data` member.
+      const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
+      if (v == nullptr) {
+        throw config::InvalidTypeException(fmt::format(
+            "Expected value at '{}' to be a struct-like object, but got {} type instead.", rejoined,
+            content->at(key)->type));
+      }
+      // Pull out the contents of the struct-like and move on to the next iteration.
+      content = &(v->data);
+    }
+
+    // Get the actual value. It will need to be converted into something reasonable.
+    const auto value = content->at(parts.back());
+
+    const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(value)->value;
+    T ret_val;
+    std::cout << " -- Type is " << typeid(T).name() << std::endl;
+    convert<T>(value_str, ret_val);
+    return ret_val;
+  }
+
  private:
+  template <typename T /*, std::enable_if_t<std::is_arithmetic_v<T>>*/>
+  void convert(const std::string& value_str, T& value) {
+    if (std::is_integral_v<T>) {
+      value = static_cast<T>(std::stoll(value_str));
+    } else if (std::is_floating_point_v<T>) {
+      value = static_cast<T>(std::stod(value_str));
+    }
+  }
+
+  template<>
+  void convert<std::string>(const std::string& value_str, std::string& value) {
+    value = value_str;
+  }
+
+  /*
+  template <typename T,
+            typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  auto convert(const std::string& value) -> T {
+    return static_cast<T>(std::stoll(value));
+  }
+
+  template <>
+  auto convert<double>(const std::string& value) -> double {
+    return std::stod(value);
+  }
+
+  template <>
+  auto convert<float>(const std::string& value) -> float {
+    return std::stof(value);
+  }
+  */
+
+  template <>
+  void convert<std::vector<std::string>>(const std::string& value_str, std::vector<std::string>& value) {
+    std::cout << "Trying to convert a std::vector of type std::string" /*<< typeid(T).name()*/ << std::endl;
+    auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
+    // Remove any leading/trailing whitespace from each list element.
+    value.clear();
+    std::transform(entries.begin(), entries.end(), std::back_inserter(value), [this](auto s) {
+      std::string out{};
+      convert<std::string>(utils::trim(s), out);
+      return out;
+    });
+  }
+
+  template <typename T, size_t N>
+  void convert(const std::string& value_str, std::array<T, N>& value) {
+    auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
+    // Remove any leading/trailing whitespace from each list element.
+    if (entries.size() != N) {
+      throw std::runtime_error(
+          fmt::format("Expected {} entries in '{}', but found {}!", N, value, entries.size()));
+    }
+    std::transform(entries.begin(), entries.end(), value.begin(), [this](auto s) {
+      T out{};
+      convert<T>(utils::trim(s), out);
+      return out;
+    });
+  }
+
   auto flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
                             config::types::CfgMap flattened = {}) -> config::types::CfgMap {
     for (const auto& e : in) {
@@ -255,6 +368,9 @@ class ConfigReader {
 
   config::ActionData out_;
   std::map<std::string, std::shared_ptr<config::types::ConfigProto>> protos_{};
+
+  // All of the config data!
+  config::types::CfgMap cfg_data_;
 };
 
 auto main(int argc, char* argv[]) -> int {
