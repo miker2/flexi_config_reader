@@ -101,7 +101,7 @@ class ConfigReader {
     }
     {
       const std::string vec_key = "outer.inner.test1.key";
-      const auto var = getValue<std::vector<std::string>>(vec_key);
+      const auto var = getValue<std::vector<float>>(vec_key);
       std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
     }
     return success;
@@ -141,24 +141,24 @@ class ConfigReader {
     const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(value)->value;
     T ret_val;
     std::cout << " -- Type is " << typeid(T).name() << std::endl;
-    convert<T>(value_str, ret_val);
+    convert(value_str, ret_val);
     return ret_val;
   }
 
  private:
-  template <typename T /*, std::enable_if_t<std::is_arithmetic_v<T>>*/>
-  void convert(const std::string& value_str, T& value) {
-    if (std::is_integral_v<T>) {
-      value = static_cast<T>(std::stoll(value_str));
-    } else if (std::is_floating_point_v<T>) {
-      value = static_cast<T>(std::stod(value_str));
-    }
+  void convert(const std::string& value_str, float& value) { value = std::stof(value_str); }
+
+  void convert(const std::string& value_str, double& value) { value = std::stod(value_str); }
+
+  void convert(const std::string& value_str, int& value) { value = std::stoi(value_str); }
+
+  void convert(const std::string& value_str, int64_t& value) { value = std::stoll(value_str); }
+
+  void convert(const std::string& value_str, bool& value) {
+    value = static_cast<bool>(std::stoi(value_str));
   }
 
-  template<>
-  void convert<std::string>(const std::string& value_str, std::string& value) {
-    value = value_str;
-  }
+  void convert(const std::string& value_str, std::string& value) { value = value_str; }
 
   /*
   template <typename T,
@@ -178,15 +178,15 @@ class ConfigReader {
   }
   */
 
-  template <>
-  void convert<std::vector<std::string>>(const std::string& value_str, std::vector<std::string>& value) {
-    std::cout << "Trying to convert a std::vector of type std::string" /*<< typeid(T).name()*/ << std::endl;
+  template <typename T>
+  void convert(const std::string& value_str, std::vector<T>& value) {
+    std::cout << "Trying to convert a std::vector of type " << typeid(T).name() << std::endl;
     auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
     // Remove any leading/trailing whitespace from each list element.
     value.clear();
     std::transform(entries.begin(), entries.end(), std::back_inserter(value), [this](auto s) {
-      std::string out{};
-      convert<std::string>(utils::trim(s), out);
+      T out{};
+      convert(utils::trim(s), out);
       return out;
     });
   }
@@ -201,7 +201,7 @@ class ConfigReader {
     }
     std::transform(entries.begin(), entries.end(), value.begin(), [this](auto s) {
       T out{};
-      convert<T>(utils::trim(s), out);
+      convert(utils::trim(s), out);
       return out;
     });
   }
