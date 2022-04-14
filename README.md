@@ -229,4 +229,4 @@ directory. See the googletest documentation for options.
 In addition to the tests, there are a number of simple applications that provide example code for the library usage.
 
  *  [`config_test`](cpp/config_test.cpp) - In the process of being converted to an actual unittest, this application executes a parsing run on a variety of [example config files](examples).
- *  [`config_reader`](cpp/config_reader.cpp) - In the process of being converted to a separate library, this application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
+ *  [`config_build`](cpp/config_build.cpp) - This application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
