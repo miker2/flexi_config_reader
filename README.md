@@ -173,12 +173,60 @@ variable references, etc. The end result is a nested dictionary of key value pai
 examples which demonstrate more of the capabilities of the language.
 
 ## C++
-The C++ implementation uses the taocpp::pegtl library to define the grammar. So far this implementation lags behind
-the python version and is currently only capable of generating a parse tree of the input configuration files.
+The C++ implementation uses the [`taocpp::pegtl`](https://github.com/taocpp/PEGTL) library to define the grammar.
+`PEGTL` uses a templatized syntax to define the grammar (which can be found [here](cpp/config_grammar.h)).  This is used
+for parsing the raw config file, along with a set of [actions](cpp/config_actions.h) which define how to act on the parse
+output.  Once the raw config files are parsed, there is a second pass that occurs in order to convert any `reference`s to
+`proto`s into `struct`s as mentioned above.
 
-# TODO
+`PEGTL` also provides some additional functionality to analyze the defined grammar and to generate a parse-tree from a
+supplied configuration file.
 
- - [ ] Add instructions on how to install dependencies
- - [ ] Add instructions on how to build the C++ code
- - [ ] Add instructions on how to run the tests
- - [ ] Add links to the tests and the examples within this document
+### Dependencies
+
+The following dependencies are required in order to compile the code:
+
+ *  [`PEGTL`](https://github.com/taocpp/PEGTL) - The core library used for implementing the PEG-based parser
+ *  [`magic_enum`](https://github.com/Neargye/magic_enum.git) - A header only library providing static reflection for enums
+ *  [`{fmt}`](https://github.com/fmtlib/fmt.git) - A formatting library that provides an alternative to c stdio and C++ iostreams
+ *  [`range-v3`](https://github.com/ericniebler/range-v3.git) - A range library for C++14/17/20
+ *  [`googletest`](https://github.com/google/googletest.git) - The Google unit testing framework
+
+All of these dependencies are automatically collected/installed via CMake `FetchContent`. Currently, there is no mechanism for using pre-installed versions.
+
+### Build
+
+This project is built using CMake. While there are a variety of ways to use cmake, these simple steps should lead to a successful build:
+
+From the root of the source tree:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+Or alternatively, using `ninja`:
+
+```
+mkdir build
+cd build
+cmake -G Ninja ..
+ninja
+```
+
+### Tests
+
+All C++-based tests can be found in the the [`tests`](tests) directory. Any new tests should be added here as well.
+As mentioned above, the [Google testing framework](https://github.com/google/googletest) is used for testing. Once
+the code is built, the tests can be run by executing `ctest` from the build directory. Refer to the
+[`ctest`](https://cmake.org/cmake/help/latest/manual/ctest.1.html) documentation for further details. The tests can
+also be run individually by executing the individual gtest binaries from the `tests` directory within your build
+directory. See the googletest documentation for options.
+
+### Examples
+
+In addition to the tests, there are a number of simple applications that provide example code for the library usage.
+
+ *  [`config_test`](cpp/config_test.cpp) - In the process of being converted to an actual unittest, this application executes a parsing run on a variety of [example config files](examples).
+ *  [`config_reader`](cpp/config_reader.cpp) - In the process of being converted to a separate library, this application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
