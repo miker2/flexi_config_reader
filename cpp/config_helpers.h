@@ -56,12 +56,10 @@ auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::Cfg
     -> config::types::CfgMap {
   const auto common_keys =
       ranges::views::set_intersection(cfg1 | ranges::views::keys, cfg2 | ranges::views::keys);
-  std::cout << "Common keys: \n";
+
   for (const auto& k : common_keys) {
-    std::cout << k << std::endl;
     checkForErrors(cfg1, cfg2, k);
   }
-  std::cout << "~~~~~~~~~~~~~~~~~~~~\n";
 
   // This over-writes the top level keys in dict1 with dict2. If there are
   // nested dictionaries, we need to handle these appropriately.
@@ -75,7 +73,6 @@ auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::Cfg
       // Find any values in the top-level keys that are also dictionaries.
       // Call this function recursively.
       if (isStructLike(cfg1.at(key)) && isStructLike(cfg2.at(key))) {
-        std::cout << fmt::format("Merging '{}' (type: {}).", key, cfg_out[key]->type) << std::endl;
         // This means that both the element found in `cfg_out[key]` and those in `cfg1[key]` and
         // `cfg2[key]` are all struct-like elements. We need to convert them all so we can operate
         // on them.
@@ -124,18 +121,18 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
 void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
+#if CONFIG_HELPERS_DEBUG
   std::cout << "replaceProtoVars --- \n";
   std::cout << cfg_map << std::endl;
   std::cout << "  -- ref_vars: \n";
   std::cout << ref_vars << std::endl;
   std::cout << "  -- END --\n";
-
+#endif
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
     if (v->type == config::types::Type::kVar) {
       auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
-      std::cout << v_var << std::endl;
       // Pull the value from the reference vars and add it to the structure.
       if (!ref_vars.contains(v_var->name)) {
         throw config::UndefinedReferenceVarException(
@@ -143,9 +140,6 @@ void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap
       }
       cfg_map[k] = ref_vars.at(v_var->name);
     } else if (v->type == config::types::Type::kString) {
-      // TODO: We don't currently distinguish between the various value types here, but we
-      // probably should because we really only want to do this if there is an actual string
-      // (rather than some other value type).
       auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
 
       // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no

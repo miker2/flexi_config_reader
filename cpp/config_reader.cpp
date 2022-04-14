@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
@@ -56,11 +57,7 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   std::cout << flat << std::endl;
 
   std::cout << "Protos: \n";
-  protos_ | ranges::views::keys;  // | ranges::views::for_each([](const std::string& s) {
-                                  // std::cout << s << std::endl; });
-  for (const auto& s : (protos_ | ranges::views::keys)) {
-    std::cout << s << std::endl;
-  }
+  ranges::for_each(protos_ | ranges::views::keys, [](auto& kv) { std::cout << kv << std::endl; });
 
   cfg_data_ = mergeNested(out_.cfg_res);
 
@@ -147,14 +144,18 @@ auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in)
 
   // Accumulate all of the other elements of the vector into the CfgMap.
   for (auto& cfg : ranges::views::tail(in)) {
+#if 0
     std::cout << "======= Working on merging: =======\n";
     std::cout << squashed_cfg << std::endl;
     std::cout << "++++++++++++++ and ++++++++++++++++\n";
     std::cout << cfg << std::endl;
     std::cout << "++++++++++++ result +++++++++++++++\n";
+#endif
     squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
+#if 0
     std::cout << squashed_cfg << std::endl;
     std::cout << "============== END ================\n";
+#endif
   }
   return squashed_cfg;
 }
@@ -216,7 +217,7 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
     }
     const auto new_name = utils::makeName(base_name, k);
     if (v->type == config::types::Type::kReference) {
-      // TODO: When finding a reference, we want to create a new 'struct' given the name, copy any
+      // When finding a reference, we want to create a new 'struct' given the name, copy any
       // existing reference key/value pairs, and also add any 'proto' key/value pairs. Then, all
       // references need to be resolved. This all needs to be done without destroying the 'proto'
       // as it may be used elsewhere!
@@ -224,6 +225,7 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       auto& p = protos_.at(v_ref->proto);
       std::cout << fmt::format("r: {}", v) << std::endl;
       std::cout << "p: " << p << std::endl;
+      // Create a new struct from the reference and the proto
       auto new_struct = config::helpers::structFromReference(v_ref, p);
       std::cout << "struct from reference: \n" << new_struct << std::endl;
       // If there's a nested dictionary, we want to add any new ref_vars into the existing
@@ -232,21 +234,9 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
                 std::inserter(ref_vars, ref_vars.end()));
       std::cout << "Updated ref_vars: \n" << ref_vars << std::endl;
-#if 0
-        // TODO: Figure out what this block of code was meant to do!
-        // Make a copy of the data contained in the proto. Careful here, as we might need a deep
-        // copy of this data.
-        auto r = p->data;
-        for (auto& el : v_ref->data) {
-          if (config::helpers::isStructLike(el.second)) {
-            // append to proto
-            std::cout << fmt::format("new keys: {}", el.second) << std::endl;
-            r = config::helpers::mergeNestedMaps(
-                r, dynamic_pointer_cast<config::types::ConfigStructLike>(el.second)->data);
-          }
-        }
-#endif
+
       std::cout << "Ref vars: \n" << ref_vars << std::endl;
+      // Resolve all proto/reference variables based on the values provided.
       config::helpers::replaceProtoVar(new_struct->data, ref_vars);
       // Replace the existing reference with the new struct that was created.
       cfg_map[k] = new_struct;
