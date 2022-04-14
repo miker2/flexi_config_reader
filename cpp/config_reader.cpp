@@ -87,21 +87,6 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   std::cout << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
   std::cout << cfg_data_;
 
-  {
-    const std::string int_key = "outer.inner.key";
-    const auto out = getValue<int>(int_key);
-    std::cout << "Value of '" << int_key << "' is: " << out << std::endl;
-  }
-  {
-    const std::string float_key = "outer.inner.val";
-    const auto out = getValue<float>(float_key);
-    std::cout << "Value of '" << float_key << "' is: " << out << std::endl;
-  }
-  {
-    const std::string vec_key = "outer.inner.test1.key";
-    const auto var = getValue<std::vector<float>>(vec_key);
-    std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
-  }
   return success;
 }
 

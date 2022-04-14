@@ -31,9 +31,13 @@ class ConfigReader {
   void convert(const std::string& value_str, bool& value) const;
   void convert(const std::string& value_str, std::string& value) const;
 
+  // TODO: This needs to be modified. More info needs to be provided to this function, as it appears
+  // to work for single values that aren't read as a LIST type.
   template <typename T>
   void convert(const std::string& value_str, std::vector<T>& value);
 
+  // TODO: This needs to be modified. More info needs to be provided to this function, as it appears
+  // to work for single values that aren't read as a LIST type.
   template <typename T, size_t N>
   void convert(const std::string& value_str, std::array<T, N>& value);
 
