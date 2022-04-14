@@ -1,16 +1,16 @@
 #include <fmt/format.h>
 
+#include <array>
 #include <filesystem>
 #include <iostream>
-#include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
-#include <regex>
-#include <tao/pegtl.hpp>
+#include <memory>
+#include <range/v3/view/drop_last.hpp>
+#include <vector>
 
 #include "config_actions.h"
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "config_grammar.h"
-#include "config_helpers.h"
 #include "utils.h"
 
 class ConfigReader {
@@ -20,7 +20,6 @@ class ConfigReader {
 
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
 
-  // TODO: Refactor so that `getConfigValue` and `getValue` don't duplicate so much code.
   template <typename T>
   auto getValue(const std::string& name) -> T;
 

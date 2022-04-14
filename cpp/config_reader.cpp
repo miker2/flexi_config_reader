@@ -131,8 +131,7 @@ void ConfigReader::convert(const std::string& value_str, std::string& value) con
 
 auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
                                         const std::string& base_name,
-                                        config::types::CfgMap flattened)
-    -> config::types::CfgMap {
+                                        config::types::CfgMap flattened) -> config::types::CfgMap {
   for (const auto& e : in) {
     const auto new_name = utils::join({base_name, e.first}, ".");
     const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(e.second);
@@ -289,18 +288,4 @@ void ConfigReader::resolveVarRefs(const config::types::CfgMap& root,
       resolveVarRefs(root, dynamic_pointer_cast<config::types::ConfigStructLike>(kv.second)->data);
     }
   }
-}
-
-auto main(int argc, char* argv[]) -> int {
-  if (argc != 2) {
-    std::cerr << "No file specified.\n";
-    std::cerr << "usage: " << std::filesystem::path(argv[0]).filename().string() << " CFG_FILE"
-              << std::endl;
-    return -1;
-  }
-
-  ConfigReader cfg;
-  const auto success = cfg.parse(argv[1]);
-
-  return (success ? 0 : 1);
 }
