@@ -414,6 +414,37 @@ TEST(config_grammar, KEY) {
   }
 }
 
+TEST(config_grammar, VAR) {
+  auto checkVar = [](const std::string& input) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::VAR, peg::eolf>, config::types::ConfigVar>(
+        input, config::types::Type::kVar, out);
+    const auto value = dynamic_pointer_cast<config::types::ConfigVar>(out->obj_res);
+    EXPECT_EQ(value->name, input);
+  };
+  auto failVar = [](const std::string& input) {
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::VAR, peg::eolf>>(input)), std::exception);
+  };
+
+  {
+    // These are all valid vars
+    const std::vector<std::string> valid = {"$VAR",   "$V",     "$VAR_",   "$V_",     "$V0",
+                                            "$VAR_1", "${VAR}", "${VAR1}", "${VAR_1}"};
+    for (const auto& content : valid) {
+      checkVar(content);
+    }
+  }
+  {
+    // These are invalid vars
+    const std::vector<std::string> invalid = {"$",     "VAR",   "$var",  "$VAR$", "$VAR#",  "$Var",
+                                              "$1VAR", "$_VAR", "${VAR", "$VAR}", "${_VAR}"};
+    for (const auto& content : invalid) {
+      failVar(content);
+    }
+  }
+}
+
 TEST(config_grammar, FULLPAIR) {
   const std::string flat_key = "float.my.value";
   std::string content = flat_key + "   =  5.37e+6";

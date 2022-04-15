@@ -50,7 +50,8 @@ grammar my_config
   string     <-  '"' [^"]* '"' %make_string
   list       <-  SBo value (COMMA value)* SBc %make_list
   number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
-  VAR        <-  "$" [A-Z] [A-Z0-9_]+  %make_var
+  VARc       <-  [A-Z] [A-Z0-9_]*
+  VAR        <-  "$" ("{" VARc "}" / VARc)  %make_var
   VAR_REF    <-  "$(" FLAT_KEY ")" %var_ref
   HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
   KVs        <-  oSP "=" oSP
@@ -92,7 +93,9 @@ struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
-struct VAR : peg::seq<peg::one<'$'>, peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {
+struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
+// Allow for VAR to be expessed as: $VAR or ${VAR}
+struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
 };
 
 struct sign : peg::one<'+', '-'> {};
