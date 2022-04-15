@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <array>
 #include <filesystem>
@@ -72,7 +73,6 @@ class ConfigReader {
 
 template <typename T>
 void ConfigReader::getValue(const std::string& name, T& value) {
-  std::cout << " -- Type is " << typeid(T).name() << std::endl;
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
@@ -82,8 +82,16 @@ void ConfigReader::getValue(const std::string& name, T& value) {
   const auto cfg_val =
       (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
 
+  // I'm not sure this really belongs here, but unless we pass more info to `convert` we can't check
+  // there.
+  if (config::accepts_list_v<T> && cfg_val->type != config::types::Type::kList) {
+    throw std::runtime_error(
+        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+  }
+
   const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
   convert(value_str, value);
+  std::cout << " -- Type is " << typeid(T).name() << std::endl;
 }
 
 template <typename T>
@@ -95,28 +103,32 @@ auto ConfigReader::getValue(const std::string& name) -> T {
 
 template <typename T>
 void ConfigReader::convert(const std::string& value_str, std::vector<T>& value) {
-  std::cout << "Trying to convert a std::vector of type " << typeid(T).name() << std::endl;
   auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
-  // Remove any leading/trailing whitespace from each list element.
+  // Clear the vector before inserting new elements. We only want to return the elements in the
+  // provided list, not append new ones.
   value.clear();
   std::transform(entries.begin(), entries.end(), std::back_inserter(value), [this](auto s) {
     T out{};
+    // Remove any leading/trailing whitespace from each list element.
     convert(utils::trim(s), out);
     return out;
   });
 }
 
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 void ConfigReader::convert(const std::string& value_str, std::array<T, N>& value) {
   auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
-  // Remove any leading/trailing whitespace from each list element.
-  if (entries.size() != N) {
-    throw std::runtime_error(
-        fmt::format("Expected {} entries in '{}', but found {}!", N, value, entries.size()));
-  }
-  std::transform(entries.begin(), entries.end(), value.begin(), [this](auto s) {
+  // Try to do the right thing, even if there aren't the right number of elements. This will allow
+  // the use to catch the exception and use the results if desired.
+  auto end_it = entries.size() <= N ? std::end(entries) : std::next(std::begin(entries), N);
+  std::transform(entries.begin(), end_it, value.begin(), [this](auto s) {
     T out{};
+    // Remove any leading/trailing whitespace from each list element.
     convert(utils::trim(s), out);
     return out;
   });
+  if (entries.size() != N) {
+    throw std::runtime_error(fmt::format("Expected {} entries in '{}', but found {}!", N,
+                                         utils::trim(value_str), entries.size()));
+  }
 }

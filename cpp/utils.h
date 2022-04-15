@@ -61,6 +61,12 @@ std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec) {
   return o;
 }
 
+template <typename T, std::size_t N>
+std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr) {
+  std::copy(std::begin(arr), std::end(arr), std::ostream_iterator<T>(o, " "));
+  return o;
+}
+
 template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 std::ostream& operator<<(std::ostream& o, const std::span<T>& spn) {
   std::copy(std::begin(spn), std::end(spn), std::ostream_iterator<T>(o, " "));

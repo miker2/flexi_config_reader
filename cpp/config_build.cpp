@@ -18,8 +18,8 @@ auto main(int argc, char* argv[]) -> int {
     try {
       const auto out = cfg.getValue<int>(int_key);
       std::cout << "Value of '" << int_key << "' is: " << out << std::endl;
-    } catch (std::exception&) {
-      // pass
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
     }
   }
   {
@@ -27,8 +27,8 @@ auto main(int argc, char* argv[]) -> int {
     try {
       const auto out = cfg.getValue<float>(float_key);
       std::cout << "Value of '" << float_key << "' is: " << out << std::endl;
-    } catch (std::exception&) {
-      // pass
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
     }
   }
   {
@@ -36,8 +36,8 @@ auto main(int argc, char* argv[]) -> int {
     try {
       const auto var = cfg.getValue<std::vector<float>>(vec_key);
       std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
-    } catch (std::exception&) {
-      // pass
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
     }
   }
   {
@@ -45,8 +45,38 @@ auto main(int argc, char* argv[]) -> int {
     try {
       const auto out = cfg.getValue<int>(int_key);
       std::cout << "Value of '" << int_key << "' is: " << out << std::endl;
-    } catch (std::exception&) {
-      // pass
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
+    }
+  }
+  {
+    const std::string float_key = "outer.inner.val";
+    try {
+      float out{};
+      cfg.getValue(float_key, out);
+      std::cout << "Value of '" << float_key << "' is: " << out << std::endl;
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
+    }
+  }
+  {
+    const std::string vec_key = "outer.inner.test1.key";
+    try {
+      std::vector<float> var;
+      cfg.getValue(vec_key, var);
+      std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
+    }
+  }
+  {
+    const std::string vec_key = "outer.inner.test1.key";
+    try {
+      std::array<double, 3> var;
+      cfg.getValue(vec_key, var);
+      std::cout << "Value of '" << vec_key << "' is: " << var << std::endl;
+    } catch (std::exception& e) {
+      std::cout << "getValue failure!!!\n" << e.what() << std::endl;
     }
   }
 

@@ -17,6 +17,29 @@
 
 #define CONFIG_HELPERS_DEBUG 0
 
+namespace config {
+// Create a set of traits for acceptable containers for holding elements of type `kList`. We define
+// an implementation for the possible types here, but the actual trait is defined below.
+namespace accepts_list_impl {
+template <typename T>
+struct accepts_list : std::false_type {};
+template <typename T, std::size_t N>
+struct accepts_list<std::array<T, N>> : std::true_type {};
+template <typename... Args>
+struct accepts_list<std::vector<Args...>> : std::true_type {};
+}  // namespace accepts_list_impl
+
+// This is the actual trait to be used. This allows us to decay the type so it will work for
+// references, pointers, etc.
+template <typename T>
+struct accepts_list {
+  static constexpr bool const value = accepts_list_impl::accepts_list<std::decay_t<T>>::value;
+};
+
+template <typename T>
+inline constexpr bool accepts_list_v = accepts_list<T>::value;
+}  // namespace config
+
 namespace config::helpers {
 
 inline auto isStructLike(const std::shared_ptr<config::types::ConfigBase>& el) -> bool {
