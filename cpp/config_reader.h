@@ -24,6 +24,9 @@ class ConfigReader {
   template <typename T>
   auto getValue(const std::string& name) -> T;
 
+  template <typename T>
+  void getValue(const std::string& name, T& value);
+
  private:
   void convert(const std::string& value_str, float& value) const;
   void convert(const std::string& value_str, double& value) const;
@@ -68,20 +71,26 @@ class ConfigReader {
 };
 
 template <typename T>
-auto ConfigReader::getValue(const std::string& name) -> T {
+void ConfigReader::getValue(const std::string& name, T& value) {
+  std::cout << " -- Type is " << typeid(T).name() << std::endl;
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
   const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
-  const auto value =
+  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
+  const auto cfg_val =
       (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
 
-  const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(value)->value;
-  T ret_val;
-  std::cout << " -- Type is " << typeid(T).name() << std::endl;
-  convert(value_str, ret_val);
-  return ret_val;
+  const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
+  convert(value_str, value);
+}
+
+template <typename T>
+auto ConfigReader::getValue(const std::string& name) -> T {
+  T value;
+  getValue(name, value);
+  return value;
 }
 
 template <typename T>
