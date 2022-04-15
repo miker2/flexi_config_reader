@@ -347,6 +347,73 @@ TEST(config_grammar, VALUE) {
   }
 }
 
+TEST(config_grammar, KEY) {
+  auto checkKey = [](const std::string& input) {
+    std::optional<RetType> ret;
+    ASSERT_NO_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)));
+    ASSERT_TRUE(ret.has_value());
+    ASSERT_TRUE(ret.value().first);
+    EXPECT_EQ(ret.value().second.keys.size(), 1);
+    EXPECT_EQ(ret.value().second.flat_keys.size(), 0);
+    EXPECT_EQ(input, ret.value().second.keys[0]);
+  };
+
+  auto failKey = [](const std::string& input) {
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)), std::exception);
+  };
+
+  {
+    // All valid keys:
+    const std::vector<std::string> valid = {
+        "key", "key2", "k_ey2", "key_2", "kEy2", "kEy2_", "really_long_key_that_has_numbers12_329"};
+    for (const auto& content : valid) {
+      checkKey(content);
+    }
+  }
+  {
+    // This will fail due to starting with a capital letter
+    const std::string content = "Key";
+    failKey(content);
+  }
+  {
+    // This will fail due to starting with a number
+    const std::string content = "1key";
+    failKey(content);
+  }
+  {
+    // This will fail due to starting with an underscore
+    const std::string content = "_key";
+    failKey(content);
+  }
+  {
+    // These will fail due to containing invalid characters
+    const std::vector<std::string> invalid = {"ke&y", "k%ey", "^key", "key!", "ke#y"};
+    for (const auto& content : invalid) {
+      failKey(content);
+    }
+  }
+  {
+    // These will fail due to being reserved keywords
+    const std::vector<std::string> invalid = {"struct", "proto", "reference", "as", "end"};
+    for (const auto& content : invalid) {
+      failKey(content);
+    }
+  }
+  {
+    // Keys can start with reserved keywords (or contain them) and be valid:
+    const std::vector<std::string> valid = {"struct_", "proto_", "my_reference", "spas", "endgame"};
+    for (const auto& content : valid) {
+      checkKey(content);
+    }
+  }
+  {
+    // This will fail (it's a `FLAT_KEY`, not a key)
+    const std::string content = "this.is.a.flat.key";
+    failKey(content);
+  }
+}
+
 TEST(config_grammar, FULLPAIR) {
   const std::string flat_key = "float.my.value";
   std::string content = flat_key + "   =  5.37e+6";
