@@ -17,8 +17,7 @@ struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
 struct SEP : peg::one<'/'> {};
 
 // There may be other valid characters in a filename. What might they be?
-struct ALPHAPLUS
-    : peg::plus<peg::sor<peg::ranges<'A', 'Z', 'a', 'z', '0', '9', '_'>, peg::one<'-'>>> {};
+struct ALPHAPLUS : peg::plus<peg::sor<peg::identifier_other, peg::one<'-'>>> {};
 
 struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
 struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
@@ -28,10 +27,6 @@ struct grammar : peg::must<FILENAME> {};
 }  // namespace filename
 
 namespace config {
-
-/*
-  TODO: Add validator to throw on duplicate keys
- */
 
 // clang-format off
 /*
@@ -55,7 +50,7 @@ grammar my_config
   string     <-  '"' [^"]* '"' %make_string
   list       <-  SBo value (COMMA value)* SBc %make_list
   number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
-  VAR        <-  "$" [A-Z0-9_]+  %make_var
+  VAR        <-  "$" [A-Z] [A-Z0-9_]+  %make_var
   VAR_REF    <-  "$(" FLAT_KEY ")" %var_ref
   HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
   KVs        <-  oSP "=" oSP
@@ -97,8 +92,8 @@ struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
-// TODO: Enforce that variables start with a letter?
-struct VAR : peg::seq<peg::one<'$'>, peg::plus<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
+struct VAR : peg::seq<peg::one<'$'>, peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {
+};
 
 struct sign : peg::one<'+', '-'> {};
 struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
@@ -122,9 +117,8 @@ struct LIST : peg::seq<SBo, peg::list<VAL_, COMMA, peg::space>, SBc> {};
 
 struct VALUE : peg::sor<VAL_, LIST> {};
 
-// Account for the reserved keyword: "end" when looking for keys (don't match "end" as a key, ever!)
-struct KEY : peg::seq<peg::not_at<RESERVED>, peg::range<'a', 'z'>,
-                      peg::star<peg::ranges<'a', 'z', 'A', 'Z', '0', '9', '_'>>> {};
+// Account for all reserved keywords when looking for keys
+struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
 struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
 struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
@@ -135,7 +129,6 @@ struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VAR, VAR_REF, VALUE>, TAIL> {};
 
-// TODO: Fix this "end" is being matched as a "KEY", but it shouldn't be.
 struct END : peg::seq<ENDk, SP, KEY> {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, TAIL> {};
@@ -153,21 +146,25 @@ struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
 struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
 
-// TODO: Improve this. A single file should look like this:
-//
-//  1. Optional list of include files
-//  2. Elements of a config file: struct, proto, reference, pair
-//
-// How do we fit in flat keys? I think we want to support flat keys or
-// structured keys in a single file. But not both.
-
+// Include syntax
 struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};
 struct include_list : peg::star<INCLUDE> {};
 
-// This is a little weird, but we need to match the `FULLPAIR` before `STRUCTc`, otherwise the
-// `PAIR` that can be contained by `STRUCTc` will start to match a single key, then fall back to the
-// `FULLPAIR` match, which results in the first `KEY` of the `FLAT_KEY` in the `FULLPAIR` to be
-// matched twice.
+// A single file should look like this:
+//
+//  1. Optional list of include files
+//  2. Elements of a config file: flat keys OR struct / proto / reference / pair
+
+// The `peg::sor<...>` here matches one or more `FULLPAIR` objects or the contents of a `STRUCT`,
+// which includes the following items:
+//  * STRUCT
+//  * REFERENCE
+//  * PROTO
+//  * PAIR
+//
+// but never both in the same file. The `peg::not_at<PAIR>` prevents the PAIR that might appear in a
+// `STRUCTc` from being matched as a `FULLPAIR` object.
+
 struct CONFIG
     : peg::seq<TAIL, include_list,
                peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>, TAIL> {};
