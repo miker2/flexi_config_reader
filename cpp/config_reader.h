@@ -11,6 +11,7 @@
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "config_grammar.h"
+#include "config_helpers.h"
 #include "utils.h"
 
 class ConfigReader {
@@ -69,32 +70,12 @@ class ConfigReader {
 template <typename T>
 auto ConfigReader::getValue(const std::string& name) -> T {
   // Split the key into parts
-  const auto parts = utils::split(name, '.');
+  const auto keys = utils::split(name, '.');
 
-  // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
-  // order to make error messages more useful.
-  std::string rejoined = "";
-  // Start with the base config tree and work our way down through the keys.
-  auto* content = &cfg_data_;
-  // Walk through each part of the flat key (except the last one, as it will be the one that
-  // contains the data.
-  for (const auto& key : parts | ranges::views::drop_last(1)) {
-    rejoined = utils::makeName(rejoined, key);
-    // This may be uneccessary error checking (if this is a part of a flat key, then it must be
-    // a nested structure), but we check here that this object is a `StructLike` object,
-    // otherwise we can't access the `data` member.
-    const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
-    if (v == nullptr) {
-      throw config::InvalidTypeException(
-          fmt::format("Expected value at '{}' to be a struct-like object, but got {} type instead.",
-                      rejoined, content->at(key)->type));
-    }
-    // Pull out the contents of the struct-like and move on to the next iteration.
-    content = &(v->data);
-  }
+  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
-  // Get the actual value. It will need to be converted into something reasonable.
-  const auto value = content->at(parts.back());
+  const auto value =
+      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
 
   const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(value)->value;
   T ret_val;

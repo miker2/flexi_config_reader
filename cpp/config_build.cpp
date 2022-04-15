@@ -40,6 +40,15 @@ auto main(int argc, char* argv[]) -> int {
       // pass
     }
   }
+  {
+    const std::string int_key = "a_top_level_flat_key";
+    try {
+      const auto out = cfg.getValue<int>(int_key);
+      std::cout << "Value of '" << int_key << "' is: " << out << std::endl;
+    } catch (std::exception&) {
+      // pass
+    }
+  }
 
   return (success ? 0 : 1);
 }

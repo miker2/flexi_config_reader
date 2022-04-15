@@ -19,7 +19,7 @@
 
 namespace config::helpers {
 
-auto isStructLike(const std::shared_ptr<config::types::ConfigBase>& el) -> bool {
+inline auto isStructLike(const std::shared_ptr<config::types::ConfigBase>& el) -> bool {
   return el->type == config::types::Type::kStruct || el->type == config::types::Type::kProto ||
          el->type == config::types::Type::kReference;
 }
@@ -28,8 +28,8 @@ auto isStructLike(const std::shared_ptr<config::types::ConfigBase>& el) -> bool 
 //   - Both are dictionaries     - This is okay
 //   - Neither are dictionaries  - This is bad - even if the same value, we don't allow duplicates
 //   - Only ones is a dictionary - Also bad. We can't handle this one
-auto checkForErrors(const config::types::CfgMap& cfg1, const config::types::CfgMap& cfg2,
-                    const std::string& key) -> bool {
+inline auto checkForErrors(const config::types::CfgMap& cfg1, const config::types::CfgMap& cfg2,
+                           const std::string& key) -> bool {
   const auto dict_count = isStructLike(cfg1.at(key)) + isStructLike(cfg2.at(key));
   if (dict_count == 0) {  // Neither is a dictionary. We don't support duplicate keys
     throw config::DuplicateKeyException(fmt::format("Duplicate key '{}' found at {} and {}!", key,
@@ -52,7 +52,7 @@ auto checkForErrors(const config::types::CfgMap& cfg1, const config::types::CfgM
 /* Merge dictionaries recursively and keep all nested keys combined between the two dictionaries.
  * Any key/value pairs that already exist in the leaves of cfg1 will be overwritten by the same
  * key/value pairs from cfg2. */
-auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::CfgMap& cfg2)
+inline auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::CfgMap& cfg2)
     -> config::types::CfgMap {
   const auto common_keys =
       ranges::views::set_intersection(cfg1 | ranges::views::keys, cfg2 | ranges::views::keys);
@@ -86,8 +86,8 @@ auto mergeNestedMaps(const config::types::CfgMap& cfg1, const config::types::Cfg
   return cfg_out;
 }
 
-auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
-                         const std::shared_ptr<config::types::ConfigProto>& proto)
+inline auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
+                                const std::shared_ptr<config::types::ConfigProto>& proto)
     -> std::shared_ptr<config::types::ConfigStruct> {
   // NOTE: This will not fill in any of the reference variables. It will only generate a struct from
   // an existing reference and proto object.
@@ -120,7 +120,7 @@ auto structFromReference(std::shared_ptr<config::types::ConfigReference>& ref,
 /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
-void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
+inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
 #if CONFIG_HELPERS_DEBUG
   std::cout << "replaceProtoVars --- \n";
   std::cout << cfg_map << std::endl;
@@ -185,9 +185,8 @@ void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap
   std::cout << "===== RPV DONE =====\n";
 }
 
-auto getConfigValue(const config::types::CfgMap& cfg,
-                    const std::shared_ptr<config::types::ConfigValueLookup>& var)
-    -> std::shared_ptr<config::types::ConfigBase> {
+inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::vector<std::string>& keys)
+    -> std::shared_ptr<config::types::ConfigStructLike> {
   // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
   // order to make error messages more useful.
   std::string rejoined = "";
@@ -195,21 +194,43 @@ auto getConfigValue(const config::types::CfgMap& cfg,
   auto* content = &cfg;
   // Walk through each part of the flat key (except the last one, as it will be the one that
   // contains the data.
-  for (const auto& key : var->keys | ranges::views::drop_last(1)) {
+  std::shared_ptr<config::types::ConfigStructLike> struct_like;
+  for (const auto& key : keys | ranges::views::drop_last(1)) {
     rejoined = utils::makeName(rejoined, key);
     // This may be uneccessary error checking (if this is a part of a flat key, then it must be
     // a nested structure), but we check here that this object is a `StructLike` object,
     // otherwise we can't access the `data` member.
-    const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
-    if (v == nullptr) {
+    struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
+    if (struct_like == nullptr) {
       throw config::InvalidTypeException(
           fmt::format("Expected value at '{}' to be a struct-like object, but got {} type instead.",
                       rejoined, content->at(key)->type));
     }
     // Pull out the contents of the struct-like and move on to the next iteration.
-    content = &(v->data);
+    content = &(struct_like->data);
   }
-  return content->at(var->keys.back());
+
+  return struct_like;
+}
+
+inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::string& flat_key)
+    -> std::shared_ptr<config::types::ConfigStructLike> {
+  const auto keys = utils::split(flat_key, '.');
+  return getNestedConfig(cfg, keys);
+}
+
+inline auto getConfigValue(const config::types::CfgMap& cfg,
+                           const std::shared_ptr<config::types::ConfigValueLookup>& var)
+    -> std::shared_ptr<config::types::ConfigBase> {
+  // Get the struct-like object containing the last key of the ConfigValueLookup:
+  const auto struct_like = getNestedConfig(cfg, var->keys);
+  // Extract the value from the struct-like object by accessing the internal data and locating the
+  // requested key.
+  if (struct_like != nullptr) {
+    return struct_like->data.at(var->keys.back());
+  }
+
+  return cfg.at(var->keys.back());
 }
 
 inline void removeEmpty(config::types::CfgMap& cfg) {
