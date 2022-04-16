@@ -23,17 +23,12 @@ class Logger {
 
   void setLevel(Severity level) { log_level_ = level; }
 
-  void log(Severity level, std::string_view msg) {
-    if (level > log_level_) {
-      fmt::print("[{}] {}\n", level, msg);
-    }
-  }
-
   template <typename... Args>
   void log(Severity level, std::string_view msg_f, Args&&... args) {
     if (level >= log_level_) {
-      fmt::print(fg_color_.at(level), "[{}] {}\n", level,
-                 fmt::format(msg_f, std::forward<Args>(args)...));
+      // NOTE: The clear format sequence shouldn't be necessary, but appears to be.
+      fmt::print(fg_color_.at(level), "[{}] {}\x1b[0m\n", level,
+                 fmt::format(msg_f, std::forward<decltype(args)>(args)...));
     }
   }
 
@@ -46,10 +41,13 @@ class Logger {
       {Severity::INFO, fmt::fg(fmt::color::green)},
       {Severity::WARN, fmt::fg(fmt::color::gold)},
       {Severity::ERROR, fmt::fg(fmt::color::red)},
-      {Severity::CRITICAL, fmt::fg(fmt::color::white) | fmt::bg(fmt::color::red)}};
+      {Severity::CRITICAL,
+       fmt::emphasis::bold | fmt::bg(fmt::color::red) | fmt::fg(fmt::color::white)}};
 
   // TODO: Add an container here for multiple messages for a type of "backtrace" functionality
 };
+
+static void setLevel(Severity lvl) { Logger::instance().setLevel(lvl); }
 
 static void log(Severity level, std::string_view msg) { Logger::instance().log(level, msg); }
 

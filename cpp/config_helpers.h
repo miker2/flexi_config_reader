@@ -14,6 +14,8 @@
 
 #include "config_classes.h"
 #include "config_exceptions.h"
+#include "logger.h"
+#include "utils.h"
 
 #define CONFIG_HELPERS_DEBUG 0
 
@@ -170,7 +172,7 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
       const auto var_pos = v_value->value.find('$');
       if (var_pos == std::string::npos) {
         // No variables. Let's skip.
-        std::cout << "No variables in " << v_value << ". Skipping..." << std::endl;
+        logger::debug("No variables in {}. Skipping...", v);
         continue;
       }
 
@@ -180,7 +182,7 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
         const auto& rk = rkv.first;
         auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
 
-        std::cout << "v: " << out << ", rk: " << rk << ", rv: " << rv << std::endl;
+        logger::debug("v: {}, rk: {}, rv: {}", out, rk, rkv.second);
         // Strip off any leading or trailing quotes from the replacement value. If the replacement
         // value is not a string, this is a no-op.
         const auto replacement = utils::trim(rv->value, "\\\"");
@@ -188,9 +190,9 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
         // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
         // in escape characters as this will be used in a regular expression.
         const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
-        std::cout << "v: " << out << ", rk: " << bracket_var << ", rv: " << rv << std::endl;
+        logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
         out = std::regex_replace(out, std::regex(bracket_var), replacement);
-        std::cout << "out: " << out << std::endl;
+        logger::debug("out: {}", out);
       }
       // Replace the existing value with the new value.
       auto new_value = std::make_shared<config::types::ConfigValue>(out, v->type);
@@ -198,14 +200,16 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
       new_value->source = v->source;
       cfg_map[k] = std::move(new_value);
     } else if (config::helpers::isStructLike(v)) {
-      std::cout << "At '" << k << "', found " << v->type << std::endl;
+      logger::debug("At '{}', found {}", k, v->type);
       // Recurse deeper into the structure in order to replace more variables.
       replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_vars);
     }
   }
+#if CONFIG_HELPERS_DEBUG
   std::cout << "~~~~~ Result ~~~~~\n";
   std::cout << cfg_map << std::endl;
   std::cout << "===== RPV DONE =====\n";
+#endif
 }
 
 inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::vector<std::string>& keys)
@@ -263,7 +267,7 @@ inline void removeEmpty(config::types::CfgMap& cfg) {
       auto s = dynamic_pointer_cast<config::types::ConfigStruct>(kv.second);
       removeEmpty(s->data);
       if (s->data.empty()) {
-        std::cout << " !!! Removing {} !!!\n";
+        logger::debug(" !!! Removing {} !!!", kv.first);
         to_erase.push_back(kv.first);
       }
     }

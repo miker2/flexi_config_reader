@@ -8,6 +8,7 @@
 #include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
 #include <regex>
 #include <tao/pegtl.hpp>
+#include <tao/pegtl/contrib/trace.hpp>
 
 #include "config_actions.h"
 #include "config_classes.h"
@@ -33,11 +34,18 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     out_.cfg_res |=
         ranges::actions::remove_if([](const config::types::CfgMap& m) { return m.empty(); });
 
-    logger::info("  Parse {}", success ? "success" : "failure");
-    logger::info("  cfg_res size: {}", out_.cfg_res.size());
+    if (!success) {
+      logger::critical("  Parse failure");
+      logger::error("  cfg_res size: {}", out_.cfg_res.size());
 
-    std::cout << "\noutput: \n";
-    out_.print();
+      logger::error("Incomplete output: \n");
+      out_.print();
+
+      // Print a trace if a failure occured.
+      cfg_file.restart();
+      peg::standard_trace<config::grammar>(cfg_file);
+      return success;
+    }
   } catch (const peg::parse_error& e) {
     success = false;
     logger::critical("!!!");
@@ -46,7 +54,9 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     logger::critical("{}", e.what());
     logger::critical("{}", cfg_file.line_at(p));
     logger::critical("{}^", std::string(' ', p.column - 1));
+    out_.print();
     logger::critical("!!!");
+    return success;
   }
 
   config::types::CfgMap flat{};
@@ -65,7 +75,6 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   logger::trace("{} Strip Protos {}", debug_sep, debug_sep);
   stripProtos(cfg_data_);
   logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
-  // std::cout << protos_ << std::endl;
 #endif
 
   logger::trace("{} Resolving References {}", debug_sep, debug_sep);
@@ -77,11 +86,10 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   // This isn't entirely necessary, but it cleans up the tree.
   config::helpers::removeEmpty(cfg_data_);
 
-  std::cout << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
-  std::cout << cfg_data_;
-
   return success;
 }
+
+void ConfigReader::dump() const { std::cout << cfg_data_; }
 
 void ConfigReader::convert(const std::string& value_str, float& value) const {
   std::size_t len{0};
@@ -150,7 +158,6 @@ auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
       flattened = flattenAndFindProtos(struct_like->data, new_name, flattened);
     } else {
       flattened[new_name] = e.second;
-      // std::cout << new_name << " = " << e.second << std::endl;
     }
   }
   return flattened;
@@ -192,14 +199,13 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
   // remove the proto. This isn't strictly necessary, but it simplifies some things later when
   // trying to resolve references and other variables.
   for (auto& kv : protos_) {
-    std::cout << "Removing '" << kv.first << "' from config." << std::endl;
+    logger::debug("Removing '{}' from config.", kv.first);
     // Split the keys so we can use them to recurse into the map.
     const auto parts = utils::split(kv.first, '.');
 
     auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
 
-    std::cout << "Final component: " << parts.back() << " = " << content.at(parts.back())
-              << std::endl;
+    logger::trace("Final component: \n{}", content.at(parts.back()));
     content.erase(parts.back());
   }
 }
@@ -227,19 +233,22 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       // as it may be used elsewhere!
       auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
       auto& p = protos_.at(v_ref->proto);
-      std::cout << fmt::format("r: {}", v) << std::endl;
-      std::cout << "p: " << p << std::endl;
+      logger::trace(
+          "Creating struct from reference:\n"
+          "reference: \n{}\n"
+          "proto: \n{}",
+          v, static_pointer_cast<config::types::ConfigBase>(p));
       // Create a new struct from the reference and the proto
       auto new_struct = config::helpers::structFromReference(v_ref, p);
-      std::cout << "struct from reference: \n" << new_struct << std::endl;
+      logger::debug("struct from reference: \n{}",
+                    static_pointer_cast<config::types::ConfigBase>(new_struct));
       // If there's a nested dictionary, we want to add any new ref_vars into the existing
       // ref_vars.
-      std::cout << "Current ref_vars: \n" << ref_vars << std::endl;
+      logger::trace("Current ref_vars: {}", ref_vars);
       std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
                 std::inserter(ref_vars, ref_vars.end()));
-      std::cout << "Updated ref_vars: \n" << ref_vars << std::endl;
+      logger::trace("Updated ref_vars: {}", ref_vars);
 
-      std::cout << "Ref vars: \n" << ref_vars << std::endl;
       // Resolve all proto/reference variables based on the values provided.
       config::helpers::replaceProtoVar(new_struct->data, ref_vars);
       // Replace the existing reference with the new struct that was created.

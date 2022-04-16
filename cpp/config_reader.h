@@ -23,6 +23,8 @@ class ConfigReader {
 
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
 
+  void dump() const;
+
   template <typename T>
   auto getValue(const std::string& name) -> T;
 
