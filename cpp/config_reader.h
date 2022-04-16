@@ -13,6 +13,7 @@
 #include "config_exceptions.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
+#include "logger.h"
 #include "utils.h"
 
 class ConfigReader {
@@ -91,7 +92,7 @@ void ConfigReader::getValue(const std::string& name, T& value) {
 
   const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
   convert(value_str, value);
-  std::cout << " -- Type is " << typeid(T).name() << std::endl;
+  logger::debug(" -- Type is {}", typeid(T).name());
 }
 
 template <typename T>

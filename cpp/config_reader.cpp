@@ -14,6 +14,7 @@
 #include "config_exceptions.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
+#include "logger.h"
 #include "utils.h"
 
 auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
@@ -32,50 +33,45 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     out_.cfg_res |=
         ranges::actions::remove_if([](const config::types::CfgMap& m) { return m.empty(); });
 
-    std::cout << "\n";
-    std::cout << "  Parse " << (success ? "success" : "failure") << std::endl;
-    std::cout << "  cfg_res size: " << out_.cfg_res.size() << std::endl;
+    logger::info("  Parse {}", success ? "success" : "failure");
+    logger::info("  cfg_res size: {}", out_.cfg_res.size());
 
     std::cout << "\noutput: \n";
     out_.print();
   } catch (const peg::parse_error& e) {
     success = false;
-    std::cout << "!!!\n";
-    std::cout << "  Parser failure!\n";
+    logger::critical("!!!");
+    logger::critical("  Parser failure!");
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << cfg_file.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
-    std::cout << "!!!\n";
+    logger::critical("{}", e.what());
+    logger::critical("{}", cfg_file.line_at(p));
+    logger::critical("{}^", std::string(' ', p.column - 1));
+    logger::critical("!!!");
   }
 
-  std::cout << "Flattened: \n";
   config::types::CfgMap flat{};
   for (const auto& e : out_.cfg_res) {
     flat = flattenAndFindProtos(e, "", flat);
   }
-  std::cout << flat << std::endl;
+  logger::debug("Flattened: \n{}", fmt::join(flat, "\n"));
 
-  std::cout << "Protos: \n";
-  ranges::for_each(protos_ | ranges::views::keys, [](auto& kv) { std::cout << kv << std::endl; });
+  logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
 
   cfg_data_ = mergeNested(out_.cfg_res);
 
+  const std::string debug_sep(35, '=');
 #if 1
   // TODO: Determine if this is actually necessary.
-  std::cout << std::string(35, '=') << " Strip Protos " << std::string(35, '=') << std::endl;
+  logger::trace("{} Strip Protos {}", debug_sep, debug_sep);
   stripProtos(cfg_data_);
-  std::cout << " --- Result of 'stripProtos':\n";
-  std::cout << protos_ << std::endl;
-  std::cout << cfg_data_ << std::endl;
+  logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
+  // std::cout << protos_ << std::endl;
 #endif
 
-  std::cout << std::string(35, '=') << " Resolving References " << std::string(35, '=')
-            << std::endl;
+  logger::trace("{} Resolving References {}", debug_sep, debug_sep);
   resolveReferences(cfg_data_, "", {});
-  std::cout << cfg_data_;
+  logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
 
-  std::cout << "===== Resolve variable references ====" << std::endl;
   resolveVarRefs(cfg_data_, cfg_data_);
 
   // This isn't entirely necessary, but it cleans up the tree.
@@ -174,18 +170,17 @@ auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in)
 
   // Accumulate all of the other elements of the vector into the CfgMap.
   for (auto& cfg : ranges::views::tail(in)) {
-#if 0
-    std::cout << "======= Working on merging: =======\n";
-    std::cout << squashed_cfg << std::endl;
-    std::cout << "++++++++++++++ and ++++++++++++++++\n";
-    std::cout << cfg << std::endl;
-    std::cout << "++++++++++++ result +++++++++++++++\n";
-#endif
+    logger::trace(
+        "======= Working on merging: =======\n{}\n"
+        "++++++++++++++ and ++++++++++++++++\n{}",
+        fmt::join(squashed_cfg, "\n"), fmt::join(cfg, "\n"));
+
     squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
-#if 0
-    std::cout << squashed_cfg << std::endl;
-    std::cout << "============== END ================\n";
-#endif
+
+    logger::trace(
+        "++++++++++++ result +++++++++++++++\n{}\n"
+        "============== END ================\n",
+        fmt::join(squashed_cfg, "\n"));
   }
   return squashed_cfg;
 }
@@ -200,33 +195,12 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
     std::cout << "Removing '" << kv.first << "' from config." << std::endl;
     // Split the keys so we can use them to recurse into the map.
     const auto parts = utils::split(kv.first, '.');
-    // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
-    // order to make error messages more useful.
-    std::string rejoined = "";
-    // This isn't very efficient as there may be common trunks between the different protos, but
-    // restart with the root node each time.
-    config::types::CfgMap* content = &cfg_map;
-    // Walk through each part of the flat key (except the last one, as it will be the one to be
-    // removed).
-    for (const auto& key : parts | ranges::views::drop_last(1)) {
-      rejoined = utils::makeName(rejoined, key);
-      // This may be uneccessary error checking (if this is a part of a flat key, then it must be
-      // a nested structure), but we check here that this object is a `StructLike` object,
-      // otherwise we can't access the data member.
-      const auto v = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
-      if (v == nullptr) {
-        throw config::InvalidTypeException(fmt::format(
-            "Expected value at '{}' to be a struct-like object, but got {} type instead.", rejoined,
-            content->at(key)->type));
-      }
-      // Pull out the contents of the struct-like and move on to the next iteration.
-      content = &(v->data);
-      std::cout << "At '" << key << "':\n";
-      std::cout << *content << std::endl;
-    }
-    std::cout << "Final component: " << parts.back() << " = " << content->at(parts.back())
+
+    auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
+
+    std::cout << "Final component: " << parts.back() << " = " << content.at(parts.back())
               << std::endl;
-    content->erase(parts.back());
+    content.erase(parts.back());
   }
 }
 
@@ -240,9 +214,9 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
     const auto& k = kv.first;
     auto& v = kv.second;
     if (v == nullptr) {
-      std::cerr << "base_name: " << base_name << std::endl;
-      std::cerr << "Something seems off. Key '" << k << "' is null." << std::endl;
-      std::cerr << "Contents of cfg_map: \n" << cfg_map << std::endl;
+      logger::error("base_name: {}", base_name);
+      logger::error("Something seems off. Key '{}' is null.", k);
+      logger::error("Contents of cfg_map: \n{}", cfg_map);
       continue;
     }
     const auto new_name = utils::makeName(base_name, k);
@@ -286,8 +260,7 @@ void ConfigReader::resolveVarRefs(const config::types::CfgMap& root,
     if (kv.second->type == config::types::Type::kValueLookup) {
       const auto value = config::helpers::getConfigValue(
           root, dynamic_pointer_cast<config::types::ConfigValueLookup>(kv.second));
-      std::cout << fmt::format("Found instance of ValueLookup: {}. Has value={}", kv.second, value)
-                << std::endl;
+      logger::debug("Found instance of ValueLookup: {}. Has value={}", kv.second, value);
       sub_tree[kv.first] = value;
     } else if (config::helpers::isStructLike(kv.second)) {
       resolveVarRefs(root, dynamic_pointer_cast<config::types::ConfigStructLike>(kv.second)->data);

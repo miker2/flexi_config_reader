@@ -72,7 +72,6 @@ auto main(int argc, char* argv[]) -> int {
     const auto out = cfg.getValue<int>(int_key);
     fmt::print("Value of '{}' is: {}\n", int_key, out);
 
-
     // TODO: Decide if we should allow this or if it should be a failure.
     const auto out_f = cfg.getValue<float>(int_key);
     fmt::print("Value of '{}' is: {}\n", int_key, out_f);

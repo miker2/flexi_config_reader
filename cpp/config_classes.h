@@ -324,3 +324,16 @@ struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<st
     return formatter<std::string>::format(ss.str(), ctx);
   }
 };
+
+template <>
+struct fmt::formatter<config::types::CfgMap::value_type> {
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(const config::types::CfgMap::value_type& kv, FormatContext& ctx) {
+    return format_to(ctx.out(), "{} = {}", kv.first, kv.second);
+  }
+};
