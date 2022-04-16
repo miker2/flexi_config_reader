@@ -24,8 +24,17 @@ target_link_libraries(config_build
   fmt::fmt
   range-v3::range-v3)
 
+add_executable(config_reader_example config_reader_example.cpp config_reader.cpp)
+target_link_libraries(config_reader_example
+  PRIVATE
+  taocpp::pegtl
+  magic_enum::magic_enum
+  fmt::fmt
+  range-v3::range-v3)
+
+
 add_executable(include_file_test include_file_test.cpp)
 target_link_libraries(include_file_test PRIVATE taocpp::pegtl)
 
-install(TARGETS jsonish_test toml_test config_test include_file_test
+install(TARGETS jsonish_test toml_test config_test config_build config_reader_example include_file_test
         DESTINATION bin)

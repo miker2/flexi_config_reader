@@ -88,23 +88,53 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
 }
 
 void ConfigReader::convert(const std::string& value_str, float& value) const {
-  value = std::stof(value_str);
+  std::size_t len{0};
+  value = std::stof(value_str, &len);
+  if (len != value_str.size()) {
+    throw config::MismatchTypeException(
+        fmt::format("Error while converting '{}' to type float. Processed {} of {} characters",
+                    value_str, len, value_str.size()));
+  }
 }
 
 void ConfigReader::convert(const std::string& value_str, double& value) const {
-  value = std::stod(value_str);
+  std::size_t len{0};
+  value = std::stod(value_str, &len);
+  if (len != value_str.size()) {
+    throw config::MismatchTypeException(
+        fmt::format("Error while converting '{}' to type double. Processed {} of {} characters",
+                    value_str, len, value_str.size()));
+  }
 }
 
 void ConfigReader::convert(const std::string& value_str, int& value) const {
-  value = std::stoi(value_str);
+  std::size_t len{0};
+  value = std::stoi(value_str, &len);
+  if (len != value_str.size()) {
+    throw config::MismatchTypeException(
+        fmt::format("Error while converting '{}' to type int. Processed {} of {} characters",
+                    value_str, len, value_str.size()));
+  }
 }
 
 void ConfigReader::convert(const std::string& value_str, int64_t& value) const {
-  value = std::stoll(value_str);
+  std::size_t len{0};
+  value = std::stoll(value_str, &len);
+  if (len != value_str.size()) {
+    throw config::MismatchTypeException(
+        fmt::format("Error while converting '{}' to type int64_t. Processed {} of {} characters",
+                    value_str, len, value_str.size()));
+  }
 }
 
 void ConfigReader::convert(const std::string& value_str, bool& value) const {
-  value = static_cast<bool>(std::stoi(value_str));
+  std::size_t len{0};
+  value = static_cast<bool>(std::stoi(value_str, &len));
+  if (len != value_str.size()) {
+    throw config::MismatchTypeException(
+        fmt::format("Error while converting '{}' to type bool. Processed {} of {} characters",
+                    value_str, len, value_str.size()));
+  }
 }
 
 void ConfigReader::convert(const std::string& value_str, std::string& value) const {
