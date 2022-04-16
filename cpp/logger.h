@@ -28,7 +28,7 @@ class Logger {
     if (level >= log_level_) {
       // NOTE: The clear format sequence shouldn't be necessary, but appears to be.
       fmt::print(fg_color_.at(level), "[{}] {}\x1b[0m\n", level,
-                 fmt::format(msg_f, std::forward<decltype(args)>(args)...));
+                 fmt::vformat(msg_f, fmt::make_format_args(std::forward<Args>(args)...)));
     }
   }
 
