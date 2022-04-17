@@ -81,6 +81,16 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   resolveReferences(cfg_data_, "", {});
   logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
 
+  // Unflatten any flat keys:
+  const auto flat_keys =
+      cfg_data_ | ranges::views::keys |
+      ranges::views::filter([](auto& key) { return key.find(".") != std::string::npos; }) |
+      ranges::to<std::vector<std::string>> | ranges::actions::sort | ranges::actions::reverse;
+  logger::debug("The following keys need to be flattened: {}", flat_keys);
+  for (const auto& key : flat_keys) {
+    config::helpers::unflatten(key, cfg_data_);
+  }
+
   resolveVarRefs(cfg_data_, cfg_data_);
 
   // This isn't entirely necessary, but it cleans up the tree.

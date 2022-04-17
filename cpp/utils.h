@@ -16,7 +16,7 @@ inline auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::
   return str;
 }
 
-inline auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
+inline auto split(const std::string& s, char delimiter = '.') -> std::vector<std::string> {
   std::vector<std::string> tokens;
   std::string token;
   std::istringstream token_stream(s);
@@ -24,6 +24,24 @@ inline auto split(const std::string& s, char delimiter) -> std::vector<std::stri
     tokens.push_back(token);
   }
   return tokens;
+}
+
+inline auto splitHead(const std::string& s, char delimiter = '.')
+    -> std::pair<std::string, std::string> {
+  const auto split_pos = s.find(delimiter);
+
+  const auto head = s.substr(0, split_pos);
+  const auto tail = split_pos == std::string::npos ? "" : s.substr(split_pos + 1);
+  return std::make_pair(head, tail);
+}
+
+inline auto splitTail(const std::string& s, char delimiter = '.')
+    -> std::pair<std::string, std::string> {
+  const auto split_pos = s.rfind(delimiter);
+
+  const auto head = split_pos == std::string::npos ? "" : s.substr(0, split_pos);
+  const auto tail = split_pos == std::string::npos ? s : s.substr(split_pos + 1);
+  return std::make_pair(head, tail);
 }
 
 inline auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
