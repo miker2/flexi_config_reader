@@ -108,7 +108,7 @@ template <typename Key, typename Value>
 inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& data) {
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
-      os << "\n" << kv.second << "\n\n";
+      os << kv.second << "\n";
     } else {
       os << kv.first << " = " << kv.second
 #if PRINT_SRC
@@ -127,7 +127,7 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       // Don't add extra whitespace, as this is handled entirely by the StructLike objects
-      os << "\n" << kv.second << "\n\n";
+      os << kv.second << "\n";
     } else {
       os << ws << kv.first << " = " << kv.second
 #if PRINT_SRC
