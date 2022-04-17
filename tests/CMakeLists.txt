@@ -48,6 +48,7 @@ target_link_libraries(
 	config_grammar_test
 	fmt::fmt
 	magic_enum::magic_enum
+	range-v3::range-v3
 	taocpp::pegtl
 	gtest_main
 	)

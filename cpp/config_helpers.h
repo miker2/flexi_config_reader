@@ -11,6 +11,7 @@
 #include <range/v3/view/map.hpp>
 #include <range/v3/view/set_algorithm.hpp>
 #include <regex>
+#include <span>
 
 #include "config_classes.h"
 #include "config_exceptions.h"
@@ -258,6 +259,17 @@ inline auto getConfigValue(const config::types::CfgMap& cfg,
   }
 
   return cfg.at(var->keys.back());
+}
+
+inline auto unflatten(const std::span<std::string> keys, const config::types::CfgMap& cfg)
+    -> config::types::CfgMap {
+  if (keys.empty()) {
+    return cfg;
+  }
+
+  auto new_struct = std::make_shared<config::types::ConfigStruct>(keys.back(), keys.size() - 1);
+  new_struct->data = cfg;
+  return unflatten(keys.subspan(0, keys.size() - 1), {{keys.back(), new_struct}});
 }
 
 inline void removeEmpty(config::types::CfgMap& cfg) {
