@@ -88,6 +88,7 @@ TEST(config_exception_test, DuplicateKeyException) {
     ConfigReader cfg;
     EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"), config::DuplicateKeyException);
   }
+#if 0  // See FULLPAIR action
   {
     const std::string_view duplicate_full_pair =
         "this.is.a.key = 10         \n\
@@ -96,6 +97,7 @@ TEST(config_exception_test, DuplicateKeyException) {
     peg::memory_input in_cfg(duplicate_full_pair, "this.is.a.key defined twice");
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
   }
+#endif
   {
     const std::string_view var_add_duplicate =
         "proto proto_foo {              \n\

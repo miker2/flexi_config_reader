@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <optional>
 #include <tao/pegtl/contrib/analyze.hpp>
 
@@ -456,9 +457,21 @@ TEST(config_grammar, FULLPAIR) {
 
   auto ret = runTest<peg::must<config::FULLPAIR, peg::eolf>>(content);
   EXPECT_TRUE(ret.first);
+  // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
+  // keys are resolved into structs.
+  ret.second.cfg_res.erase(std::remove_if(ret.second.cfg_res.begin(), ret.second.cfg_res.end(),
+                                          [](const auto& m) { return m.empty(); }));
   ASSERT_EQ(ret.second.cfg_res.size(), 1);
-  ASSERT_TRUE(ret.second.cfg_res.front().contains(flat_key));
-  EXPECT_EQ(ret.second.cfg_res.front()[flat_key]->type, config::types::Type::kNumber);
+  config::types::CfgMap* cfg_map = &ret.second.cfg_res.front();
+  const auto keys = utils::split(flat_key, '.');
+  for (const auto& key : keys) {
+    ASSERT_TRUE(cfg_map->contains(key));
+    auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(cfg_map->at(key));
+    if (struct_like != nullptr) {
+      cfg_map = &struct_like->data;
+    }
+  }
+  EXPECT_EQ(cfg_map->at(keys.back())->type, config::types::Type::kNumber);
 }
 
 TEST(config_grammar, FLAT_KEY) {
