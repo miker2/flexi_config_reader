@@ -7,6 +7,7 @@
 #include <iostream>
 #include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
 #include <regex>
+#include <sstream>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
 
@@ -17,6 +18,10 @@
 #include "config_helpers.h"
 #include "logger.h"
 #include "utils.h"
+
+namespace {
+const std::string debug_sep(35, '=');
+}
 
 auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   bool success = true;
@@ -38,8 +43,9 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
       logger::critical("  Parse failure");
       logger::error("  cfg_res size: {}", out_.cfg_res.size());
 
-      logger::error("Incomplete output: \n");
-      out_.print();
+      std::stringstream ss;
+      out_.print(ss);
+      logger::error("Incomplete output: \n{}", ss.str());
 
       // Print a trace if a failure occured.
       cfg_file.restart();
@@ -54,7 +60,9 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     logger::critical("{}", e.what());
     logger::critical("{}", cfg_file.line_at(p));
     logger::critical("{}^", std::string(' ', p.column - 1));
-    out_.print();
+    std::stringstream ss;
+    out_.print(ss);
+    logger::critical("Partial output: \n{}", ss.str());
     logger::critical("!!!");
     return success;
   }
@@ -69,15 +77,14 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
 
   cfg_data_ = mergeNested(out_.cfg_res);
 
-  const std::string debug_sep(35, '=');
 #if 1
   // TODO: Determine if this is actually necessary.
-  logger::trace("{} Strip Protos {}", debug_sep, debug_sep);
+  logger::trace("{0} Strip Protos {0}", debug_sep);
   stripProtos(cfg_data_);
   logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
 #endif
 
-  logger::trace("{} Resolving References {}", debug_sep, debug_sep);
+  logger::trace("{0} Resolving References {0}", debug_sep);
   resolveReferences(cfg_data_, "", {});
   logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
 

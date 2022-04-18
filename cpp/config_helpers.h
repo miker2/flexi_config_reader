@@ -121,14 +121,12 @@ inline auto structFromReference(std::shared_ptr<config::types::ConfigReference>&
   // First, create the new struct based on the reference data.
   auto struct_out = std::make_shared<config::types::ConfigStruct>(ref->name, ref->depth);
 #if CONFIG_HELPERS_DEBUG
-  std::cout << "New struct: \n";
-  std::cout << struct_out << "\n";
+  logger::debug("New struct: \n{}", static_pointer_cast<config::types::ConfigBase>(struct_out));
 #endif
   // Next, move the data from the reference to the struct:
   struct_out->data.merge(ref->data);
 #if CONFIG_HELPERS_DEBUG
-  std::cout << "Data added: \n";
-  std::cout << struct_out << "\n";
+  logger::debug("Data added: \n{}", static_pointer_cast<config::types::ConfigBase>(struct_out));
 #endif
   // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
@@ -147,13 +145,14 @@ inline auto structFromReference(std::shared_ptr<config::types::ConfigReference>&
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
 inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types::RefMap& ref_vars) {
-#if CONFIG_HELPERS_DEBUG
-  std::cout << "replaceProtoVars --- \n";
-  std::cout << cfg_map << std::endl;
-  std::cout << "  -- ref_vars: \n";
-  std::cout << ref_vars << std::endl;
-  std::cout << "  -- END --\n";
-#endif
+  logger::trace(
+      "replaceProtoVars --- \n"
+      "   {}\n"
+      "  -- ref_vars: \n"
+      "   {}\n"
+      "  -- END --",
+      cfg_map, ref_vars);
+
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -206,11 +205,12 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
       replaceProtoVar(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, ref_vars);
     }
   }
-#if CONFIG_HELPERS_DEBUG
-  std::cout << "~~~~~ Result ~~~~~\n";
-  std::cout << cfg_map << std::endl;
-  std::cout << "===== RPV DONE =====\n";
-#endif
+
+  logger::trace(
+      "~~~~~ Result ~~~~~\n"
+      "   {}\n"
+      "===== RPV DONE =====",
+      cfg_map);
 }
 
 inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::vector<std::string>& keys)

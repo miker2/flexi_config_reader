@@ -18,9 +18,16 @@
 #include "config_exceptions.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
+#include "logger.h"
 #include "utils.h"
 
 #define VERBOSE_DEBUG 0
+
+#define CONFIG_ACTION_DEBUG(MSG_F, ...) \
+  logger::debug("{}" MSG_F, std::string(out.depth * 2, ' '), __VA_ARGS__);
+
+#define CONFIG_ACTION_TRACE(MSG_F, ...) \
+  logger::trace("{}" MSG_F, std::string(out.depth * 2, ' '), __VA_ARGS__);
 
 namespace config {
 
@@ -45,33 +52,33 @@ struct ActionData {
   std::shared_ptr<types::ConfigBase> obj_res;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
-  void print() {
+  void print(std::ostream& os) const {
     if (!keys.empty()) {
-      std::cout << "Keys: \n";
+      os << "Keys: \n";
       for (const auto& key : keys) {
-        std::cout << "  " << key << "\n";
+        os << "  " << key << "\n";
       }
     }
     if (!flat_keys.empty()) {
-      std::cout << "Flat Keys: \n";
+      os << "Flat Keys: \n";
       for (const auto& key : flat_keys) {
-        std::cout << "  " << key << "\n";
+        os << "  " << key << "\n";
       }
     }
-    std::cout << "result: " << result << std::endl;
-    std::cout << "obj_res: " << obj_res << std::endl;
+    os << "result: " << result << std::endl;
+    os << "obj_res: " << obj_res << std::endl;
     if (!objects.empty()) {
-      std::cout << "objects: " << std::endl;
+      os << "objects: " << std::endl;
       for (const auto& obj : objects) {
-        std::cout << obj << std::endl;
+        os << obj << std::endl;
       }
     }
-    std::cout << "==========" << std::endl;
-    std::cout << "cfg_res: " << std::endl;
+    os << "==========" << std::endl;
+    os << "cfg_res: " << std::endl;
     for (const auto& mp : cfg_res) {
-      std::cout << mp << std::endl;
+      os << mp << std::endl;
     }
-    std::cout << "^^^^^^^^^^" << std::endl;
+    os << "^^^^^^^^^^" << std::endl;
   }
 };
 
@@ -83,8 +90,7 @@ struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "Found key: '" << in.string() << "'"
-              << std::endl;
+    CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
 #endif
     out.keys.emplace_back(in.string());
   }
@@ -95,12 +101,12 @@ struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In VALUE action: " << in.string() << std::endl;
+    CONFIG_ACTION_TRACE("In VALUE action: {}", in.string());
 #endif
     if (out.obj_res == nullptr) {
       // NOTE: This should never happen!
-      std::cout << std::string(10, '!') << " Creating default ConfigValue object "
-                << std::string(10, '!') << std::endl;
+      const auto pre_post = std::string(10, '!');
+      logger::error("{0} Creating default ConfigValue object {0}", pre_post);
       out.obj_res = std::make_shared<types::ConfigValue>(in.string());
     }
     out.obj_res->line = in.position().line;
@@ -114,8 +120,7 @@ struct action<HEX> {
   static void apply(const ActionInput& in, ActionData& out) {
     const auto hex = std::stoi(in.string(), nullptr, 16);
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In HEX action: " << in.string() << "|" << hex
-              << "|0x" << std::hex << hex << "\n";
+    CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
 #endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
   }
@@ -126,7 +131,7 @@ struct action<STRING> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In STRING action: " << in.string() << "\n";
+    CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
 #endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
   }
@@ -137,7 +142,7 @@ struct action<FLOAT> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In FLOAT action: " << in.string() << std::endl;
+    CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
 #endif
     std::any any_val = std::stod(in.string());
 
@@ -150,8 +155,7 @@ struct action<INTEGER> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In INTEGER action: " << in.string()
-              << std::endl;
+    CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
 #endif
     std::any any_val = std::stoi(in.string());
 
@@ -169,9 +173,8 @@ struct action<LIST> {
     std::transform(entries.begin(), entries.end(), entries.begin(),
                    [](auto s) { return utils::trim(s); });
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "In LIST action: " << in.string() << "\n";
-    std::cout << std::string(out.depth * 2, ' ') << " --- "
-              << "Has " << entries.size() << " elements: " << utils::join(entries, "; ") << "\n";
+    CONFIG_ACTION_TRACE("In LIST action: {}", in.string());
+    CONFIG_ACTION_TRACE(" --- Has {} elements: {}", entries.size(), utils::join(entries, "; "));
 #endif
     // TODO: Create a custom type for lists.
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kList, entries);
@@ -183,7 +186,7 @@ struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "Found var: " << in.string() << std::endl;
+    CONFIG_ACTION_TRACE("Found var: {}", in.string());
 #endif
     // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
@@ -200,7 +203,7 @@ template <>
 struct action<filename::FILENAME> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "Found filename: " << in.string() << std::endl;
+    CONFIG_ACTION_DEBUG("Found filename: {}", in.string());
     out.result = in.string();
   }
 };
@@ -209,14 +212,13 @@ template <>
 struct action<INCLUDE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "Found include file: " << out.result
-              << std::endl;
+    CONFIG_ACTION_DEBUG("Found include file: {}", out.result);
     try {
       // NOTE: All include files are relative to `EXAMPLE_DIR` for now. This will eventually be an
       // input.
       const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / out.result;
       peg::file_input include_file(cfg_file);
-      std::cout << "nested parse: " << include_file.source() << std::endl;
+      logger::info("nested parse: {}", include_file.source());
       peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
     } catch (const std::system_error& e) {
       throw peg::parse_error("Include error", in.position());
@@ -236,7 +238,7 @@ struct action<FLAT_KEY> {
 
     // Ensure that 'out.keys' has enough keys!
     if (out.keys.size() < keys.size()) {
-      std::cerr << "[FLAT_KEY] Not enough keys in list!" << std::endl;
+      logger::error("[FLAT_KEY] Not enough keys in list!");
       return;
     }
     const auto N_KEYS = keys.size();
@@ -245,8 +247,7 @@ struct action<FLAT_KEY> {
       // Consume 1 key for every key in "keys"
       // TODO: Check if the keys are the same?
 #if VERBOSE_DEBUG
-      std::cout << std::string(out.depth * 2, ' ') << "Popping: " << keys.back() << " | "
-                << out.keys.back() << std::endl;
+      CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
 #endif
       keys.pop_back();
       out.keys.pop_back();
@@ -263,9 +264,8 @@ struct action<VAR_REF> {
     // the existing key list.
     const auto var_ref = utils::trim(in.string(), "$()");
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Result: " << var_ref << std::endl;
-    std::cout << std::string(out.depth * 2, ' ') << "[VAR_REF] Consuming: '" << out.flat_keys.back()
-              << "'" << std::endl;
+    CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
+    CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.flat_keys.back());
 #endif
     out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
     out.obj_res->source = in.position().source;
@@ -279,7 +279,7 @@ template <>
 struct action<PAIR> {
   static void apply0(ActionData& out) {
     if (out.keys.empty()) {
-      out.print();
+      out.print(std::cerr);
       throw InvalidStateException("While processing 'PAIR', no available keys.");
     }
 
@@ -290,6 +290,8 @@ struct action<PAIR> {
       throw DuplicateKeyException(
           fmt::format("[PAIR] Duplicate key '{}' found in {}!", out.keys.back(), location));
     }
+    CONFIG_ACTION_TRACE("In PAIR action: '{} = {}'", out.keys.back(), out.obj_res);
+
     data[out.keys.back()] = std::move(out.obj_res);
 
     out.keys.pop_back();
@@ -300,16 +302,17 @@ template <>
 struct action<FULLPAIR> {
   static void apply0(ActionData& out) {
     if (out.flat_keys.empty()) {
-      out.print();
+      out.print(std::cerr);
       throw InvalidStateException("[FULLPAIR] Expected to find 'FLAT_KEY', but list is empty.");
     }
 
     if (!out.objects.empty()) {
-      std::cerr << " Found a `FULLPAIR` but expected `objects` list to be empty." << std::endl;
-      out.print();
+      logger::error(" Found a `FULLPAIR` but expected `objects` list to be empty.");
+      out.print(std::cerr);
       throw InvalidStateException(fmt::format(
           "[FULLPAIR] Objects list contains {} items. Expected to be empty.", out.objects.size()));
     }
+    CONFIG_ACTION_TRACE("In FULLPAIR action: '{} = {}'", out.flat_keys.back(), out.obj_res);
 
     // TODO: Decide what to do about flat keys? Handle specially or store in normal K/V object?
 #if 1
@@ -323,7 +326,6 @@ struct action<FULLPAIR> {
     auto keys = utils::split(out.flat_keys.back(), '.');
     const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
                                                   {{keys.back(), std::move(out.obj_res)}});
-    // std::cout << c_map << std::endl;
     out.cfg_res.emplace_back(c_map);
 #endif
     out.flat_keys.pop_back();
@@ -334,10 +336,8 @@ template <>
 struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
 #if VERBOSE_DEBUG
-    std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Result: " << out.keys.back()
-              << " = " << out.result << std::endl;
-    std::cout << std::string(out.depth * 2, ' ') << "[PROTO_VAR] Key count: " << out.keys.size()
-              << std::endl;
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
 #endif
 
     // If we're here, then there must be an object and it must be a proto!
@@ -360,11 +360,6 @@ struct action<PROTO_PAIR> {
 
     out.keys.pop_back();
     out.result = DEFAULT_RES;
-#if VERBOSE_DEBUG
-    std::cout << "~~~~~ Debug ~~~~~" << std::endl;
-    out.print();
-    std::cout << "##### Debug #####" << std::endl;
-#endif
   }
 };
 
@@ -384,6 +379,8 @@ struct action<REF_VARADD> {
           "Duplicate key '{}' found in {} ({})!", out.keys.back(), out.objects.back()->name,
           magic_enum::enum_name<types::Type>(out.objects.back()->type)));
     }
+    CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
+
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
 
     out.keys.pop_back();
@@ -400,6 +397,7 @@ struct action<REF_VARSUB> {
                       out.result, out.obj_res, out.objects.back()->name,
                       magic_enum::enum_name<types::Type>(out.objects.back()->type)));
     }
+    CONFIG_ACTION_TRACE("In REF_VARSUB action: '{} = {}'", out.result, out.obj_res);
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     ref->ref_vars[out.result] = std::move(out.obj_res);
@@ -411,35 +409,31 @@ struct action<REF_VARSUB> {
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "struct " << out.keys.back() << std::endl;
+    CONFIG_ACTION_DEBUG("struct {}", out.keys.back());
     out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++));
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
-    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
-              << std::endl;
+    CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
+    CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }
 };
 
 template <>
 struct action<PROTOs> {
   static void apply0(ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "proto " << out.keys.back() << std::endl;
+    CONFIG_ACTION_DEBUG("proto {}", out.keys.back());
     out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
-    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
-              << std::endl;
+    CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
+    CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }
 };
 
 template <>
 struct action<REFs> {
   static void apply0(ActionData& out) {
-    std::cout << std::string(out.depth * 2, ' ') << "reference " << out.flat_keys.back() << " as "
-              << out.keys.back() << std::endl;
+    CONFIG_ACTION_DEBUG("reference {} as {}", out.flat_keys.back(), out.keys.back());
     out.objects.push_back(std::make_shared<types::ConfigReference>(
         out.keys.back(), out.flat_keys.back(), out.depth++));
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
-    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
-              << std::endl;
+    CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
+    CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }
 };
 
@@ -467,8 +461,7 @@ struct action<STRUCT> {
       out.cfg_res.push_back({});
     }
 
-    std::cout << std::string(out.depth * 2, ' ') << "length of objects is: " << out.objects.size()
-              << std::endl;
+    CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
     out.keys.pop_back();
   }
 };
@@ -534,7 +527,7 @@ template <>
 struct action<END> {
   static void apply0(ActionData& out) {
     if (out.keys.size() < 2) {
-      out.print();
+      out.print(std::cerr);
       throw InvalidStateException(
           fmt::format("[END] Expected 2 or more keys, found {}.", out.keys.size()));
     }
@@ -544,36 +537,13 @@ struct action<END> {
     // malformed.
     const auto is_match = end_key == out.keys.back();
     if (!is_match) {
-      out.print();
+      out.print(std::cerr);
       throw InvalidConfigException(
           fmt::format("End key mismatch: {} != {}.", end_key, out.keys.back()));
     }
     out.depth--;
-    std::cout << std::string(out.depth * 2, ' ') << "Depth is now " << out.depth << std::endl;
+    CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
   }
 };
 
-/*
-template <> struct action<HEX> {
-  template <typename ActionInput>
-  static void apply(const ActionInput &in, std::string &out) {
-    std::cout << "In HEX action: " << in.string() << "\n";
-    out += "|H" + in.string();
-  }
-};
-template <> struct action<STRING> {
-  template <typename ActionInput>
-  static void apply(const ActionInput &in, std::string &out) {
-    std::cout << "In STRING action: " << in.string() << "\n";
-    out += "|S" + in.string();
-  }
-};
-template <> struct action<NUMBER> {
-  template <typename ActionInput>
-  static void apply(const ActionInput &in, std::string &out) {
-    std::cout << "In NUMBER action: " << in.string() << "\n";
-    out += "|N" + in.string();
-  }
-};
-*/
 }  // namespace config
