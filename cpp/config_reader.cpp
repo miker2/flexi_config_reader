@@ -83,6 +83,9 @@ class ConfigReader {
     std::cout << "===== Resolve variable references ====" << std::endl;
     resolveVarRefs(resolved, resolved);
 
+    // This isn't entirely necessary, but it cleans up the tree.
+    config::helpers::removeEmpty(resolved);
+
     std::cout << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
     std::cout << resolved;
 

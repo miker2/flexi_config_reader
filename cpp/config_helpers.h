@@ -218,4 +218,23 @@ auto getConfigValue(const config::types::CfgMap& cfg,
   return content->at(var->keys.back());
 }
 
+inline void removeEmpty(config::types::CfgMap& cfg) {
+  std::vector<std::remove_reference_t<decltype(cfg)>::key_type> to_erase{};
+  for (auto& kv : cfg) {
+    if (kv.second->type == config::types::Type::kStruct) {
+      auto s = dynamic_pointer_cast<config::types::ConfigStruct>(kv.second);
+      removeEmpty(s->data);
+      if (s->data.empty()) {
+        std::cout << " !!! Removing {} !!!\n";
+        to_erase.push_back(kv.first);
+      }
+    }
+  }
+  // Erase the key/value pairs in a separate loop (doing this in the main loop was causing a
+  // segfault.
+  for (const auto& key : to_erase) {
+    cfg.erase(key);
+  }
+}
+
 }  // namespace config::helpers
