@@ -1,7 +1,7 @@
 # Flexi Config Reader
 
 Flexi Config Reader is a configuration language that employs a template-reference syntax
-in order to express repetattive & structured configuration parameters in a more concise
+in order to express repetitive & structured configuration parameters in a more concise
 manner. Usage of these constructs is optional. At it's core, the syntax uses concepts
 similar to those found in json & toml: nested structures of key/value pairs. One can draw
 parallels between some of the features found in this syntax and those made available by
@@ -14,7 +14,7 @@ The syntax has three core concepts:
 1. `struct` - This is a concrete entry of data. A `struct` may contain other `struct`s as
    well as key/value pairs.
 2. `proto` - The `proto` keyword is used to define a template, which can be used to create
-   a `struct`. A `proto` may contain other `struct`s, as well as keys whos values are
+   a `struct`. A `proto` may contain other `struct`s, as well as keys who's values are
    represented by a variable
 3. `reference` - The `reference` keyword is used to turn a `proto` into a concrete `struct`.
    The `proto` is `reference`d, given a name, and all contained variables are given a value.
@@ -29,14 +29,15 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    define a generic set of templates in one file, which will be use to multiple, repeated
    concrete structs with different names and parameters in a different file.
 2. key-value reference - Much like bash, the syntax provides the ability to reference a
-   previously defined value by its key, and assign it to anoher key.
+   previously defined value by its key, and assign it to another key.
 3. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
    to the `proto` when it is referenced.
 4. Fully qualified keys - One may define the configuration parameters using a combination
    of the tree-like structure found in json along with fully qualified key value pairs.
+   These can not be mixed within the same file however.
 
-While whitespace (except for following the `struct`, `proto`, `reference` and `end` keywords) is not significant
-it is convenient in order to better view the structure of the configuration parameters.
+While whitespace (except for following the `struct`, `proto`, `reference`, `as`  and `end` keywords)
+is not significant it is convenient in order to better view the structure of the configuration parameters.
 
 ## Syntax details
 
@@ -116,7 +117,7 @@ The above example introduces the following concepts:
 
 1. When referencing a `proto`, the fully qualified name must be used (i.e. `protos.foo` instead of `foo`).
 2. The variable `$KEY3` that was introduced in `protos.foo` is given a value when the `proto` is `reference`d.
-3. `+extra_key` is an appended key. The `proto` "protos.foo" does not contain this key, but the result `struct fuzz`
+3. `+extra_key` is an appended key. The `proto` "protos.foo" does not contain this key, but the resulting `struct fuzz`
    will contain this additional key.
 
 The above `reference` could be defined as follows using the `struct` syntax:
@@ -136,7 +137,7 @@ end fuzz
 
 ### Key-value references
 
-As mentioned above, existing values may be reference by their key in order to define a different key/value pair. E.g.
+As mentioned above, existing values may be referenced by their key in order to define a different key/value pair. E.g.
 
 ```
 struct foo
@@ -165,6 +166,7 @@ The following value types are supported:
 5. List - a bracket-enclosed list of same-typed values from the types listed above (i.e. one may define a list
    of strings or floating-point numbers, but not a mixed combination of the two).
 
+# Parsers
 
 ## Python
 The syntax is defined in python using PEG notation. The `pe` library is used to parse the PEG defined grammar, which
@@ -229,4 +231,4 @@ directory. See the googletest documentation for options.
 In addition to the tests, there are a number of simple applications that provide example code for the library usage.
 
  *  [`config_test`](cpp/config_test.cpp) - In the process of being converted to an actual unittest, this application executes a parsing run on a variety of [example config files](examples).
- *  [`config_reader`](cpp/config_reader.cpp) - In the process of being converted to a separate library, this application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
+ *  [`config_build`](cpp/config_build.cpp) - This application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.

@@ -54,6 +54,7 @@ struct selector<INCLUDE> : std::true_type {
     // TODO: Convert this to a `parse_nested` call, which will likely fix the issues noted above of
     // requiring a string input instead of a file input.
     // See: https://github.com/taocpp/PEGTL/blob/main/doc/Inputs-and-Parsing.md#nested-parsing
+    // Problem is, the parse_tree doesn't have a parse_nested.
 
     if (auto new_tree = peg::parse_tree::parse<config::grammar, config::selector>(input)) {
 #if PRINT_DOT

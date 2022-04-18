@@ -340,14 +340,11 @@ struct action<PROTO_PAIR> {
       ;
     }
 
-    // TODO: Consider changing this. We currently put the proto vars in a separate map, but do we
-    // need to?
     // TODO: Check for duplicate keys here!
     if (out.obj_res->type == types::Type::kVar) {
       auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
       auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
       proto->data[out.keys.back()] = proto_var;
-      proto->proto_vars[proto_var] = out.keys.back();
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
     }
@@ -527,8 +524,6 @@ struct action<REFERENCE> {
 template <>
 struct action<END> {
   static void apply0(ActionData& out) {
-    // TODO: If we've found an end tag, then the last two keys should match. If they don't,
-    // we've made a mistake!
     if (out.keys.size() < 2) {
       out.print();
       throw InvalidStateException(
@@ -536,6 +531,8 @@ struct action<END> {
     }
     const auto end_key = out.keys.back();
     out.keys.pop_back();
+    // If we've found an end tag, then the last two keys should match. If they don't, the config is
+    // malformed.
     const auto is_match = end_key == out.keys.back();
     if (!is_match) {
       out.print();

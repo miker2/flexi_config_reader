@@ -261,15 +261,11 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
     const auto ws = std::string(depth * tw, ' ');
     os << ws << "proto " << name << " {\n";
 #if DEBUG_CLASSES
-    os << ws << "-- " << proto_vars.size() << " proto vars\n";
     os << ws << "-- " << data.size() << " k/v pairs\n";
 #endif
     pprint(os, data, depth + 1);
     os << ws << "}";
   }
-
-  // TODO: Think about this more. What if a var is used more than once?
-  std::map<std::shared_ptr<ConfigVar>, std::string> proto_vars{};
 
   ~ConfigProto() noexcept override = default;
 

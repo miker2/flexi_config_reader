@@ -69,36 +69,7 @@ auto main() -> int {
   const bool pdot = false;
   bool ret{true};
 
-  if (peg::analyze<config::grammar>() != 0) {
-    std::cout << "Something in the grammar is broken!" << std::endl;
-    return 1;
-  }
-
   size_t test_num = 1;
-  {
-    std::string content = "-1001";
-    ret &= runTest<peg::must<config::INTEGER, peg::eolf>>(test_num++, content, pdot);
-  }
-  {
-    std::string content = "float.my.value  =  5.37e+6";
-    ret &= runTest<peg::must<config::FULLPAIR, peg::eolf>>(test_num++, content, pdot);
-  }
-  {
-    std::string content = "1234.";
-    ret &= runTest<peg::must<config::NUMBER, peg::eolf>>(test_num++, content, pdot);
-  }
-  {
-    std::string content = "0x0ab0";
-    ret &= runTest<peg::must<config::VALUE, peg::eolf>>(test_num++, content, pdot);
-  }
-  {
-    std::string content = "this.is.a.var.ref";
-    ret &= runTest<peg::must<config::FLAT_KEY, peg::eolf>>(test_num++, content, pdot);
-  }
-  {
-    std::string content = "$(this.is.a.var.ref)";
-    ret &= runTest<peg::must<config::VAR_REF, peg::eolf>>(test_num++, content, pdot);
-  }
 
   std::vector config_strs = {
       "\n\
@@ -119,8 +90,6 @@ end test2\n\
     peg::memory_input in(content, "example " + std::to_string(test_num++));
     ret &= runTest<config::grammar>(in, pdot);
   }
-
-  // Need to fix # 4
 
   for (size_t i = 1; i <= 6; ++i) {
     const auto cfg_file =

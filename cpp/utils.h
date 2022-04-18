@@ -9,14 +9,14 @@
 #include <vector>
 
 namespace utils {
-auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::string {
+inline auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::string {
   std::string str(std::move(s));
   str.erase(0, str.find_first_not_of(sep));
   str.erase(str.find_last_not_of(sep) + 1U);
   return str;
 }
 
-auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
+inline auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
   std::vector<std::string> tokens;
   std::string token;
   std::istringstream token_stream(s);
@@ -26,7 +26,7 @@ auto split(const std::string& s, char delimiter) -> std::vector<std::string> {
   return tokens;
 }
 
-auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
+inline auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
   if (keys.empty()) {
     return std::string();
   }
@@ -37,7 +37,7 @@ auto join(const std::vector<std::string>& keys, const std::string& delim) -> std
                          });
 }
 
-auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string {
+inline auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string {
   // Check that at least one argument is valid. We could just return an empty string, but that seems
   // silly.
   if (n1.empty() && n2.empty()) {
@@ -58,6 +58,12 @@ auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string 
 template <typename T>
 std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec) {
   std::copy(std::begin(vec), std::end(vec), std::ostream_iterator<T>(o, " "));
+  return o;
+}
+
+template <typename T, std::size_t N>
+std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr) {
+  std::copy(std::begin(arr), std::end(arr), std::ostream_iterator<T>(o, " "));
   return o;
 }
 
