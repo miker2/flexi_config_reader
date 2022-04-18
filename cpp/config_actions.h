@@ -24,6 +24,7 @@
 #include "utils.h"
 
 #define VERBOSE_DEBUG 0
+#define CONFIG_UNFLATTEN_KEYS 1
 
 #define CONFIG_ACTION_DEBUG(MSG_F, ...) \
   logger::debug("{}" MSG_F, std::string(out.depth * 2, ' '), __VA_ARGS__);
@@ -379,19 +380,19 @@ struct action<FULLPAIR> {
     }
     CONFIG_ACTION_TRACE("In FULLPAIR action: '{} = {}'", out.flat_keys.back(), out.obj_res);
 
-    // TODO: Decide what to do about flat keys? Handle specially or store in normal K/V object?
-#if 1
+#if CONFIG_UNFLATTEN_KEYS
+    auto keys = utils::split(out.flat_keys.back(), '.');
+    const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
+                                                  {{ keys.back(),
+                                                     std::move(out.obj_res) }});
+    out.cfg_res.emplace_back(c_map);
+#else
+    // Keep flattened keys as is
     auto& data = out.cfg_res.back();
     if (data.contains(out.flat_keys.back())) {
       THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found!", out.flat_keys.back());
     }
     data[out.flat_keys.back()] = std::move(out.obj_res);
-#else
-    // unflatten
-    auto keys = utils::split(out.flat_keys.back(), '.');
-    const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
-                                                  {{keys.back(), std::move(out.obj_res)}});
-    out.cfg_res.emplace_back(c_map);
 #endif
     out.flat_keys.pop_back();
   }

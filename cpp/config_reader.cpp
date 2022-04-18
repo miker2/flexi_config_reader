@@ -1,12 +1,19 @@
 #include "config_reader.h"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-#include <range/v3/all.hpp>  // get everything (consider pruning this down a bit)
-#include <regex>
+//#include <range/v3/all.hpp>  // get everything
+#include <range/v3/action/remove_if.hpp>
+#include <range/v3/action/reverse.hpp>
+#include <range/v3/action/sort.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/tail.hpp>
 #include <set>
 #include <sstream>
 #include <tao/pegtl.hpp>
@@ -22,6 +29,8 @@
 
 namespace {
 const std::string debug_sep(35, '=');
+
+constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
 auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
@@ -154,18 +163,24 @@ void ConfigReader::resolveConfig() {
 
   logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
 
+  logger::debug("{0} Resolving References {0}", debug_sep);
+  // Iterate over each map in the parse results and resolve any references. This is done here
+  // because we don't support combining references & structs, so we need all references to be
+  // resolved to their equivalent struct.
+  for (auto& e : out_.cfg_res) {
+    resolveReferences(e, "", {});
+    logger::trace("Resolved results: \n{}", fmt::join(e, "\n"));
+  }
+  logger::debug("{0} Done resolving refs {0}", debug_sep);
+
   cfg_data_ = mergeNested(out_.cfg_res);
 
-#if 1
-  // TODO: Determine if this is actually necessary.
-  logger::trace("{0} Strip Protos {0}", debug_sep);
-  stripProtos(cfg_data_);
-  logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
-#endif
-
-  logger::trace("{0} Resolving References {0}", debug_sep);
-  resolveReferences(cfg_data_, "");
-  logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
+  if (STRIP_PROTOS) {
+    // Stripping protos is not strictly necessary, but it cleans up the resulting config file.
+    logger::trace("{0} Strip Protos {0}", debug_sep);
+    stripProtos(cfg_data_);
+    logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
+  }
 
   // Unflatten any flat keys:
   const auto flat_keys =
@@ -277,8 +292,8 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
     }
     const auto new_name = utils::makeName(base_name, k);
     if (v->type == config::types::Type::kProto) {
-      // If a proto has been found, skip it. We don't want to resolve nested references within a
-      // proto until that proto has been referenced.
+      // If a proto has been found, don't go any further. We don't want to resolve nested references
+      // within a proto until that proto has been referenced.
       logger::trace("Found nested proto '{}'. Skipping...", new_name);
       continue;
     }

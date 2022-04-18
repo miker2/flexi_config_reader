@@ -47,6 +47,7 @@ add_executable(
 
 target_link_libraries(
   config_grammar_test
+  config_reader
   fmt::fmt
   magic_enum::magic_enum
   range-v3::range-v3
