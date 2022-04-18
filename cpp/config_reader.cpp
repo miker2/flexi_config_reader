@@ -81,6 +81,16 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   resolveReferences(cfg_data_, "", {});
   logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
 
+  // Unflatten any flat keys:
+  const auto flat_keys =
+      cfg_data_ | ranges::views::keys |
+      ranges::views::filter([](auto& key) { return key.find(".") != std::string::npos; }) |
+      ranges::to<std::vector<std::string>> | ranges::actions::sort | ranges::actions::reverse;
+  logger::debug("The following keys need to be flattened: {}", flat_keys);
+  for (const auto& key : flat_keys) {
+    config::helpers::unflatten(key, cfg_data_);
+  }
+
   resolveVarRefs(cfg_data_, cfg_data_);
 
   // This isn't entirely necessary, but it cleans up the tree.
@@ -198,15 +208,21 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
   // For each entry in the protos map, find the corresponding entry in the resolved config and
   // remove the proto. This isn't strictly necessary, but it simplifies some things later when
   // trying to resolve references and other variables.
-  for (auto& kv : protos_) {
-    logger::debug("Removing '{}' from config.", kv.first);
+  const auto keys = protos_ | ranges::views::keys |
+                    ranges::to<std::vector<decltype(protos_)::key_type>> | ranges::actions::sort |
+                    ranges::actions::reverse;
+  for (auto& key : keys) {
+    logger::debug("Removing '{}' from config.", key);
     // Split the keys so we can use them to recurse into the map.
-    const auto parts = utils::split(kv.first, '.');
+    const auto parts = utils::split(key, '.');
 
     auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
 
     logger::trace("Final component: \n{}", content.at(parts.back()));
     content.erase(parts.back());
+    if (content.empty()) {
+      logger::debug("{} is empty and could be removed.", parts | ranges::views::drop_last(1));
+    }
   }
 }
 

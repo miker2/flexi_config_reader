@@ -22,6 +22,7 @@ class Logger {
   }
 
   void setLevel(Severity level) { log_level_ = level; }
+  auto logLevel() const -> Severity { return log_level_; }
 
   template <typename... Args>
   void log(Severity level, std::string_view msg_f, Args&&... args) {
@@ -48,6 +49,7 @@ class Logger {
 };
 
 static void setLevel(Severity lvl) { Logger::instance().setLevel(lvl); }
+static auto logLevel() -> Severity { return Logger::instance().logLevel(); }
 
 static void log(Severity level, std::string_view msg) { Logger::instance().log(level, msg); }
 

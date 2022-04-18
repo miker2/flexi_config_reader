@@ -11,6 +11,7 @@
 #include <range/v3/view/map.hpp>
 #include <range/v3/view/set_algorithm.hpp>
 #include <regex>
+#include <span>
 
 #include "config_classes.h"
 #include "config_exceptions.h"
@@ -258,6 +259,63 @@ inline auto getConfigValue(const config::types::CfgMap& cfg,
   }
 
   return cfg.at(var->keys.back());
+}
+
+inline auto unflatten(const std::span<std::string> keys, const config::types::CfgMap& cfg)
+    -> config::types::CfgMap {
+  if (keys.empty()) {
+    return cfg;
+  }
+
+  auto new_struct = std::make_shared<config::types::ConfigStruct>(keys.back(), keys.size() - 1);
+  new_struct->data = cfg;
+  return unflatten(keys.subspan(0, keys.size() - 1), {{keys.back(), new_struct}});
+}
+
+/// \brief Turns a flat key/value pair into a nested structure
+/// \param[in] flat_key - The dot-separated key
+/// \param[in/out] cfg - The root of the existing data structure
+/// \param[in] depth - The current depth level of the data structure
+inline void unflatten(const std::string& flat_key, config::types::CfgMap& cfg,
+                      std::size_t depth = 0) {
+  // Split off the first element of the flat key
+  const auto [head, tail] = utils::splitHead(flat_key);
+
+  if (tail.empty()) {
+    // If there's no tail, then nothing to do.
+    logger::debug("At last key. Terminating...");
+    return;
+  }
+
+  // There are two possible options: the key exists in the current map or it does not. Either way,
+  // we need a pointer to the map.
+  config::types::CfgMap* next_cfg = nullptr;
+  if (cfg.contains(head)) {
+    logger::trace("Found key '{}'", head);
+    // Get this element, and find the internal data and assign it to our pointer.
+    auto v = cfg[head];
+    if (!config::helpers::isStructLike(v)) {
+      throw std::runtime_error(fmt::format(
+          "In unflatten2, expected {} to be struct-like, but found {} instead.", head, v->type));
+    }
+    next_cfg = &(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data);
+  } else {
+    // The key doesn't exist in our map. We need to create a new struct and add it to the map.
+    logger::debug("Creating key '{}'", head);
+    auto new_struct = std::make_shared<config::types::ConfigStruct>(head, depth);
+    cfg[head] = new_struct;
+    // Extract the map from our new struct and assign its address to our pointer.
+    next_cfg = &(new_struct->data);
+  }
+
+  // Move the value to the new cfg (using just the 'tail' as the key).
+  logger::trace("Moving value from '{}' to '{}'", flat_key, tail);
+  (*next_cfg)[tail] = std::move(cfg[flat_key]);
+  // And remove the value from the existing config
+  cfg.erase(flat_key);
+
+  // Step a layer deeper with any remaining tail.
+  unflatten(tail, *next_cfg, depth + 1);
 }
 
 inline void removeEmpty(config::types::CfgMap& cfg) {

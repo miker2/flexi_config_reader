@@ -17,6 +17,7 @@
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "config_grammar.h"
+#include "config_helpers.h"
 #include "utils.h"
 
 #define VERBOSE_DEBUG 0
@@ -311,12 +312,20 @@ struct action<FULLPAIR> {
     }
 
     // TODO: Decide what to do about flat keys? Handle specially or store in normal K/V object?
+#if 1
     auto& data = out.cfg_res.back();
     if (data.contains(out.flat_keys.back())) {
       throw DuplicateKeyException(fmt::format("Duplicate key '{}' found!", out.flat_keys.back()));
     }
     data[out.flat_keys.back()] = std::move(out.obj_res);
-
+#else
+    // unflatten
+    auto keys = utils::split(out.flat_keys.back(), '.');
+    const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
+                                                  {{keys.back(), std::move(out.obj_res)}});
+    // std::cout << c_map << std::endl;
+    out.cfg_res.emplace_back(c_map);
+#endif
     out.flat_keys.pop_back();
   }
 };
