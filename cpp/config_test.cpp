@@ -45,7 +45,7 @@ auto runTest(SOURCE &src, bool pdot = true) -> bool {
     ret = peg::parse<GTYPE, config::action>(src, out);
     std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
     std::cout << "output: \n";
-    out.print();
+    out.print(std::cout);
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
