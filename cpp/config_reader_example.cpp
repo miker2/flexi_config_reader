@@ -11,12 +11,15 @@
 #include <vector>
 
 #include "config_reader.h"
+#include "logger.h"
 
 auto main(int argc, char* argv[]) -> int {
   const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
   ConfigReader cfg;
   const auto success = cfg.parse(cfg_file);
+
+  logger::setLevel(logger::Severity::INFO);
 
   std::cout << std::endl;
   // Read a variety of values from the config file (and print their values).
@@ -43,7 +46,7 @@ auto main(int argc, char* argv[]) -> int {
       auto out_i = cfg.getValue<int>(float_key);
       fmt::print("Value of '{}' as an int is: {}\n", float_key, out_i);
     } catch (config::MismatchTypeException& e) {
-      std::cout << "!!! getValue failure !!!\n" << e.what() << std::endl;
+      logger::error("!!! getValue failure !!!\n{}", e.what());
     }
   }
   {
@@ -64,14 +67,13 @@ auto main(int argc, char* argv[]) -> int {
       // There are only 3 values contained by the key, but we're looking for 4!
       auto arr_var = cfg.getValue<std::array<float, 4>>(vec_key);
     } catch (std::exception& e) {
-      std::cout << "!!! getValue failure !!!\n" << e.what() << std::endl;
+      logger::error("!!! getValue failure !!!\n{}", e.what());
     }
   }
   {
     const std::string int_key = "a_top_level_flat_key";
     const auto out = cfg.getValue<int>(int_key);
     fmt::print("Value of '{}' is: {}\n", int_key, out);
-
 
     // TODO: Decide if we should allow this or if it should be a failure.
     const auto out_f = cfg.getValue<float>(int_key);
