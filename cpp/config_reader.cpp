@@ -268,8 +268,11 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       logger::error("Something seems off. Key '{}' is null.", k);
       logger::error("Contents of cfg_map: \n{}", cfg_map);
       THROW_EXCEPTION(config::InvalidConfigException,
-                      "\n\tbase_name: {}\n\tSomething is wrong. Key '{}' is NULL.\n\tContents of "
-                      "cfg_map: \n\t{}",
+                      "\n"
+                      "\tbase_name: {}\n"
+                      "\tSomething is wrong. Key '{}' is NULL.\n"
+                      "\tContents of cfg_map: \n"
+                      "\t{}",
                       base_name, k, cfg_map);
     }
     const auto new_name = utils::makeName(base_name, k);

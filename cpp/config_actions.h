@@ -593,21 +593,6 @@ struct action<REFERENCE> {
 template <>
 struct action<END> {
   static void apply0(ActionData& out) {
-    if (out.keys.size() < 2) {
-      out.print(std::cerr);
-      THROW_EXCEPTION(InvalidStateException, "[END] Expected 2 or more keys, found {}.",
-                      out.keys.size());
-    }
-    const auto end_key = out.keys.back();
-    out.keys.pop_back();
-    // If we've found an end tag, then the last two keys should match. If they don't, the config is
-    // malformed.
-    const auto is_match = end_key == out.keys.back();
-    if (!is_match) {
-      out.print(std::cerr);
-      THROW_EXCEPTION(InvalidConfigException, "End key mismatch: {} != {}.", end_key,
-                      out.keys.back());
-    }
     out.depth--;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
   }

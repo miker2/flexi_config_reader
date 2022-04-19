@@ -45,17 +45,17 @@ TEST_P(InputString, ConfigReaderParse) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string("\n\
-struct test1\n\
+struct test1 {\n\
     key1 = \"value\"\n\
     key2 = 1.342    # test comment here\n\
     key3 = 10\n\
     f = \"none\"\n\
-end test1\n\
+}\n\
 \n\
-struct test2\n\
+struct test2 {\n\
     my_key = \"foo\"  \n\
     n_key = 1\n\
-end test2\n\
+}\n\
 ")));
 
 /// File-based input
