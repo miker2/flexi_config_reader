@@ -232,3 +232,4 @@ In addition to the tests, there are a number of simple applications that provide
 
  *  [`config_test`](cpp/config_test.cpp) - In the process of being converted to an actual unittest, this application executes a parsing run on a variety of [example config files](examples).
  *  [`config_build`](cpp/config_build.cpp) - This application can be used to parse a config file. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
+ *  [`config_reader_example`](cpp/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
