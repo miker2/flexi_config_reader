@@ -364,7 +364,8 @@ TEST(config_grammar, KEY) {
 
   auto failKey = [](const std::string& input) {
     std::optional<RetType> ret;
-    EXPECT_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)), std::exception)
+        << "Input key: " << input;
   };
 
   {
@@ -399,7 +400,7 @@ TEST(config_grammar, KEY) {
   }
   {
     // These will fail due to being reserved keywords
-    const std::vector<std::string> invalid = {"struct", "proto", "reference", "as", "end"};
+    const std::vector<std::string> invalid = {"struct", "proto", "reference", "as"};
     for (const auto& content : invalid) {
       failKey(content);
     }

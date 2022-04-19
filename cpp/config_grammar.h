@@ -98,9 +98,8 @@ struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
 struct REFk : TAO_PEGTL_KEYWORD("reference") {};
 struct ASk : TAO_PEGTL_KEYWORD("as") {};
-struct ENDk : TAO_PEGTL_KEYWORD("end") {};
 
-struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
+struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk> {};
 
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
@@ -151,18 +150,18 @@ struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, 
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
 struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, VAR>, TAIL> {};
 
-struct END : peg::seq<ENDk, SP, KEY> {};
+struct END : CBc {};
 
-struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, TAIL> {};
+struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
 struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
 struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
 
 struct PROTOc;
-struct PROTOs : peg::seq<PROTOk, SP, KEY, TAIL> {};
+struct PROTOs : peg::seq<PROTOk, SP, KEY, CBo, TAIL> {};
 struct PROTO : peg::seq<PROTOs, PROTOc, END, TAIL> {};
 
 struct STRUCTc;
-struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
+struct STRUCTs : peg::seq<STRUCTk, SP, KEY, CBo, TAIL> {};
 struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, TAIL> {};
 
 // Special definition of a struct contained in a proto
