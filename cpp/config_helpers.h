@@ -321,13 +321,14 @@ inline void unflatten(const std::string& flat_key, config::types::CfgMap& cfg,
   unflatten(tail, *next_cfg, depth + 1);
 }
 
-inline void removeEmpty(config::types::CfgMap& cfg) {
+inline void cleanupConfig(config::types::CfgMap& cfg, std::size_t depth = 0) {
   std::vector<std::remove_reference_t<decltype(cfg)>::key_type> to_erase{};
   for (auto& kv : cfg) {
     if (kv.second->type == config::types::Type::kStruct ||
         kv.second->type == config::types::Type::kStructInProto) {
       auto s = dynamic_pointer_cast<config::types::ConfigStruct>(kv.second);
-      removeEmpty(s->data);
+      s->depth = depth;
+      cleanupConfig(s->data, depth + 1);
       if (s->data.empty()) {
         logger::debug(" !!! Removing {} !!!", kv.first);
         to_erase.push_back(kv.first);

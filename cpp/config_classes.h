@@ -219,7 +219,7 @@ class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike>
 
   const std::string name{};
 
-  const std::size_t depth{};
+  std::size_t depth{};
 
   CfgMap data;
 
