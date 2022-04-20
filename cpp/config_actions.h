@@ -118,7 +118,7 @@ template <>
 struct action<HEX> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    const auto hex = std::stoi(in.string(), nullptr, 16);
+    const auto hex = std::stoull(in.string(), nullptr, 16);
 #if VERBOSE_DEBUG
     CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
 #endif
