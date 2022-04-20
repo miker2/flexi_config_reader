@@ -280,15 +280,15 @@ struct action<PAIR> {
   static void apply0(ActionData& out) {
     if (out.keys.empty()) {
       out.print(std::cerr);
-      throw InvalidStateException("While processing 'PAIR', no available keys.");
+      THROW_EXCEPTION(InvalidStateException, "While processing 'PAIR', no available keys.");
     }
 
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
       const auto location =
           out.objects.empty() ? std::string("top_level") : out.objects.back()->name;
-      throw DuplicateKeyException(
-          fmt::format("[PAIR] Duplicate key '{}' found in {}!", out.keys.back(), location));
+      THROW_EXCEPTION(DuplicateKeyException, "[PAIR] Duplicate key '{}' found in {}!",
+                      out.keys.back(), location);
     }
     CONFIG_ACTION_TRACE("In PAIR action: '{} = {}'", out.keys.back(), out.obj_res);
 
@@ -303,14 +303,16 @@ struct action<FULLPAIR> {
   static void apply0(ActionData& out) {
     if (out.flat_keys.empty()) {
       out.print(std::cerr);
-      throw InvalidStateException("[FULLPAIR] Expected to find 'FLAT_KEY', but list is empty.");
+      THROW_EXCEPTION(InvalidStateException,
+                      "[FULLPAIR] Expected to find 'FLAT_KEY', but list is empty.");
     }
 
     if (!out.objects.empty()) {
       logger::error(" Found a `FULLPAIR` but expected `objects` list to be empty.");
       out.print(std::cerr);
-      throw InvalidStateException(fmt::format(
-          "[FULLPAIR] Objects list contains {} items. Expected to be empty.", out.objects.size()));
+      THROW_EXCEPTION(InvalidStateException,
+                      "[FULLPAIR] Objects list contains {} items. Expected to be empty.",
+                      out.objects.size());
     }
     CONFIG_ACTION_TRACE("In FULLPAIR action: '{} = {}'", out.flat_keys.back(), out.obj_res);
 
@@ -318,7 +320,7 @@ struct action<FULLPAIR> {
 #if 1
     auto& data = out.cfg_res.back();
     if (data.contains(out.flat_keys.back())) {
-      throw DuplicateKeyException(fmt::format("Duplicate key '{}' found!", out.flat_keys.back()));
+      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found!", out.flat_keys.back());
     }
     data[out.flat_keys.back()] = std::move(out.obj_res);
 #else
@@ -342,11 +344,10 @@ struct action<PROTO_PAIR> {
 
     // If we're here, then there must be an object and it must be a proto!
     if (out.objects.back()->type != types::Type::kProto) {
-      throw InvalidTypeException(
-          fmt::format("Error while processing '{} = {}' in {}. Expected 'proto', found '{}'.",
+      THROW_EXCEPTION(InvalidTypeException,
+                      "Error while processing '{} = {}' in {}. Expected 'proto', found '{}'.",
                       out.keys.back(), out.result, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type)));
-      ;
+                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
     }
 
     // TODO: Check for duplicate keys here!
@@ -368,16 +369,16 @@ struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
-      throw InvalidTypeException(
-          fmt::format("Error while processing '+{} = {}' in {}. Expected 'reference', found '{}'.",
+      THROW_EXCEPTION(InvalidTypeException,
+                      "Error while processing '+{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.keys.back(), out.obj_res, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type)));
+                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
     }
 
     if (out.objects.back()->data.contains(out.keys.back())) {
-      throw DuplicateKeyException(fmt::format(
-          "Duplicate key '{}' found in {} ({})!", out.keys.back(), out.objects.back()->name,
-          magic_enum::enum_name<types::Type>(out.objects.back()->type)));
+      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {} ({})!",
+                      out.keys.back(), out.objects.back()->name,
+                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
     }
     CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
 
@@ -392,10 +393,10 @@ struct action<REF_VARSUB> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
-      throw InvalidTypeException(
-          fmt::format("Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
+      THROW_EXCEPTION(InvalidTypeException,
+                      "Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.result, out.obj_res, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type)));
+                      magic_enum::enum_name<types::Type>(out.objects.back()->type))
     }
     CONFIG_ACTION_TRACE("In REF_VARSUB action: '{} = {}'", out.result, out.obj_res);
 
@@ -449,8 +450,8 @@ struct action<STRUCT> {
               ? std::string("top_level")
               : fmt::format("{} ({})", out.objects.back()->name,
                             magic_enum::enum_name<types::Type>(out.objects.back()->type));
-      throw DuplicateKeyException(
-          fmt::format("Duplicate key '{}' found in {}!", out.keys.back(), location));
+      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
+                      location);
     }
     data[out.keys.back()] = std::move(this_obj);
 
@@ -478,13 +479,13 @@ struct action<PROTO> {
               ? std::string("top_level")
               : fmt::format("{} ({})", out.objects.back()->name,
                             magic_enum::enum_name<types::Type>(out.objects.back()->type));
-      throw DuplicateKeyException(
-          fmt::format("Duplicate key '{}' found in {}!", out.keys.back(), location));
+      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
+                      location);
     }
     data[out.keys.back()] = std::move(this_obj);
 
     // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
-    // in case we have a duplicat struct later. We won't resolve that now, but later in another
+    // in case we have a duplicate struct later. We won't resolve that now, but later in another
     // pass.
     if (out.objects.empty()) {
       out.cfg_res.push_back({});
@@ -506,8 +507,8 @@ struct action<REFERENCE> {
               ? std::string("top_level")
               : fmt::format("{} ({})", out.objects.back()->name,
                             magic_enum::enum_name<types::Type>(out.objects.back()->type));
-      throw DuplicateKeyException(
-          fmt::format("Duplicate key '{}' found in {}!", out.keys.back(), location));
+      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
+                      location);
     }
     data[out.keys.back()] = std::move(this_obj);
 
@@ -528,8 +529,8 @@ struct action<END> {
   static void apply0(ActionData& out) {
     if (out.keys.size() < 2) {
       out.print(std::cerr);
-      throw InvalidStateException(
-          fmt::format("[END] Expected 2 or more keys, found {}.", out.keys.size()));
+      THROW_EXCEPTION(InvalidStateException, "[END] Expected 2 or more keys, found {}.",
+                      out.keys.size());
     }
     const auto end_key = out.keys.back();
     out.keys.pop_back();
@@ -538,8 +539,8 @@ struct action<END> {
     const auto is_match = end_key == out.keys.back();
     if (!is_match) {
       out.print(std::cerr);
-      throw InvalidConfigException(
-          fmt::format("End key mismatch: {} != {}.", end_key, out.keys.back()));
+      THROW_EXCEPTION(InvalidConfigException, "End key mismatch: {} != {}.", end_key,
+                      out.keys.back());
     }
     out.depth--;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);

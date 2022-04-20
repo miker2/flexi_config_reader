@@ -1,6 +1,11 @@
 #pragma once
 
+#include <fmt/format.h>
+
 #include <exception>
+
+#define THROW_EXCEPTION(E_TYPE, MSG_F, ...) \
+  throw E_TYPE(fmt::format(MSG_F " - {}:{}", ##__VA_ARGS__, __FILE__, __LINE__));
 
 namespace config {
 
