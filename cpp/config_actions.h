@@ -40,6 +40,8 @@ struct ActionData {
   std::string result = DEFAULT_RES;
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
+  bool in_proto{false};
+  std::string proto_key{};
 
   // NOTE: A struct, is just a fancy way of describing a key, that contains an array of key/value
   // pairs (much like a json object). We want to be able to represent both a struct and a simple
@@ -53,6 +55,9 @@ struct ActionData {
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
   void print(std::ostream& os) const {
+    if (in_proto) {
+      os << "current proto key: " << proto_key << "\n";
+    }
     if (!keys.empty()) {
       os << "Keys: \n";
       for (const auto& key : keys) {
@@ -343,7 +348,8 @@ struct action<PROTO_PAIR> {
 #endif
 
     // If we're here, then there must be an object and it must be a proto!
-    if (out.objects.back()->type != types::Type::kProto) {
+    if (out.objects.back()->type != types::Type::kProto &&
+        out.objects.back()->type != types::Type::kStructInProto) {
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '{} = {}' in {}. Expected 'proto', found '{}'.",
                       out.keys.back(), out.result, out.objects.back()->name,
@@ -352,7 +358,7 @@ struct action<PROTO_PAIR> {
 
     // TODO: Check for duplicate keys here!
     if (out.obj_res->type == types::Type::kVar) {
-      auto proto = dynamic_pointer_cast<types::ConfigProto>(out.objects.back());
+      auto proto = dynamic_pointer_cast<types::ConfigStructLike>(out.objects.back());
       auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
       proto->data[out.keys.back()] = proto_var;
     } else {
@@ -410,8 +416,10 @@ struct action<REF_VARSUB> {
 template <>
 struct action<STRUCTs> {
   static void apply0(ActionData& out) {
-    CONFIG_ACTION_DEBUG("struct {}", out.keys.back());
-    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++));
+    types::Type struct_type = out.in_proto ? types::Type::kStructInProto : types::Type::kStruct;
+    CONFIG_ACTION_DEBUG("struct {} - type: {}", out.keys.back(), struct_type);
+    out.objects.push_back(
+        std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++, struct_type));
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }
@@ -424,6 +432,8 @@ struct action<PROTOs> {
     out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
+    out.in_proto = true;
+    out.proto_key = utils::join(out.keys, ".");
   }
 };
 
@@ -468,6 +478,9 @@ struct action<STRUCT> {
 };
 
 template <>
+struct action<STRUCT_IN_PROTO> : action<STRUCT> {};
+
+template <>
 struct action<PROTO> {
   static void apply0(ActionData& out) {
     const auto this_obj = std::move(out.objects.back());
@@ -489,6 +502,12 @@ struct action<PROTO> {
     // pass.
     if (out.objects.empty()) {
       out.cfg_res.push_back({});
+    }
+    // Nested protos are not allowed, so it's okay to set this to false always.
+    const auto flat_key = utils::join(out.keys, ".");
+    if (out.in_proto && out.proto_key == flat_key) {
+      out.in_proto = false;
+      out.proto_key = {};
     }
 
     out.keys.pop_back();

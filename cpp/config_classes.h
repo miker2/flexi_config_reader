@@ -43,6 +43,7 @@ enum class Type {
   kValueLookup,
   kVar,
   kStruct,
+  kStructInProto,
   kProto,
   kReference,
   kUnknown
@@ -231,8 +232,8 @@ class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike>
 
 class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
  public:
-  ConfigStruct(std::string name, std::size_t depth)
-      : ConfigBaseClonable(Type::kStruct, name, depth){};
+  ConfigStruct(std::string name, std::size_t depth, Type type = Type::kStruct)
+      : ConfigBaseClonable(type, name, depth){};
 
   void stream(std::ostream& os) const override {
     const auto ws = std::string(depth * tw, ' ');

@@ -91,9 +91,13 @@ end test2\n\
     ret &= runTest<config::grammar>(in, pdot);
   }
 
-  for (size_t i = 1; i <= 6; ++i) {
+  for (size_t i = 1;; ++i) {
     const auto cfg_file =
         std::filesystem::path(EXAMPLE_DIR) / ("config_example" + std::to_string(i) + ".cfg");
+    if (!std::filesystem::exists(cfg_file)) {
+      break;
+    }
+
     peg::file_input in(cfg_file);
     ret &= runTest<config::grammar>(in, pdot);
   }
