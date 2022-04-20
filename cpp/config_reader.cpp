@@ -100,8 +100,8 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
 
   resolveVarRefs(cfg_data_, cfg_data_);
 
-  // This isn't entirely necessary, but it cleans up the tree.
-  config::helpers::removeEmpty(cfg_data_);
+  // Removes empty structs, fixes incorrect depth, etc.
+  config::helpers::cleanupConfig(cfg_data_);
 
   return success;
 }
