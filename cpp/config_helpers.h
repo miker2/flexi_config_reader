@@ -58,19 +58,19 @@ inline auto checkForErrors(const config::types::CfgMap& cfg1, const config::type
                            const std::string& key) -> bool {
   const auto dict_count = isStructLike(cfg1.at(key)) + isStructLike(cfg2.at(key));
   if (dict_count == 0) {  // Neither is a dictionary. We don't support duplicate keys
-    throw config::DuplicateKeyException(fmt::format("Duplicate key '{}' found at {} and {}!", key,
-                                                    cfg1.at(key)->loc(), cfg2.at(key)->loc()));
+    THROW_EXCEPTION(config::DuplicateKeyException, "Duplicate key '{}' found at {} and {}!", key,
+                    cfg1.at(key)->loc(), cfg2.at(key)->loc());
     // print(f"Found duplicate key: '{key}' with values '{dict1[key]}' and '{dict2[key]}'!!!")
   } else if (dict_count == 1) {  // One dictionary, but not the other, can't merge these
-    throw config::MismatchKeyException(
-        fmt::format("Mismatch types for key '{}' found at {} and {}! Both keys must point to "
+    THROW_EXCEPTION(config::MismatchKeyException,
+                    "Mismatch types for key '{}' found at {} and {}! Both keys must point to "
                     "structs, can't merge these.",
-                    key, cfg1.at(key)->loc(), cfg2.at(key)->loc()));
+                    key, cfg1.at(key)->loc(), cfg2.at(key)->loc());
   }
   if (cfg1.at(key)->type != cfg2.at(key)->type) {
-    throw config::MismatchTypeException(
-        fmt::format("Types at key '{}' must match. cfg1 is '{}', cfg2 is '{}'.", key,
-                    cfg1.at(key)->type, cfg2.at(key)->type));
+    THROW_EXCEPTION(config::MismatchTypeException,
+                    "Types at key '{}' must match. cfg1 is '{}', cfg2 is '{}'.", key,
+                    cfg1.at(key)->type, cfg2.at(key)->type);
   }
   return dict_count == 2;  // All good if both are dictionaries (for now);
 }
@@ -160,8 +160,8 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
       auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
       // Pull the value from the reference vars and add it to the structure.
       if (!ref_vars.contains(v_var->name)) {
-        throw config::UndefinedReferenceVarException(
-            fmt::format("Attempting to replace '{}' with undefined var: '{}'.", k, v_var->name));
+        THROW_EXCEPTION(config::UndefinedReferenceVarException,
+                        "Attempting to replace '{}' with undefined var: '{}'.", k, v_var->name);
       }
       cfg_map[k] = ref_vars.at(v_var->name);
     } else if (v->type == config::types::Type::kString) {
@@ -230,9 +230,9 @@ inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::vector<
     // otherwise we can't access the `data` member.
     struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(content->at(key));
     if (struct_like == nullptr) {
-      throw config::InvalidTypeException(
-          fmt::format("Expected value at '{}' to be a struct-like object, but got {} type instead.",
-                      rejoined, content->at(key)->type));
+      THROW_EXCEPTION(config::InvalidTypeException,
+                      "Expected value at '{}' to be a struct-like object, but got {} type instead.",
+                      rejoined, content->at(key)->type);
     }
     // Pull out the contents of the struct-like and move on to the next iteration.
     content = &(struct_like->data);
@@ -295,8 +295,9 @@ inline void unflatten(const std::string& flat_key, config::types::CfgMap& cfg,
     // Get this element, and find the internal data and assign it to our pointer.
     auto v = cfg[head];
     if (!config::helpers::isStructLike(v)) {
-      throw std::runtime_error(fmt::format(
-          "In unflatten2, expected {} to be struct-like, but found {} instead.", head, v->type));
+      THROW_EXCEPTION(std::runtime_error,
+                      "In unflatten, expected {} to be struct-like, but found {} instead.", head,
+                      v->type);
     }
     next_cfg = &(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data);
   } else {
