@@ -123,14 +123,14 @@ struct VALUE : peg::sor<VAL_, LIST> {};
 // Account for all reserved keywords when looking for keys
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
-struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
-struct REF_VARSUB : peg::seq<VAR, KVs, VALUE, TAIL> {};
-
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
+
+struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
+struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
-struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VAR, VAR_REF, VALUE>, TAIL> {};
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
 
 struct END : peg::seq<ENDk, SP, KEY> {};
 
@@ -146,8 +146,12 @@ struct STRUCTc;
 struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
 struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
 
-struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT, REFERENCE>> {};
-struct STRUCTc : peg::plus<peg::sor<STRUCT, PAIR, REFERENCE, PROTO>> {};
+// Special definition of a struct contained in a proto
+struct STRUCT_IN_PROTOc;
+struct STRUCT_IN_PROTO : peg::seq<STRUCTs, PROTOc, END, WS_> {};
+
+struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT_IN_PROTO, REFERENCE>> {};
+struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
 
 // Include syntax
 struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};

@@ -46,8 +46,10 @@ inline constexpr bool accepts_list_v = accepts_list<T>::value;
 namespace config::helpers {
 
 inline auto isStructLike(const std::shared_ptr<config::types::ConfigBase>& el) -> bool {
-  return el->type == config::types::Type::kStruct || el->type == config::types::Type::kProto ||
-         el->type == config::types::Type::kReference;
+  // TODO: Change this to be a `dynamic_pointer_cast`. As is, it's a bit of a maintenance burden.
+  return el->type == config::types::Type::kStruct ||
+         el->type == config::types::Type::kStructInProto ||
+         el->type == config::types::Type::kProto || el->type == config::types::Type::kReference;
 }
 
 // Three cases to check for:
@@ -322,7 +324,8 @@ inline void unflatten(const std::string& flat_key, config::types::CfgMap& cfg,
 inline void removeEmpty(config::types::CfgMap& cfg) {
   std::vector<std::remove_reference_t<decltype(cfg)>::key_type> to_erase{};
   for (auto& kv : cfg) {
-    if (kv.second->type == config::types::Type::kStruct) {
+    if (kv.second->type == config::types::Type::kStruct ||
+        kv.second->type == config::types::Type::kStructInProto) {
       auto s = dynamic_pointer_cast<config::types::ConfigStruct>(kv.second);
       removeEmpty(s->data);
       if (s->data.empty()) {

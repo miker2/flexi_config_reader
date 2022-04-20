@@ -279,6 +279,12 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       // Call recursively in case the current reference has another reference
       resolveReferences(new_struct->data, utils::makeName(new_name, k), ref_vars);
 
+    } else if (v->type == config::types::Type::kStructInProto) {
+      // Resolve all proto/reference variables based on the values provided.
+      auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(v);
+      config::helpers::replaceProtoVar(struct_like->data, ref_vars);
+
+      resolveReferences(struct_like->data, new_name, ref_vars);
     } else if (v->type == config::types::Type::kStruct) {
       resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
                         ref_vars);
