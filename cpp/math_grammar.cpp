@@ -103,18 +103,27 @@ int main() {
 
   std::cout << "Grammar is valid: " << (ret == 0 ? "true" : "false") << std::endl;
 
-  // std::string input = "a*b - c^d - e*f";
-  std::string input = " {{  $A ^ $(b.foo) * $C + $D + $(e.bar) }}";
-  // std::string input = "-x * -(y + z)";
+  auto test_input = [](const std::string& input) {
+    peg::memory_input in(input, "from content");
+    const auto result = peg::parse<grammar>(in);
 
-  peg::memory_input in(input, "from content");
-  const auto result = peg::parse<grammar>(in);
+    std::cout << "Parse result: " << result << std::endl;
 
-  std::cout << "Parse result: " << result << std::endl;
+    in.restart();
+    if (const auto root = peg::parse_tree::parse<grammar, math::selector>(in)) {
+      peg::parse_tree::print_dot(std::cout, *root);
+    }
+  };
 
-  in.restart();
-  if (const auto root = peg::parse_tree::parse<grammar, math::selector>(in)) {
-    peg::parse_tree::print_dot(std::cout, *root);
+  std::vector<std::string> test_strings = {"$VAR*$BAR - $C^$D - $E*$FOO",
+                                           "$A ^ $(b.foo) * $C + $D + $(e.bar) ",
+                                           "-$(x) * -($(y) + $(z))",
+                                           "0.5 * (-0.7 + 1.2)",
+                                           "1/3 * -(5 + 4)",
+                                           "3.14159 * 1e3"};
+
+  for (const auto& input : test_strings) {
+    test_input(" {{  " + input + "   }}");
   }
 
   return 0;

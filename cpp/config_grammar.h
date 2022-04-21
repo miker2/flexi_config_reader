@@ -109,7 +109,9 @@ struct INTEGER_
     : peg::seq<peg::opt<sign>,
                peg::sor<peg::one<'0'>, peg::seq<peg::range<'1', '9'>, peg::star<peg::digit>>>> {};
 struct INTEGER : peg::seq<INTEGER_, peg::not_at<peg::one<'.'>>> {};
-struct FLOAT : peg::seq<INTEGER_, peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>> {};
+struct FLOAT
+    : peg::seq<INTEGER_,
+               peg::sor<peg::seq<peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>>, exp>> {};
 struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
