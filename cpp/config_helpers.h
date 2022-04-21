@@ -187,8 +187,14 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
       for (auto& rkv : ref_vars) {
         const auto& rk = rkv.first;
         auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
-
+        // Only continue if the k/v pair contains a value (i.e. not a kValueLookup or kVar)
+        if (rv == nullptr) {
+          logger::trace(" -- rK: {} is of type {} and does not contain a string. Skipping...", rk,
+                        rkv.second->type);
+          continue;
+        }
         logger::debug("v: {}, rk: {}, rv: {}", out, rk, rkv.second);
+
         // Strip off any leading or trailing quotes from the replacement value. If the replacement
         // value is not a string, this is a no-op.
         const auto replacement = utils::trim(rv->value, "\\\"");
@@ -230,6 +236,10 @@ inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::vector<
   // contains the data.
   std::shared_ptr<config::types::ConfigStructLike> struct_like;
   for (const auto& key : keys | ranges::views::drop_last(1)) {
+    if (!content->contains(key)) {
+      THROW_EXCEPTION(config::InvalidKeyException, "Unable to find '{}' in '{}'!", key, rejoined);
+    }
+
     rejoined = utils::makeName(rejoined, key);
     // This may be uneccessary error checking (if this is a part of a flat key, then it must be
     // a nested structure), but we check here that this object is a `StructLike` object,
@@ -261,6 +271,12 @@ inline auto getConfigValue(const config::types::CfgMap& cfg,
   // Extract the value from the struct-like object by accessing the internal data and locating the
   // requested key.
   if (struct_like != nullptr) {
+    if (!struct_like->data.contains(var->keys.back())) {
+      auto keys = var->keys;
+      keys.pop_back();
+      THROW_EXCEPTION(config::InvalidKeyException, "Unable to find '{}' in '{}'!", var->keys.back(),
+                      utils::join(keys, "."));
+    }
     return struct_like->data.at(var->keys.back());
   }
 
