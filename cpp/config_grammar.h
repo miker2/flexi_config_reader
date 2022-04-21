@@ -136,15 +136,15 @@ struct END : peg::seq<ENDk, SP, KEY> {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, TAIL> {};
 struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
-struct REFERENCE : peg::seq<REFs, REFc, END, WS_> {};
+struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
 
 struct PROTOc;
 struct PROTOs : peg::seq<PROTOk, SP, KEY, TAIL> {};
-struct PROTO : peg::seq<PROTOs, PROTOc, END, WS_> {};
+struct PROTO : peg::seq<PROTOs, PROTOc, END, TAIL> {};
 
 struct STRUCTc;
 struct STRUCTs : peg::seq<STRUCTk, SP, KEY, TAIL> {};
-struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, WS_> {};
+struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, TAIL> {};
 
 // Special definition of a struct contained in a proto
 struct STRUCT_IN_PROTOc;
