@@ -158,12 +158,16 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
+#if CONFIG_HELPERS_DEBUG
+    logger::trace("At: {} = {} | type: {}", k, v, v->type);
+#endif
     if (v->type == config::types::Type::kVar) {
       auto v_var = dynamic_pointer_cast<config::types::ConfigVar>(v);
       // Pull the value from the reference vars and add it to the structure.
       if (!ref_vars.contains(v_var->name)) {
         THROW_EXCEPTION(config::UndefinedReferenceVarException,
-                        "Attempting to replace '{}' with undefined var: '{}'.", k, v_var->name);
+                        "Attempting to replace '{}' with undefined var: '{}' at {}.", k,
+                        v_var->name, v->loc());
       }
       cfg_map[k] = ref_vars.at(v_var->name);
     } else if (v->type == config::types::Type::kString) {

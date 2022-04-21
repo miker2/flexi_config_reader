@@ -63,7 +63,7 @@ class ConfigReader {
   /// \param[in] base_name - starting point for resolving references
   /// \param[in] ref_vars - map of all reference variables available in the current context
   void resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                         config::types::RefMap ref_vars);
+                         const config::types::RefMap& ref_vars);
 
   void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree);
 

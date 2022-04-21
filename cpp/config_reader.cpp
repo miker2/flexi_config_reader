@@ -238,7 +238,7 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
 /// \param[in] base_name - ???
 /// \param[in] ref_vars - map of all reference variables available in the current context
 void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                                     config::types::RefMap ref_vars) {
+                                     const config::types::RefMap& ref_vars) {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -249,12 +249,22 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       continue;
     }
     const auto new_name = utils::makeName(base_name, k);
+    if (v->type == config::types::Type::kProto) {
+      // If a proto has been found, skip it. We don't want to resolve nested references within a
+      // proto until that proto has been referenced.
+      logger::trace("Found nested proto '{}'. Skipping...", new_name);
+      continue;
+    }
     if (v->type == config::types::Type::kReference) {
       // When finding a reference, we want to create a new 'struct' given the name, copy any
       // existing reference key/value pairs, and also add any 'proto' key/value pairs. Then, all
       // references need to be resolved. This all needs to be done without destroying the 'proto'
       // as it may be used elsewhere!
       auto v_ref = dynamic_pointer_cast<config::types::ConfigReference>(v);
+      if (!protos_.contains(v_ref->proto)) {
+        THROW_EXCEPTION(config::UndefinedProtoException,
+                        "Unable to find proto '{}' referenced by '{}'.", v_ref->proto, new_name);
+      }
       auto& p = protos_.at(v_ref->proto);
       logger::trace(
           "Creating struct from reference:\n"
@@ -268,16 +278,18 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       // If there's a nested dictionary, we want to add any new ref_vars into the existing
       // ref_vars.
       logger::trace("Current ref_vars: {}", ref_vars);
+      logger::trace("New ref_vars: {}", v_ref->ref_vars);
+      auto updated_ref_vars = ref_vars;
       std::copy(std::begin(v_ref->ref_vars), std::end(v_ref->ref_vars),
-                std::inserter(ref_vars, ref_vars.end()));
-      logger::trace("Updated ref_vars: {}", ref_vars);
+                std::inserter(updated_ref_vars, updated_ref_vars.end()));
+      logger::trace("Updated ref_vars: {}", updated_ref_vars);
 
       // Resolve all proto/reference variables based on the values provided.
-      config::helpers::replaceProtoVar(new_struct->data, ref_vars);
+      config::helpers::replaceProtoVar(new_struct->data, updated_ref_vars);
       // Replace the existing reference with the new struct that was created.
       cfg_map[k] = new_struct;
       // Call recursively in case the current reference has another reference
-      resolveReferences(new_struct->data, utils::makeName(new_name, k), ref_vars);
+      resolveReferences(new_struct->data, utils::makeName(new_name, k), updated_ref_vars);
 
     } else if (v->type == config::types::Type::kStructInProto) {
       // Resolve all proto/reference variables based on the values provided.
