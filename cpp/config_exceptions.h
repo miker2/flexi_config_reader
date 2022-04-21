@@ -14,11 +14,6 @@ class InvalidTypeException : public std::runtime_error {
   explicit InvalidTypeException(const std::string& message) : std::runtime_error(message){};
 };
 
-class DuplicateKeyException : public std::runtime_error {
- public:
-  explicit DuplicateKeyException(const std::string& message) : std::runtime_error(message){};
-};
-
 class InvalidStateException : public std::runtime_error {
  public:
   explicit InvalidStateException(const std::string& message) : std::runtime_error(message){};
@@ -27,6 +22,16 @@ class InvalidStateException : public std::runtime_error {
 class InvalidConfigException : public std::runtime_error {
  public:
   explicit InvalidConfigException(const std::string& message) : std::runtime_error(message){};
+};
+
+class InvalidKeyException : public std::runtime_error {
+ public:
+  explicit InvalidKeyException(const std::string& message) : std::runtime_error(message){};
+};
+
+class DuplicateKeyException : public std::runtime_error {
+ public:
+  explicit DuplicateKeyException(const std::string& message) : std::runtime_error(message){};
 };
 
 class MismatchKeyException : public std::runtime_error {
