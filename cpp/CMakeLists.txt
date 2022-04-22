@@ -38,7 +38,7 @@ add_executable(include_file_test include_file_test.cpp)
 target_link_libraries(include_file_test PRIVATE taocpp::pegtl)
 
 add_executable(math_grammar math_grammar.cpp)
-target_link_libraries(math_grammar PRIVATE taocpp::pegtl)
+target_link_libraries(math_grammar PRIVATE taocpp::pegtl fmt::fmt magic_enum::magic_enum)
 
 
 install(TARGETS jsonish_test toml_test config_test config_build config_reader_example include_file_test

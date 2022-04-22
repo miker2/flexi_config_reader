@@ -1,4 +1,7 @@
+#include "math_grammar.h"
+
 #include <iostream>
+#include <sstream>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/analyze.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
@@ -6,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "config_grammar.h"
+#include "math_actions.h"
 
 // This article has been extremely useful:
 //   https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
@@ -15,48 +18,7 @@
 //      https://godbolt.org/z/9aeh7hvjv
 //      https://godbolt.org/z/35c19neYG
 
-namespace peg = TAO_PEGTL_NAMESPACE;
-
-// A rule for padding another rule with blanks on either side
-template <typename Rule>
-struct pd : peg::pad<Rule, peg::blank> {};
-
-struct Um : peg::one<'-'> {};
-struct Up : peg::one<'+'> {};
-struct Uo : peg::sor<Um, Up> {};
-
-struct Bplus : peg::one<'+'> {};
-struct Bminus : peg::one<'-'> {};
-struct Bmult : peg::one<'*'> {};
-struct Bdiv : peg::one<'/'> {};
-struct Bpow : peg::one<'^'> {};
-struct Bo : peg::sor<Bplus, Bminus, Bmult, Bdiv, Bpow> {};
-
-struct Po : pd<peg::one<'('>> {};
-struct Pc : pd<peg::one<')'>> {};
-
-struct Mo : pd<TAO_PEGTL_STRING("{{")> {};
-struct Mc : pd<TAO_PEGTL_STRING("}}")> {};
-
-struct ignored : peg::space {};
-
-// v includes numbers, variables & var refs
-struct v : peg::sor<config::NUMBER, config::VAR, config::VAR_REF> {};
-
 namespace grammar1 {
-// Grammar G1:
-//    E --> P {B P}
-//    P --> v | "(" E ")" | U P
-//    B --> "+" | "-" | "*" | "/" | "^"
-//    U --> "-"
-
-struct E;
-struct BRACKET : peg::seq<Po, E, Pc> {};
-struct atom : peg::sor<v, BRACKET> {};
-struct P;
-struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};
-struct E : peg::list<P, Bo, ignored> {};
-
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
                       Rule, peg::parse_tree::store_content::on<v, E, Bo, Uo>,
@@ -66,32 +28,13 @@ struct selector : peg::parse_tree::selector<
 }  // namespace grammar1
 
 namespace grammar2 {
-/*
-E --> T {( "+" | "-" ) T}
-T --> F {( "*" | "/" ) F}
-F --> P ["^" F]
-P --> v | "(" E ")" | "-" T
-*/
-
-struct PM : peg::sor<Bplus, Bminus> {};
-struct MD : peg::sor<Bmult, Bdiv> {};
-
-struct T;
-struct E : peg::seq<T, peg::star<pd<PM>, T>> {};
-struct F;
-struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
-struct EXP : peg::seq<Bpow, F> {};
-struct P;
-struct F : peg::seq<P, peg::opt<EXP>> {};
-struct P : peg::sor<pd<v>, peg::seq<Po, E, Pc>, peg::seq<peg::one<'-'>, T>> {};
-
 // template< typename Rule > struct selector : std::true_type {};
 
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
-                      Rule, peg::parse_tree::store_content::on<v, E, T, PM, MD, Bpow>,
+                      Rule, peg::parse_tree::store_content::on<v, E, T, F, P, PM, MD, Bpow, N>,
                       peg::parse_tree::remove_content::on</*Um, Bplus, Bminus, Bmult, Bdiv, Bpow*/>,
-                      peg::parse_tree::fold_one::on<P, EXP, F>> {};
+                      peg::parse_tree::fold_one::on<EXP>> {};
 
 }  // namespace grammar2
 
@@ -105,24 +48,43 @@ int main() {
 
   auto test_input = [](const std::string& input) {
     peg::memory_input in(input, "from content");
-    const auto result = peg::parse<grammar>(in);
 
-    std::cout << "Parse result: " << result << std::endl;
-
-    in.restart();
     if (const auto root = peg::parse_tree::parse<grammar, math::selector>(in)) {
       peg::parse_tree::print_dot(std::cout, *root);
+      std::cout << std::endl;
     }
+
+    in.restart();
+    ActionData out;
+    const auto result = peg::parse<grammar, math::action>(in, out);
+
+    out.E.dump();
+    out.T.dump();
+    out.F.dump();
+    out.P.dump();
+    // std::cout << "result = " << out.s.finish() << std::endl;
+    /*
+    logger::info("out size = {}", out.stacks.size());
+    for (const auto& s : out.stacks) {
+      s.dump();
+    }
+    */
+
+    std::cout << "Parse result: " << result << std::endl;
+    std::cout << std::endl;
   };
 
-  std::vector<std::string> test_strings = {"$VAR*$BAR - $C^$D - $E*$FOO",
-                                           "$A ^ $(b.foo) * $C + $D + $(e.bar) ",
-                                           "-$(x) * -($(y) + $(z))",
-                                           "0.5 * (-0.7 + 1.2)",
-                                           "1/3 * -(5 + 4)",
-                                           "3.14159 * 1e3"};
+  std::vector<std::string> test_strings = {
+      /*"$VAR*$BAR - $C^$D - $E*$FOO",
+      "$A ^ $(b.foo) * $C + $D + $(e.bar) ",
+      "-$(x) * -($(y) + $(z))",*/
+      "3.14159 * 1e3",          "0.5 * (0.7 + 1.2)",           "0.5 + 0.7 * 1.2",
+      "3*0.27 - 2.3^0.5 - 5*4", "3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", "-4.7 * -(3.72 + 9.123)",
+      "1/3 * -(5 + 4)",
+  };
 
   for (const auto& input : test_strings) {
+    std::cout << "Input: " << input << std::endl;
     test_input(" {{  " + input + "   }}");
   }
 
