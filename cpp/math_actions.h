@@ -24,13 +24,29 @@ struct P : peg::sor<pd<v>, peg::seq<Po, E, Pc>, N> {};
 
 namespace ops {
 
-using OpMap = std::map<std::string, std::function<double(double, double)>>;
+struct op {
+  int p;  // precedence
+  bool l; // left-associative?
+  std::function<double(double, double)> f;
+};
+using OpsMap = std::map<std::string, op>;
 
-OpMap map = {{"+", std::plus<double>()},
-             {"-", std::minus<double>()},
-             {"*", std::multiplies<double>()},
-             {"/", std::divides<double>()},
-             {"^", [](double x, double e) -> double { return std::pow(x, e); }}};
+
+OpsMap ops = {{"+", { .p = 6, .l = true, .f = std::plus<double>()} },
+             {"-", { .p = 6, .l = true, .f = std::minus<double>()} },
+             {"*", { .p = 8, .l = true, .f = std::multiplies<double>()} },
+             {"/", { .p = 8, .l = true, .f = std::divides<double>()} },
+             {"^", { .p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
+             {"m", { .p = 10, .l = false, .f = [](double x, double e = -1) -> double { return e * x; } }}};
+
+using OpMap = std::map<std::string, std::function<double(double,double)>>;
+OpMap map = {{"+",  std::plus<double>()} ,
+             {"-", std::minus<double>()} ,
+             {"*", std::multiplies<double>()} ,
+             {"/", std::divides<double>()} ,
+             {"^", [](double x, double e) -> double { return std::pow(x, e); }},
+             {"m", [](double x, double e = -1) -> double { return e * x; } }};
+
 
 }  // namespace ops
 
@@ -124,10 +140,10 @@ struct stacks {
 struct ActionData {
   stacks s;
 
-  stack P = {};
-  stack T = {};
   stack E = {};
+  stack T = {};
   stack F = {};
+  stack P = {};
 };
 
 void finalizeStack(std::vector<stack>& stacks_) {

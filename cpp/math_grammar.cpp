@@ -18,6 +18,10 @@
 //      https://godbolt.org/z/9aeh7hvjv
 //      https://godbolt.org/z/35c19neYG
 
+// https://marginalhacks.com/Hacks/libExpr.rb/
+// https://en.wikipedia.org/wiki/Shunting_yard_algorithm
+// https://en.wikipedia.org/wiki/Shift-reduce_parser
+
 namespace grammar1 {
 template <typename Rule>
 struct selector : peg::parse_tree::selector<

@@ -122,6 +122,8 @@ inline std::ostream& operator<<(std::ostream& os, const std::map<Key, Value>& da
   return os;
 }
 
+// See here for a potentially better solution:
+//    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
 template <typename Key, typename Value>
 inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>& data,
                    std::size_t depth) {
