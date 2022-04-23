@@ -143,6 +143,45 @@ inline auto structFromReference(std::shared_ptr<config::types::ConfigReference>&
   return struct_out;
 }
 
+inline auto replaceVarInStr(std::string input, const config::types::RefMap& ref_vars)
+    -> std::optional<std::string> {
+  // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
+  // sense in doing this loop.
+  const auto var_pos = input.find('$');
+  if (var_pos == std::string::npos) {
+    // No variables. Let's skip.
+    logger::debug("No variables in '{}'. Skipping...", input);
+    return std::nullopt;
+  }
+
+  auto out = std::move(input);
+  // Find instances of 'ref_vars' in 'input' and replace.
+  for (auto& rkv : ref_vars) {
+    const auto& rk = rkv.first;
+    auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
+    // Only continue if the k/v pair contains a value (i.e. not a kValueLookup or kVar)
+    if (rv == nullptr) {
+      logger::trace(" -- rK: {} is of type {} and does not contain a string. Skipping...", rk,
+                    rkv.second->type);
+      continue;
+    }
+    logger::debug("v: {}, rk: {}, rv: {}", out, rk, rkv.second);
+
+    // Strip off any leading or trailing quotes from the replacement value. If the replacement
+    // value is not a string, this is a no-op.
+    const auto replacement = utils::trim(rv->value, "\\\"");
+    // Look for `rk` (escape leadding '$') in `out` and replace them with 'replacement'
+    out = std::regex_replace(out, std::regex("\\" + rk), replacement);
+    // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
+    // in escape characters as this will be used in a regular expression.
+    const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
+    logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
+    out = std::regex_replace(out, std::regex(bracket_var), replacement);
+    logger::debug("out: {}", out);
+  }
+  return out;
+}
+
 /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
@@ -173,44 +212,28 @@ inline void replaceProtoVar(config::types::CfgMap& cfg_map, const config::types:
     } else if (v->type == config::types::Type::kString) {
       auto v_value = dynamic_pointer_cast<config::types::ConfigValue>(v);
 
-      // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
-      // sense in doing this loop.
-      const auto var_pos = v_value->value.find('$');
-      if (var_pos == std::string::npos) {
-        // No variables. Let's skip.
-        logger::debug("No variables in {}. Skipping...", v);
+      auto out = replaceVarInStr(v_value->value, ref_vars);
+      if (!out.has_value()) {
         continue;
       }
-
-      auto out = v_value->value;
-      // Find instances of 'ref_vars' in 'v' and replace.
-      for (auto& rkv : ref_vars) {
-        const auto& rk = rkv.first;
-        auto rv = dynamic_pointer_cast<config::types::ConfigValue>(rkv.second);
-        // Only continue if the k/v pair contains a value (i.e. not a kValueLookup or kVar)
-        if (rv == nullptr) {
-          logger::trace(" -- rK: {} is of type {} and does not contain a string. Skipping...", rk,
-                        rkv.second->type);
-          continue;
-        }
-        logger::debug("v: {}, rk: {}, rv: {}", out, rk, rkv.second);
-
-        // Strip off any leading or trailing quotes from the replacement value. If the replacement
-        // value is not a string, this is a no-op.
-        const auto replacement = utils::trim(rv->value, "\\\"");
-        out = std::regex_replace(out, std::regex("\\" + rk), replacement);
-        // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
-        // in escape characters as this will be used in a regular expression.
-        const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
-        logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
-        out = std::regex_replace(out, std::regex(bracket_var), replacement);
-        logger::debug("out: {}", out);
-      }
       // Replace the existing value with the new value.
-      auto new_value = std::make_shared<config::types::ConfigValue>(out, v->type);
+      auto new_value = std::make_shared<config::types::ConfigValue>(out.value(), v->type);
       new_value->line = v->line;
       new_value->source = v->source;
       cfg_map[k] = std::move(new_value);
+    } else if (v->type == config::types::Type::kValueLookup) {
+      logger::debug("Key: {}, checking {} for vars.", k, v);
+      auto v_val_lookup = dynamic_pointer_cast<config::types::ConfigValueLookup>(v);
+
+      auto out = replaceVarInStr(v_val_lookup->var(), ref_vars);
+      if (!out.has_value()) {
+        continue;
+      }
+      // Replace the existing value lookup with the new value lookup
+      auto new_val_lookup = std::make_shared<config::types::ConfigValueLookup>(out.value());
+      new_val_lookup->line = v->line;
+      new_val_lookup->source = v->source;
+      cfg_map[k] = std::move(new_val_lookup);
     } else if (config::helpers::isStructLike(v)) {
       logger::debug("At '{}', found {}", k, v->type);
       // Recurse deeper into the structure in order to replace more variables.
