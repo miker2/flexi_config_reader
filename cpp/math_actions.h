@@ -193,6 +193,11 @@ struct action<v> {
 };
 
 template <>
+struct action<pi> {
+  static void apply0(ActionData& out) { out.s.push(M_PI); }
+};
+
+template <>
 struct action<Um> {
   static void apply0(ActionData& out) {
     // This is sneaky, but a simple way of making this work!
@@ -237,6 +242,11 @@ struct action<v> {
   static void apply(const ActionInput& in, ActionData& out) {
     out.stacks.back().push(std::stod(in.string()));
   }
+};
+
+template <>
+struct action<pi> {
+  static void apply0(ActionData& out) { out.stacks.back().push(M_PI); }
 };
 
 template <>

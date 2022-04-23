@@ -24,6 +24,9 @@ struct Bo : peg::sor<Bpow, Bplus, Bminus, Bmult, Bdiv> {};
 struct Po : pd<peg::one<'('>> {};
 struct Pc : pd<peg::one<')'>> {};
 
+// Consider other named constants as well.
+struct pi : TAO_PEGTL_STRING("pi") {};
+
 struct Mo : pd<TAO_PEGTL_STRING("{{")> {};
 struct Mc : pd<TAO_PEGTL_STRING("}}")> {};
 
@@ -41,7 +44,7 @@ namespace grammar1 {
 
 struct E;
 struct BRACKET : peg::seq<Po, E, Pc> {};
-struct atom : peg::sor<v, BRACKET> {};
+struct atom : peg::sor<v, BRACKET, pi> {};
 struct P;
 struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};
 struct E : peg::list<P, Bo, ignored> {};
@@ -67,6 +70,6 @@ struct EXP : peg::seq<Bpow, F> {};
 struct P;
 struct F : peg::seq<P, peg::opt<EXP>> {};
 struct N : peg::seq<Um, T> {};
-struct P : peg::sor<pd<v>, peg::seq<Po, E, Pc>, N> {};
+struct P : peg::sor<pd<v>, pd<pi>, peg::seq<Po, E, Pc>, N> {};
 
 }  // namespace grammar2
