@@ -23,6 +23,8 @@
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
 // https://en.wikipedia.org/wiki/Shift-reduce_parser
 
+#define USE_GRAMMAR_1 0
+
 namespace grammar1 {
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
@@ -44,7 +46,11 @@ struct selector : peg::parse_tree::selector<
 }  // namespace grammar2
 
 int main() {
+#if USE_GRAMMAR_1
   namespace math = grammar1;
+#else
+  namespace math = grammar2;
+#endif
 
   struct grammar : peg::seq<Mo, math::E, Mc> {};
   auto ret = peg::analyze<grammar>();
@@ -63,17 +69,14 @@ int main() {
     ActionData out;
     const auto result = peg::parse<grammar, math::action>(in, out);
 
+#if USE_GRAMMAR_1
+    std::cout << std::string(10, '-') << std::endl;
     out.s.dump();
-    out.s.finish();
+    out.res = out.s.finish();
     out.s.dump();
+#endif
+    std::cout << "Result: " << out.res << std::endl;
 
-    /*
-    out.E.dump();
-    out.T.dump();
-    out.F.dump();
-    out.P.dump();
-    */
-    // std::cout << "result = " << out.s.finish() << std::endl;
     /*
     logger::info("out size = {}", out.stacks.size());
     for (const auto& s : out.stacks) {
@@ -81,7 +84,7 @@ int main() {
     }
     */
 
-    std::cout << "Parse result: " << result << std::endl;
+    std::cout << "Parse success: " << (result == 0 ? "false" : "true") << std::endl;
     std::cout << std::endl;
   };
 

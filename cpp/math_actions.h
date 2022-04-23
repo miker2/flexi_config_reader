@@ -186,10 +186,9 @@ void finalizeStack(std::vector<stack>& stacks_) {
 struct ActionData {
   stacks s;
 
-  stack E = {};
-  stack T = {};
-  stack F = {};
-  stack P = {};
+  std::vector<stack> stacks = {{}};
+
+  double res;
 };
 
 namespace grammar1 {
@@ -248,7 +247,7 @@ template <>
 struct action<v> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.P.push(std::stod(in.string()));
+    out.stacks.back().push(std::stod(in.string()));
   }
 };
 
@@ -256,7 +255,7 @@ template <>
 struct action<PM> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.E.push(in.string());
+    out.stacks.back().push(in.string());
   }
 };
 
@@ -264,7 +263,7 @@ template <>
 struct action<MD> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.T.push(in.string());
+    out.stacks.back().push(in.string());
   }
 };
 
@@ -272,71 +271,62 @@ template <>
 struct action<Bpow> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // Put something here!
     logger::warn("Found {}!", in.string());
-    out.F.push(in.string());
+    out.stacks.back().push(in.string());
   }
 };
 
 template <>
 struct action<Po> {
   static void apply0(ActionData& out) {
-    logger::debug("Open parentheses, creating new stack.");
-    out.s.open();
+    logger::debug("Open parentheses, opening stack.");
+    out.stacks.emplace_back();
   }
 };
 
 template <>
 struct action<Pc> {
-  static void apply0(ActionData& out) {
-    logger::debug("Close parentheses, finalizing stack.");
-    out.s.close();
-  }
+  static void apply0(ActionData& out) { logger::debug("Close parentheses, closing stack."); }
 };
 
 template <>
-struct action<N> {
+struct action<Um> {
   static void apply0(ActionData& out) {
-    const auto t = out.T.finish();
-    logger::warn("N = {}", t);
-    out.P.push(-1 * t);
+    // Cheeky trick to support unary minus operator.
+    out.stacks.back().push(-1);
+    out.stacks.back().push("m");
   }
 };
 
 template <>
 struct action<E> {
   static void apply0(ActionData& out) {
-    const auto e = out.E.finish();
-    logger::debug("E = {}", e);
-    out.P.push(e);
+    logger::warn("In E action");
+    // For every expression we want to finalize the top of the stack, remove it and put the result
+    // on the top of the stack.
+    const auto r = out.stacks.back().finish();
+    out.stacks.pop_back();
+    if (out.stacks.empty()) {
+      out.res = r;
+    } else {
+      out.stacks.back().push(r);
+    }
   }
 };
 
 template <>
 struct action<T> {
-  static void apply0(ActionData& out) {
-    const auto t = out.T.finish();
-    logger::debug("T = {}", t);
-    out.E.push(t);
-  }
+  static void apply0(ActionData& out) { logger::warn("In T action"); }
 };
 
 template <>
 struct action<F> {
-  static void apply0(ActionData& out) {
-    const auto f = out.F.finish();
-    logger::warn("F = {}", f);
-    out.T.push(f);
-  };
+  static void apply0(ActionData& out) { logger::warn("In F action"); };
 };
 
 template <>
 struct action<P> {
-  static void apply0(ActionData& out) {
-    const auto p = out.P.finish();
-    logger::info("P = {}", p);
-    out.F.push(p);
-  };
+  static void apply0(ActionData& out) { logger::warn("In P action"); };
 };
 
 }  // namespace grammar2
