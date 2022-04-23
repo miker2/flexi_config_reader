@@ -43,6 +43,8 @@ struct selector : peg::parse_tree::selector<
 
 }  // namespace grammar2
 
+auto nearEq(double res, double exp_res, double tol = 1e-8) { return abs(exp_res - res) < tol; }
+
 int main() {
   namespace math = grammar1;
 
@@ -84,11 +86,13 @@ int main() {
       {"1/3 * -(5 + 4)", -3.0},
       {"3.4 * -(1.9**2 * (1/3.1 - 6) * (2.54- 17.0))", -1007.6399690322581}};
 
+  bool success{true};
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
     auto result = test_input(" {{  " + input.first + "   }}");
     std::cout << "Expected result: " << input.second << "\n\n\n";
+    success &= nearEq(result, input.second);
   }
 
-  return 0;
+  return success ? 0 : 1;
 }

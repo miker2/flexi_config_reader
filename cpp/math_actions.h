@@ -191,11 +191,10 @@ struct stacks {
 struct ActionData {
   math::stacks s;
 
-  std::vector<math::stack> stacks = {{}};
-
+  // Track open/close brackets to know when to finalize the result.
   size_t bracket_cnt{0};
 
-  double res;
+  double res;  // The final result of the computation.
 };
 
 namespace grammar1 {
@@ -252,6 +251,9 @@ struct action<Pc> {
 template <>
 struct action<E> {
   static void apply0(ActionData& out) {
+    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
+    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
+    // only want to call `finish` when not within brackets.
     logger::warn("In E action.");
     if (out.bracket_cnt == 0) {
       out.s.dump();
@@ -273,20 +275,20 @@ template <>
 struct action<v> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.stacks.back().push(std::stod(in.string()));
+    out.s.push(std::stod(in.string()));
   }
 };
 
 template <>
 struct action<pi> {
-  static void apply0(ActionData& out) { out.stacks.back().push(M_PI); }
+  static void apply0(ActionData& out) { out.s.push(M_PI); }
 };
 
 template <>
 struct action<PM> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.stacks.back().push(in.string());
+    out.s.push(in.string());
   }
 };
 
@@ -294,7 +296,7 @@ template <>
 struct action<MD> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    out.stacks.back().push(in.string());
+    out.s.push(in.string());
   }
 };
 
@@ -303,7 +305,16 @@ struct action<Bpow> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     logger::warn("Found {}!", in.string());
-    out.stacks.back().push(in.string());
+    out.s.push(in.string());
+  }
+};
+
+template <>
+struct action<Um> {
+  static void apply0(ActionData& out) {
+    // Cheeky trick to support unary minus operator.
+    out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
+    out.s.push("m");
   }
 };
 
@@ -311,21 +322,17 @@ template <>
 struct action<Po> {
   static void apply0(ActionData& out) {
     logger::debug("Open parentheses, opening stack.");
-    out.stacks.emplace_back();
+    out.s.open();
+    out.bracket_cnt++;
   }
 };
 
 template <>
 struct action<Pc> {
-  static void apply0(ActionData& out) { logger::debug("Close parentheses, closing stack."); }
-};
-
-template <>
-struct action<Um> {
   static void apply0(ActionData& out) {
-    // Cheeky trick to support unary minus operator.
-    out.stacks.back().push(-1);
-    out.stacks.back().push("m");
+    logger::debug("Close parentheses, closing stack.");
+    out.s.close();
+    out.bracket_cnt--;
   }
 };
 
@@ -333,18 +340,20 @@ template <>
 struct action<E> {
   static void apply0(ActionData& out) {
     logger::warn("In E action");
-    // For every expression we want to finalize the top of the stack, remove it and put the result
-    // on the top of the stack.
-    const auto r = out.stacks.back().finish();
-    out.stacks.pop_back();
-    if (out.stacks.empty()) {
-      out.res = r;
-    } else {
-      out.stacks.back().push(r);
+    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
+    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
+    // only want to call `finish` when not within brackets.
+    if (out.bracket_cnt == 0) {
+      out.s.dump();
+      logger::info("Finishing!");
+      out.res = out.s.finish();
+      out.s.dump();
     }
   }
 };
 
+// These are no-ops. They're only part of the grammar in order to build the AST, but not actually
+// functional in performing the math.
 template <>
 struct action<T> {
   static void apply0(ActionData& out) { logger::warn("In T action"); }

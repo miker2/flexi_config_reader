@@ -46,8 +46,8 @@ struct E;
 struct BRACKET : peg::seq<Po, E, Pc> {};
 struct atom : peg::sor<v, BRACKET, pi> {};
 struct P;
-struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};
-struct E : peg::list<P, Bo, ignored> {};
+struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};  // <-- recursive rule
+struct E : peg::list<P, Bo, ignored> {};                       // <-- Terminal
 
 }  // namespace grammar1
 
@@ -63,7 +63,7 @@ struct PM : peg::sor<Bplus, Bminus> {};
 struct MD : peg::sor<Bmult, Bdiv> {};
 
 struct T;
-struct E : peg::seq<T, peg::star<pd<PM>, T>> {};
+struct E : peg::seq<T, peg::star<pd<PM>, T>> {};  // <-- Terminal
 struct F;
 struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
 struct EXP : peg::seq<Bpow, F> {};
