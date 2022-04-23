@@ -21,7 +21,9 @@ OpsMap ops = {
     {"-", {.p = 6, .l = true, .f = std::minus<double>()}},
     {"*", {.p = 8, .l = true, .f = std::multiplies<double>()}},
     {"/", {.p = 8, .l = true, .f = std::divides<double>()}},
+    // Support both traditional '^' and pythonic '**' power operators
     {"^", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
+    {"**", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
     // This is a placeholder for the unary minus operator (represented as a binary multiply where
     // the first argument is discarded (generally a `-1`).
     {"m", {.p = 10, .l = false, .f = [](double e, double x) -> double { return -x; }}}};

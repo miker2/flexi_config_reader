@@ -57,7 +57,7 @@ int main() {
 
   std::cout << "Grammar is valid: " << (ret == 0 ? "true" : "false") << std::endl;
 
-  auto test_input = [](const std::string& input) {
+  auto test_input = [](const std::string& input) -> double {
     peg::memory_input in(input, "from content");
 
     if (const auto root = peg::parse_tree::parse<grammar, math::selector>(in)) {
@@ -86,6 +86,8 @@ int main() {
 
     std::cout << "Parse success: " << (result == 0 ? "false" : "true") << std::endl;
     std::cout << std::endl;
+
+    return out.res;
   };
 
   std::vector<std::pair<std::string, double>> test_strings = {
@@ -95,7 +97,7 @@ int main() {
       {"3.14159 * 1e3", 3141.5899999999997},
       {"0.5 * (0.7 + 1.2)", 0.95},
       {"0.5 + 0.7 * 1.2", 1.3399999999999999},
-      {"3*0.27 - 2.3^0.5 - 5*4", -20.70657508881031},
+      {"3*0.27 - 2.3**0.5 - 5*4", -20.70657508881031},
       {"3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", 174.79264401590646},
       {"-4.7 * -(3.72 + 9.123)", 60.362100000000005},
       {"1/3 * -(5 + 4)", -3.0},
@@ -103,7 +105,7 @@ int main() {
 
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
-    test_input(" {{  " + input.first + "   }}");
+    auto result = test_input(" {{  " + input.first + "   }}");
     std::cout << "Expected result: " << input.second << "\n\n\n";
   }
 

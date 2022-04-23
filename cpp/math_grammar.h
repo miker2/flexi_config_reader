@@ -18,8 +18,8 @@ struct Bplus : peg::one<'+'> {};
 struct Bminus : peg::one<'-'> {};
 struct Bmult : peg::one<'*'> {};
 struct Bdiv : peg::one<'/'> {};
-struct Bpow : peg::one<'^'> {};
-struct Bo : peg::sor<Bplus, Bminus, Bmult, Bdiv, Bpow> {};
+struct Bpow : peg::sor<peg::one<'^'>, TAO_PEGTL_STRING("**")> {};
+struct Bo : peg::sor<Bpow, Bplus, Bminus, Bmult, Bdiv> {};
 
 struct Po : pd<peg::one<'('>> {};
 struct Pc : pd<peg::one<')'>> {};
