@@ -7,18 +7,29 @@
 #include "logger.h"
 #include "math_grammar.h"
 
+// NOTE: A large portion of this code was derived from:
+//   https://github.com/taocpp/PEGTL/blob/main/src/example/pegtl/calculator.cpp
+
+// The algorithm used to perform the math operations is described here:
+//   https://en.wikipedia.org/wiki/Shunting_yard_algorithm
+
+// This article was also extremely useful during development:
+//   https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
+
 namespace math {
 
 namespace ops {
 
 struct op {
   int p;   // precedence
-  bool l;  // left-associative?
+  bool l;  // left-associative=true, right-associative=false
   std::function<double(double, double)> f;
 };
 
 using OpsMap = std::map<std::string, op>;
 const OpsMap map = {
+    // NOTE: The exact precedence values used here are not important, only the relative precendence
+    // as it is used to determine order of operations.
     {"+", {.p = 6, .l = true, .f = std::plus<double>()}},
     {"-", {.p = 6, .l = true, .f = std::minus<double>()}},
     {"*", {.p = 8, .l = true, .f = std::multiplies<double>()}},
@@ -28,8 +39,14 @@ const OpsMap map = {
     {"**", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
     // This is a placeholder for the unary minus operator (represented as a binary multiply where
     // the first argument is discarded (generally a `-1`).
+    // A high precedence is used here in order to ensure the unary minus happens before other
+    // operations
     {"m", {.p = 10, .l = false, .f = [](double unused, double x) -> double { return -x; }}}};
 
+/// \brief Evaluates the operation at the top of the stack.
+/// \param[in/out] vals - The stack of operands. The last two operands are popped of the stack and
+///                       the result of the operation is pushed onto the stack.
+/// \param[in] ops - the stack of operators
 void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
   assert(vals.size() == ops.size() + 1);
   // Extract the operands
@@ -45,6 +62,7 @@ void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
   const auto v = math::ops::map.at(op).f(lhs, rhs);
 
   logger::debug("Reducing: {} {} {} = {}", lhs, op, rhs, v);
+  // Push the result onto the stack.
   vals.push_back(v);
   logger::trace("stack: op={}, v={}", ops.size(), vals.size());
 }
@@ -53,6 +71,12 @@ void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
 class stack {
  public:
   void push(const std::string& op) {
+    // This is the core of the shunting yard algorithm. If the operator stack is not empty, then
+    // precedence of the new operator is compared to the operator at the top of the stack
+    // (comparison depends on left vs right-associativity). If the operator at the top of the stack
+    // has higher precedence, then `evalBack` is called with will use the top two operands on the
+    // stack to evaluate the operator. This continues while operators on the stack have higher
+    // precedence.
     if (!ops_.empty()) {
       auto o2 = ops_.back();
       while (!ops_.empty() &&
@@ -64,10 +88,12 @@ class stack {
         logger::debug("Comparing {} and {}", op, o2);
         math::ops::evalBack(vs_, ops_);
         if (!ops_.empty()) {
+          // If the stack isn't empty, grab the next operator for comparison
           o2 = ops_.back();
         }
       }
     }
+    // Finally, push the new operator onto the stack.
     ops_.push_back(op);
     logger::trace("Pushing {} onto stack. ops={}, values={}", op, ops_.size(), vs_.size());
   }
@@ -78,6 +104,7 @@ class stack {
   }
 
   auto finish() -> double {
+    // Clear out the stacks by evaluating any remaining operators.
     while (!ops_.empty()) {
       evalBack();
     }
@@ -117,6 +144,11 @@ class stack {
   }
 };
 
+// This is a stack of stacks. It makes evaluating bracketed operations simpler. Any time an opening
+// bracket is encountered, a new stack is added. When the closing bracket is encountered:
+//   1. the stack current stack is "finished", caching the result.
+//   2. the current stack is removed from the stack of stacks.
+//   3. the result is then pushed onto the top stack.
 struct stacks {
   stacks() { open(); }
 
