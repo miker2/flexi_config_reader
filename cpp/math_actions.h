@@ -7,21 +7,6 @@
 #include "logger.h"
 #include "math_grammar.h"
 
-/*
-struct PM : peg::sor<Bplus, Bminus> {};
-struct MD : peg::sor<Bmult, Bdiv> {};
-
-struct T;
-struct E : peg::seq<T, peg::star<pd<PM>, T>> {};
-struct F;
-struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
-struct EXP : peg::seq<Bpow, F> {};
-struct P;
-struct F : peg::seq<P, peg::opt<EXP>> {};
-struct N : peg::seq<Um, T> {};
-struct P : peg::sor<pd<v>, peg::seq<Po, E, Pc>, N> {};
-*/
-
 namespace ops {
 
 struct op {
@@ -37,8 +22,9 @@ OpsMap ops = {
     {"*", {.p = 8, .l = true, .f = std::multiplies<double>()}},
     {"/", {.p = 8, .l = true, .f = std::divides<double>()}},
     {"^", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
-    // This is a placeholder for the unary minus operator (represented as a binary multiply∑
-    {"m", {.p = 10, .l = false, .f = [](double x, double e = -1) -> double { return e * x; }}}};
+    // This is a placeholder for the unary minus operator (represented as a binary multiply where
+    // the first argument is discarded (generally a `-1`).
+    {"m", {.p = 10, .l = false, .f = [](double e, double x) -> double { return -x; }}}};
 
 using OpMap = std::map<std::string, std::function<double(double, double)>>;
 OpMap map = {
