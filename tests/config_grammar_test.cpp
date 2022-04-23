@@ -465,9 +465,24 @@ TEST(config_grammar, FLAT_KEY) {
 }
 
 TEST(config_grammar, VAR_REF) {
-  std::string content = "$(this.is.a.var.ref)";
+  auto checkVarRef = [](const std::string& input) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::VAR_REF, peg::eolf>, config::types::ConfigValueLookup>(
+        input, config::types::Type::kValueLookup, out);
+    const auto value = dynamic_pointer_cast<config::types::ConfigValueLookup>(out->obj_res);
+    EXPECT_EQ("$(" + value->var() + ")", input);
+  };
+  auto failVarRef = [](const std::string& input) {
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::VAR, peg::eolf>>(input)), std::exception);
+  };
+  // These are all valid vars
+  const std::vector<std::string> valid = {
+      "$(this.is.a.var.ref)",   "$(single_key)", "$(this.is.a.$VAR.ref)",
+      "$($THIS.is.a.var.ref)",  "$($VAR_REF)",   "$(this.is.a.${VAR}.ref)",
+      "$($THIS.is.a.var.$REF)", "$($VAR.$REF)"};
 
-  std::optional<config::ActionData> out;
-  checkResult<peg::must<config::VAR_REF, peg::eolf>, config::types::ConfigValueLookup>(
-      content, config::types::Type::kValueLookup, out);
+  for (const auto& content : valid) {
+    checkVarRef(content);
+  }
 }

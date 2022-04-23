@@ -123,7 +123,9 @@ struct VALUE : peg::sor<VAL_, LIST> {};
 // Account for all reserved keywords when looking for keys
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
-struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), FLAT_KEY, peg::one<')'>> {};
+
+struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
+                          peg::one<')'>> {};
 
 struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
 struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
