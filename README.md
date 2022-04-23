@@ -11,13 +11,13 @@ the jinja templating python library.
 
 The syntax has three core concepts:
 
-1. `struct` - This is a concrete entry of data. A `struct` may contain other `struct`s as
+1. [`struct`](#struct-keyword) - This is a concrete entry of data. A `struct` may contain other `struct`s as
    well as key/value pairs.
-2. `proto` - The `proto` keyword is used to define a template, which can be used to create
+2. [`proto`](#proto-keyword) - The `proto` keyword is used to define a template, which can be used to create
    a `struct`. A `proto` may contain other `struct`s, `reference`s (see below), as well as
    key/value pairs. The values in a proto (and all sub-objects) may be represented by a variable.
-3. `reference` - The `reference` keyword is used to turn a `proto` into a concrete `struct`.
-   The `proto` is `reference`d, given a name, and all contained variables are given a value.
+3. [`reference`](#reference-keyword) - The `reference` keyword is used to turn a `proto` into a concrete
+   `struct`. The `proto` is `reference`d, given a name, and all contained variables are given a value.
 
 In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
 
@@ -28,8 +28,8 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    another file. This highlights one of the advantages of this syntax: the ability to
    define a generic set of templates in one file, which will be used to produce multiple,
    repeated concrete structs with different names and parameters in a different file.
-2. key-value reference - Much like bash, the syntax provides the ability to reference a
-   previously defined value by its key, and assign it to another key.
+2. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
+   to reference apreviously defined value by its key, and assign it to another key.
 3. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
    to the resulting `struct` when the `proto` is referenced.
 4. Fully qualified keys - One may define the configuration parameters using a combination
@@ -114,7 +114,10 @@ end fuzz
 The above example introduces the following concepts:
 
 1. When referencing a `proto`, the fully qualified name of the proto must be used (i.e. `protos.foo` instead of `foo`).
-2. The variables `$KEY3` and `$KEY_B` that were introduced in `protos.foo` and `protos.foo.bar` respectively are given values when the `proto` is `reference`d.
+2. The variables `$KEY3` and `$KEY_B` that were introduced in `protos.foo` and `protos.foo.bar` respectively are given values when the `proto` is `reference`d. These variables can be used in the following situations
+    - Alone, as the value in a key/value pair
+    - Within a string value (e.g. `key = "refer.to.$KEY3.thing"`)
+    - Within a [key-value reference](#key-value-references) (e.g. `key = $(reference.$THIS.var)`)
 3. `+extra_key` is an appended key. The `proto` "protos.foo" does not contain this key, but the resulting `struct fuzz`
    will contain this additional key.
 
@@ -151,7 +154,8 @@ end bar
 ```
 
 In this case, the key `bar.key2` is given the value of `foo.key2`, or in this case `1.4`. This construct can be
-used within the `struct`, `proto` or `reference` constructs. The syntax is `$(<flat_key>)`.
+used within the `struct`, `proto` or `reference` constructs. The syntax is `$(path.to.key)`. As mentioned in the
+[`reference` section](#reference-keyword), a key-value reference may include variables internally (e.g. `$(path.to.$KEY)`.
 
 ### Value types
 
