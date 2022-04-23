@@ -7,6 +7,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <tao/pegtl/contrib/parse_tree_to_dot.hpp>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "math_actions.h"
@@ -43,7 +44,7 @@ struct selector : peg::parse_tree::selector<
 }  // namespace grammar2
 
 int main() {
-  namespace math = grammar2;
+  namespace math = grammar1;
 
   struct grammar : peg::seq<Mo, math::E, Mc> {};
   auto ret = peg::analyze<grammar>();
@@ -62,10 +63,16 @@ int main() {
     ActionData out;
     const auto result = peg::parse<grammar, math::action>(in, out);
 
+    out.s.dump();
+    out.s.finish();
+    out.s.dump();
+
+    /*
     out.E.dump();
     out.T.dump();
     out.F.dump();
     out.P.dump();
+    */
     // std::cout << "result = " << out.s.finish() << std::endl;
     /*
     logger::info("out size = {}", out.stacks.size());
@@ -78,18 +85,23 @@ int main() {
     std::cout << std::endl;
   };
 
-  std::vector<std::string> test_strings = {
+  std::vector<std::pair<std::string, double>> test_strings = {
       /*"$VAR*$BAR - $C^$D - $E*$FOO",
       "$A ^ $(b.foo) * $C + $D + $(e.bar) ",
       "-$(x) * -($(y) + $(z))",*/
-      "3.14159 * 1e3",          "0.5 * (0.7 + 1.2)",           "0.5 + 0.7 * 1.2",
-      "3*0.27 - 2.3^0.5 - 5*4", "3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", "-4.7 * -(3.72 + 9.123)",
-      "1/3 * -(5 + 4)",
+      {"3.14159 * 1e3", 3141.5899999999997},
+      {"0.5 * (0.7 + 1.2)", 0.95},
+      {"0.5 + 0.7 * 1.2", 1.3399999999999999},
+      {"3*0.27 - 2.3^0.5 - 5*4", -20.70657508881031},
+      {"3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", 174.79264401590646},
+      {"-4.7 * -(3.72 + 9.123)", 60.362100000000005},
+      {"1/3 * -(5 + 4)", -3.0},
   };
 
   for (const auto& input : test_strings) {
-    std::cout << "Input: " << input << std::endl;
-    test_input(" {{  " + input + "   }}");
+    std::cout << "Input: " << input.first << std::endl;
+    test_input(" {{  " + input.first + "   }}");
+    std::cout << "Expected result: " << input.second << "\n\n\n";
   }
 
   return 0;
