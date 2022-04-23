@@ -70,6 +70,7 @@ struct EXP : peg::seq<Bpow, F> {};
 struct P;
 struct F : peg::seq<P, peg::opt<EXP>> {};
 struct N : peg::seq<Um, T> {};
-struct P : peg::sor<pd<v>, pd<pi>, peg::seq<Po, E, Pc>, N> {};
+struct BRACKET : peg::seq<Po, E, Pc> {};
+struct P : peg::sor<pd<v>, pd<pi>, BRACKET, N> {};
 
 }  // namespace grammar2

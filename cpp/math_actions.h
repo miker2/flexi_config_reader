@@ -7,6 +7,8 @@
 #include "logger.h"
 #include "math_grammar.h"
 
+namespace math {
+
 namespace ops {
 
 struct op {
@@ -16,7 +18,7 @@ struct op {
 };
 
 using OpsMap = std::map<std::string, op>;
-OpsMap ops = {
+const OpsMap map = {
     {"+", {.p = 6, .l = true, .f = std::plus<double>()}},
     {"-", {.p = 6, .l = true, .f = std::minus<double>()}},
     {"*", {.p = 8, .l = true, .f = std::multiplies<double>()}},
@@ -26,19 +28,10 @@ OpsMap ops = {
     {"**", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
     // This is a placeholder for the unary minus operator (represented as a binary multiply where
     // the first argument is discarded (generally a `-1`).
-    {"m", {.p = 10, .l = false, .f = [](double e, double x) -> double { return -x; }}}};
+    {"m", {.p = 10, .l = false, .f = [](double unused, double x) -> double { return -x; }}}};
 
-using OpMap = std::map<std::string, std::function<double(double, double)>>;
-OpMap map = {
-    {"+", std::plus<double>()},
-    {"-", std::minus<double>()},
-    {"*", std::multiplies<double>()},
-    {"/", std::divides<double>()},
-    {"^", [](double x, double e) -> double { return std::pow(x, e); }},
-    // This is a placeholder for the unary minus operator (represented as a binary multiply∑
-    {"m", [](double x, double e = -1) -> double { return e * x; }}};
-
-void reduce(std::vector<double>& vals, std::vector<std::string>& ops) {
+void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
+  assert(vals.size() == ops.size() + 1);
   // Extract the operands
   const auto rhs = vals.back();
   vals.pop_back();
@@ -49,7 +42,7 @@ void reduce(std::vector<double>& vals, std::vector<std::string>& ops) {
   const auto op = ops.back();
   ops.pop_back();
   // Compute the new value
-  const auto v = ops::ops[op].f(lhs, rhs);
+  const auto v = math::ops::map.at(op).f(lhs, rhs);
 
   logger::debug("Reducing: {} {} {} = {}", lhs, op, rhs, v);
   vals.push_back(v);
@@ -57,18 +50,19 @@ void reduce(std::vector<double>& vals, std::vector<std::string>& ops) {
 }
 }  // namespace ops
 
-namespace {
 class stack {
  public:
   void push(const std::string& op) {
     if (!ops_.empty()) {
       auto o2 = ops_.back();
-      while (!ops_.empty() && (ops::ops[o2].p > ops::ops[op].p ||
-                               (ops::ops[o2].p == ops::ops[op].p && ops::ops[op].l))) {
-        logger::info("{} > {}", ops::ops[o2].p, ops::ops[op].p);
-        logger::info("{} == {} && {}", ops::ops[o2].p, ops::ops[op].p, ops::ops[op].l);
+      while (!ops_.empty() &&
+             (math::ops::map.at(o2).p > math::ops::map.at(op).p ||
+              (math::ops::map.at(o2).p == math::ops::map.at(op).p && math::ops::map.at(op).l))) {
+        logger::info("{} > {}", math::ops::map.at(o2).p, math::ops::map.at(op).p);
+        logger::info("{} == {} && {}", math::ops::map.at(o2).p, math::ops::map.at(op).p,
+                     math::ops::map.at(op).l);
         logger::debug("Comparing {} and {}", op, o2);
-        ops::reduce(vs_, ops_);
+        math::ops::evalBack(vs_, ops_);
         if (!ops_.empty()) {
           o2 = ops_.back();
         }
@@ -85,7 +79,7 @@ class stack {
 
   auto finish() -> double {
     while (!ops_.empty()) {
-      reduce();
+      evalBack();
     }
     assert(vs_.size() == 1);
     const auto v = vs_.back();
@@ -112,14 +106,14 @@ class stack {
   std::vector<std::string> ops_;
   std::vector<double> vs_;
 
-  void reduce() {
-    logger::debug("In 'reduce' - ops={}, vs={}", ops_.size(), vs_.size());
+  void evalBack() {
+    logger::debug("In 'evalBack' - ops={}, vs={}", ops_.size(), vs_.size());
     assert(vs_.size() == ops_.size() + 1);
     if (ops_.size() == 0 && vs_.size() == 1) {
       // Nothing to do here
       return;
     }
-    ops::reduce(vs_, ops_);
+    math::ops::evalBack(vs_, ops_);
   }
 };
 
@@ -159,12 +153,13 @@ struct stacks {
  private:
   std::vector<stack> s_;
 };
-}  // namespace
+
+}  // namespace math
 
 struct ActionData {
-  stacks s;
+  math::stacks s;
 
-  std::vector<stack> stacks = {{}};
+  std::vector<math::stack> stacks = {{}};
 
   size_t bracket_cnt{0};
 
