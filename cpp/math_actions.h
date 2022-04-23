@@ -161,20 +161,12 @@ struct stacks {
 };
 }  // namespace
 
-void finalizeStack(std::vector<stack>& stacks_) {
-  logger::debug("Finalizing stacks: contains {} stack(s)", stacks_.size());
-  const auto r = stacks_.back().finish();
-  if (stacks_.size() > 1) {
-    stacks_.pop_back();
-  }
-  logger::trace("stacks size: {}", stacks_.size());
-  stacks_.back().push(r);
-}
-
 struct ActionData {
   stacks s;
 
   std::vector<stack> stacks = {{}};
+
+  size_t bracket_cnt{0};
 
   double res;
 };
@@ -216,17 +208,31 @@ struct action<Bo> {
 
 template <>
 struct action<Po> {
-  static void apply0(ActionData& out) { out.s.open(); }
+  static void apply0(ActionData& out) {
+    out.s.open();
+    out.bracket_cnt++;
+  }
 };
 
 template <>
 struct action<Pc> {
-  static void apply0(ActionData& out) { out.s.close(); }
+  static void apply0(ActionData& out) {
+    out.s.close();
+    out.bracket_cnt--;
+  }
 };
 
 template <>
 struct action<E> {
-  static void apply0(ActionData& out) { logger::warn("In E action."); }
+  static void apply0(ActionData& out) {
+    logger::warn("In E action.");
+    if (out.bracket_cnt == 0) {
+      out.s.dump();
+      logger::info("Finishing!");
+      out.res = out.s.finish();
+      out.s.dump();
+    }
+  }
 };
 
 }  // namespace grammar1

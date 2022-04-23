@@ -23,8 +23,6 @@
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
 // https://en.wikipedia.org/wiki/Shift-reduce_parser
 
-#define USE_GRAMMAR_1 0
-
 namespace grammar1 {
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
@@ -46,11 +44,7 @@ struct selector : peg::parse_tree::selector<
 }  // namespace grammar2
 
 int main() {
-#if USE_GRAMMAR_1
   namespace math = grammar1;
-#else
-  namespace math = grammar2;
-#endif
 
   struct grammar : peg::seq<Mo, math::E, Mc> {};
   auto ret = peg::analyze<grammar>();
@@ -69,20 +63,7 @@ int main() {
     ActionData out;
     const auto result = peg::parse<grammar, math::action>(in, out);
 
-#if USE_GRAMMAR_1
-    std::cout << std::string(10, '-') << std::endl;
-    out.s.dump();
-    out.res = out.s.finish();
-    out.s.dump();
-#endif
     std::cout << "Result: " << out.res << std::endl;
-
-    /*
-    logger::info("out size = {}", out.stacks.size());
-    for (const auto& s : out.stacks) {
-      s.dump();
-    }
-    */
 
     std::cout << "Parse success: " << (result == 0 ? "false" : "true") << std::endl;
     std::cout << std::endl;
@@ -101,7 +82,7 @@ int main() {
       {"3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", 174.79264401590646},
       {"-4.7 * -(3.72 + -pi)", 2.7185145281279732},
       {"1/3 * -(5 + 4)", -3.0},
-  };
+      {"3.4 * -(1.9**2 * (1/3.1 - 6) * (2.54- 17.0))", -1007.6399690322581}};
 
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
