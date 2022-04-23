@@ -9,10 +9,23 @@
 #include <vector>
 
 namespace utils {
-inline auto trim(std::string s, const std::string& sep = " \n\t\v\r\f") -> std::string {
+/// \brief Removes all instances of any char foundi in `sep` from the beginning and end of `s`
+/// \param[in] s - Input string
+/// \paarm[in] sep - A string containing all `char`s to trim
+/// \return The trimmed string
+inline auto trim(std::string s, const std::string& chars = " \n\t\v\r\f") -> std::string {
   std::string str(std::move(s));
-  str.erase(0, str.find_first_not_of(sep));
-  str.erase(str.find_last_not_of(sep) + 1U);
+  str.erase(0, str.find_first_not_of(chars));
+  str.erase(str.find_last_not_of(chars) + 1U);
+  return str;
+}
+
+inline auto removeSubStr(std::string s, const std::string& sub_str) -> std::string {
+  std::string str(std::move(s));
+  std::size_t pos = str.find(sub_str);
+  if (pos != std::string::npos) {
+    str.erase(pos, sub_str.size());
+  }
   return str;
 }
 

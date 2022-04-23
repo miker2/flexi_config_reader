@@ -267,16 +267,25 @@ struct action<VAR_REF> {
   static void apply(const ActionInput& in, ActionData& out) {
     // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
     // the existing key list.
-    const auto var_ref = utils::trim(in.string(), "$()");
+
+    // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the VAR_REF
+    // starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
+    const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
 #if VERBOSE_DEBUG
     CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
-    CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.flat_keys.back());
 #endif
+    const auto parts = utils::split(var_ref, '.');
+    for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
+      if (!out.keys.empty() && out.keys.back() == *it) {
+#if VERBOSE_DEBUG
+        CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.keys.back());
+#endif
+        out.keys.pop_back();
+      }
+    }
     out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
     out.obj_res->source = in.position().source;
     out.obj_res->line = in.position().line;
-
-    out.flat_keys.pop_back();
   }
 };
 
