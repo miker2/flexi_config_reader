@@ -218,17 +218,9 @@ struct action<pi> {
 template <>
 struct action<Um> {
   static void apply0(ActionData& out) {
-    // This is sneaky, but a simple way of making this work!
+    // Cheeky trick to support unary minus operator. Sneaky but simple!
+    out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
     out.s.push("m");
-    out.s.push(-1);
-  }
-};
-
-template <>
-struct action<Bo> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    out.s.push(in.string());
   }
 };
 
@@ -264,6 +256,16 @@ struct action<E> {
   }
 };
 
+/// Everything above here is common to both grammars. Everything below exclusive to this one.
+
+template <>
+struct action<Bo> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    out.s.push(in.string());
+  }
+};
+
 }  // namespace grammar1
 
 namespace grammar2 {
@@ -283,6 +285,49 @@ template <>
 struct action<pi> {
   static void apply0(ActionData& out) { out.s.push(M_PI); }
 };
+
+template <>
+struct action<Um> {
+  static void apply0(ActionData& out) {
+    // Cheeky trick to support unary minus operator. Sneaky but simple!
+    out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
+    out.s.push("m");
+  }
+};
+
+template <>
+struct action<Po> {
+  static void apply0(ActionData& out) {
+    out.s.open();
+    out.bracket_cnt++;
+  }
+};
+
+template <>
+struct action<Pc> {
+  static void apply0(ActionData& out) {
+    out.s.close();
+    out.bracket_cnt--;
+  }
+};
+
+template <>
+struct action<E> {
+  static void apply0(ActionData& out) {
+    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
+    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
+    // only want to call `finish` when not within brackets.
+    logger::warn("In E action.");
+    if (out.bracket_cnt == 0) {
+      out.s.dump();
+      logger::info("Finishing!");
+      out.res = out.s.finish();
+      out.s.dump();
+    }
+  }
+};
+
+/// Everything above here is common to both grammars. Everything below exclusive to this one.
 
 template <>
 struct action<PM> {
@@ -306,49 +351,6 @@ struct action<Bpow> {
   static void apply(const ActionInput& in, ActionData& out) {
     logger::warn("Found {}!", in.string());
     out.s.push(in.string());
-  }
-};
-
-template <>
-struct action<Um> {
-  static void apply0(ActionData& out) {
-    // Cheeky trick to support unary minus operator.
-    out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
-    out.s.push("m");
-  }
-};
-
-template <>
-struct action<Po> {
-  static void apply0(ActionData& out) {
-    logger::debug("Open parentheses, opening stack.");
-    out.s.open();
-    out.bracket_cnt++;
-  }
-};
-
-template <>
-struct action<Pc> {
-  static void apply0(ActionData& out) {
-    logger::debug("Close parentheses, closing stack.");
-    out.s.close();
-    out.bracket_cnt--;
-  }
-};
-
-template <>
-struct action<E> {
-  static void apply0(ActionData& out) {
-    logger::warn("In E action");
-    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
-    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
-    // only want to call `finish` when not within brackets.
-    if (out.bracket_cnt == 0) {
-      out.s.dump();
-      logger::info("Finishing!");
-      out.res = out.s.finish();
-      out.s.dump();
-    }
   }
 };
 
