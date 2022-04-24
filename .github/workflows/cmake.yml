@@ -1,4 +1,4 @@
-name: CMake
+name: CI Linux
 
 on:
   push:
@@ -6,19 +6,44 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-  CC: gcc-10
-  CXX: g++-10
-  GCOV: gcov-10
-
 jobs:
   build:
+    name: ${{ matrix.name }} ${{ matrix.build_type }}
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    env:
+      # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+      BUILD_TYPE: ${{ matrix.build_type }}
+      CTEST_OUTPUT_ON_FAILURE: ON
+    strategy:
+      fail-fast: false
+      matrix:
+
+        name: [
+          ubuntu-18.04-gcc-10,
+          ubuntu-20.04-clang-13,
+          mac-os-latest
+        ]
+
+        build_type: [Debug, Release]
+        include:
+          - name: ubuntu-18.04-gcc-10
+            os: ubuntu-18.04
+            compiler: gcc
+            version: "10"
+
+          - name: ubuntu-20.04-clang-13
+            os: ubuntu-20.04
+            compiler: clang
+            version: "13"
+
+          - name: mac-os-latest
+            os: macos-latest
+            CC: clang
+            CXX: clang++
 
     steps:
     - uses: actions/checkout@v2
@@ -26,7 +51,33 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install -y build-essential ninja-build python-is-python3 clang-10
+        if [ "${{ runner.os }}" = "Linux" ]; then
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+            sudo add-apt-repository --yes --update \
+                "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.version }} main"
+            #deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.version }} main
+          fi
+          sudo apt-get -y update
+          # sudo apt-get -y upgrade
+
+          sudo apt-get install -y build-essential ninja-build g++ clang  #python-is-python3
+
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+          else
+            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
+            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+          fi
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          brew install ninja
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        fi
+      shell: bash
 
     - uses: actions/checkout@v2
       with:
