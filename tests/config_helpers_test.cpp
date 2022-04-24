@@ -94,7 +94,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     const std::vector<std::string> inner_keys = {"key1", "key2", "key3", "key4"};
     // NOTE: The value of the keys below don't matter for this test, so just use the empty string
 
-    // cfg1 bcomes:
+    // cfg1 is:
     //  struct key
     //    key1 = ""
     //    key2 = ""
@@ -106,7 +106,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     cfg1_struct->data = std::move(cfg1_inner);
     config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
-    // cfg2 bcomes:
+    // cfg2 is:
     //  struct key
     //    key3 = ""
     //    key4 = ""
@@ -127,9 +127,11 @@ TEST(config_helpers_test, mergeNestedMaps) {
     config::types::CfgMap cfg_out{};
     ASSERT_NO_THROW(cfg_out = config::helpers::mergeNestedMaps(cfg1, cfg2));
 
-    // The inner struct should contain all of the above keys.
+    // The resulting map contains the top level key.
     ASSERT_TRUE(cfg_out.contains(key));
+    ASSERT_EQ(cfg_out.size(), 1);
 
+    // The inner struct should contain all of the above keys.
     const auto inner_map = dynamic_pointer_cast<config::types::ConfigStruct>(cfg_out.at(key));
     for (const auto& k : inner_keys) {
       ASSERT_TRUE(inner_map->data.contains(k));
@@ -139,7 +141,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     // This test should fail due to an exception
     const std::string key = "key";
     const std::vector<std::string> inner_keys = {"key1", "key2", "key3"};
-    // cfg1 bcomes:
+    // cfg1 is:
     //  struct key
     //    key1 = ""
     //    key2 = ""
@@ -151,10 +153,10 @@ TEST(config_helpers_test, mergeNestedMaps) {
     cfg1_struct->data = std::move(cfg1_inner);
     config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
-    // cfg1 bcomes:
+    // cfg1 is:
     //  struct key
     //    key3 = ""
-    //    key2 = ""  <-- Duplicate key here
+    //    key2 = ""  <-- Duplicate key here, will fail.
     config::types::CfgMap cfg2_inner = {
         {inner_keys[2], std::make_shared<config::types::ConfigValue>("")},
         // This key is duplicated in the struct above (cfg1_inner), which will cause a failure.
@@ -175,7 +177,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     const std::vector<std::string> keys = {"key1", "key2", "key3", "key4"};
     // NOTE: The value of the keys below don't matter for this test, so just use the empty string
 
-    // cfg1 bcomes:
+    // cfg1 is:
     //  struct outer
     //    key1 = ""
     //    key2 = ""
@@ -196,7 +198,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     cfg1_outer->data = std::move(cfg1_lvl1);
     config::types::CfgMap cfg1 = {{cfg1_outer->name, std::move(cfg1_outer)}};
 
-    // cfg2 bcomes:
+    // cfg2 is:
     //  struct outer
     //    key3 = ""
     //    key4 = ""
@@ -232,8 +234,9 @@ TEST(config_helpers_test, mergeNestedMaps) {
     config::types::CfgMap cfg_out{};
     ASSERT_NO_THROW(cfg_out = config::helpers::mergeNestedMaps(cfg1, cfg2));
 
-    // The inner struct should contain all of the above keys.
+    // The inner struct should contain all of the above keys and no more.
     ASSERT_TRUE(cfg_out.contains(key_lvl0));
+    ASSERT_EQ(cfg_out.size(), 1);
 
     const auto outer_map = dynamic_pointer_cast<config::types::ConfigStruct>(cfg_out.at(key_lvl0));
     for (const auto& k : keys) {
@@ -331,5 +334,90 @@ TEST(config_helpers_test, structFromReference) {
   }
   {
     // TODO: Consider adding a more complex test with a proto that has nested values.
+  }
+}
+
+TEST(config_helpers_test, replaceVarInStr) {
+  {
+    const std::string input = "this.is.a.$VAR";
+    const std::string expected = "this.is.a.var";
+
+    const config::types::RefMap ref_vars = {
+        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_EQ(output, expected);
+  }
+
+  {
+    // Now with a braced var
+    const std::string input = "this.is.a.${VAR}";
+    const std::string expected = "this.is.a.var";
+
+    const config::types::RefMap ref_vars = {
+        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_EQ(output, expected);
+  }
+
+  {
+    // Two vars, one brace, one not.
+    const std::string input = "this $CONTAINS_two_${VARS}";
+    const std::string expected = "this contains_two_vars";
+
+    const config::types::RefMap ref_vars = {
+        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("vars")")},
+        {"$EXTRA", std::make_shared<config::types::ConfigValue>("extra unused")},  // extra, unused
+        {"$CONTAINS", std::make_shared<config::types::ConfigValue>(R"("contains")")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_EQ(output, expected);
+  }
+
+  {
+    // The input string may be a value lookup string:
+    const std::string input = "$($LOTS.$OF.${VARS})";
+    const std::string expected = "$(a.value.lookup)";
+
+    const config::types::RefMap ref_vars = {
+        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("lookup")")},
+        {"$LOTS", std::make_shared<config::types::ConfigValue>(R"("a")")},
+        {"$OF", std::make_shared<config::types::ConfigValue>(R"("value")")},
+        // A a few extra vars here. They won't be used, and shouldn't affect the output.
+        {"$EXTRA", std::make_shared<config::types::ConfigValue>("Extra")},
+        {"$KEYS", std::make_shared<config::types::ConfigValue>(" keys ")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_EQ(output, expected);
+  }
+
+  {
+    const std::string input = "this.$SHOULD_PASS.the.test";  // <-- This is ambiguous
+    const std::string expected = "this.should_PASS.the.test";
+
+    const config::types::RefMap ref_vars = {
+        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_EQ(output, expected);
+  }
+
+  {
+    const std::string input = "this.${SHOULD_NOT}.match";  // <-- less ambiguous
+    const std::string expected = "this.should_NOT.match";
+    ;
+
+    const config::types::RefMap ref_vars = {
+        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")")}};
+
+    const auto output = config::helpers::replaceVarInStr(input, ref_vars);
+
+    EXPECT_NE(output, expected);
   }
 }
