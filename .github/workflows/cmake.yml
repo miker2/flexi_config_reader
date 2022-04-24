@@ -128,3 +128,4 @@ jobs:
         for i in `seq 1 8`; do
           ${{github.workspace}}/build/cpp/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
+        ${{github.workspace}}/build/cpp/math_grammar
