@@ -5,7 +5,7 @@
 #include <exception>
 
 #define THROW_EXCEPTION(E_TYPE, MSG_F, ...) \
-  throw E_TYPE(fmt::format(MSG_F " - {}:{}", ##__VA_ARGS__, __FILE__, __LINE__));
+  throw E_TYPE(fmt::format(MSG_F " - at {}:{}", ##__VA_ARGS__, __FILE__, __LINE__));
 
 namespace config {
 
@@ -53,6 +53,11 @@ class UndefinedReferenceVarException : public std::runtime_error {
 class UndefinedProtoException : public std::runtime_error {
  public:
   explicit UndefinedProtoException(const std::string& message) : std::runtime_error(message){};
+};
+
+class CyclicReferenceException : public std::runtime_error {
+ public:
+  explicit CyclicReferenceException(const std::string& message) : std::runtime_error(message){};
 };
 
 }  // namespace config

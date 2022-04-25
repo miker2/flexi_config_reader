@@ -84,6 +84,19 @@ inline auto makeName(const std::string& n1, const std::string& n2 = "") -> std::
   return n1 + "." + n2;
 }
 
+// A generic `contains` method that works for any "iterable" type.
+template <class C, class T>
+auto contains(const C& v, const T& x) -> decltype(end(v), true) {
+  constexpr bool has_contains = requires(const C& t, const T& x) { t.contains(x); };
+
+  if constexpr (has_contains) {
+    // Special case if the container has a 'contains' method.
+    return v.contains(x);
+  } else {
+    return end(v) != std::find(begin(v), end(v), x);
+  }
+}
+
 }  // namespace utils
 
 template <typename T>
