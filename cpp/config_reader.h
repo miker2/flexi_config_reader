@@ -63,8 +63,10 @@ class ConfigReader {
   /// \param[in/out] cfg_map
   /// \param[in] base_name - starting point for resolving references
   /// \param[in] ref_vars - map of all reference variables available in the current context
+  /// \param[in] refd_protos - vector of all protos already referenced. Used to track cycles.
   void resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                         const config::types::RefMap& ref_vars);
+                         const config::types::RefMap& ref_vars,
+                         const std::vector<std::string>& refd_protos = {});
 
   void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree,
                       const std::string& parent_key = "");
