@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <range/v3/view/drop_last.hpp>
+#include <string>
 #include <vector>
 
 #include "config_actions.h"
@@ -65,7 +66,8 @@ class ConfigReader {
   void resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
                          const config::types::RefMap& ref_vars);
 
-  void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree);
+  void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree,
+                      const std::string& parent_key = "");
 
   config::ActionData out_;
   std::map<std::string, std::shared_ptr<config::types::ConfigProto>> protos_{};
