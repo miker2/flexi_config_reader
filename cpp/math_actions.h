@@ -241,12 +241,12 @@ struct action<Pc> {
 };
 
 template <>
-struct action<E> {
+struct action<expression> {
   static void apply0(ActionData& out) {
-    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
-    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
-    // only want to call `finish` when not within brackets.
-    logger::warn("In E action.");
+    // The top-most stack is automatically "finished" when leaving a bracketed operation. The
+    // `expression` rule is also contained within a bracketed operation, but is also the terminal
+    // rule, so we only want to call `finish` when not within brackets.
+    logger::warn("In expression action.");
     if (out.bracket_cnt == 0) {
       out.s.dump();
       logger::info("Finishing!");
@@ -312,12 +312,12 @@ struct action<Pc> {
 };
 
 template <>
-struct action<E> {
+struct action<expression> {
   static void apply0(ActionData& out) {
-    // The top-most stack is automatically "finished" when leaving a bracketed operation. The `E`
-    // rule is also contained within a bracketed operation, but is also the terminal rule, so we
-    // only want to call `finish` when not within brackets.
-    logger::warn("In E action.");
+    // The top-most stack is automatically "finished" when leaving a bracketed operation. The
+    // `expression` rule is also contained within a bracketed operation, but is also the terminal
+    // rule, so we only want to call `finish` when not within brackets.
+    logger::warn("In expression action.");
     if (out.bracket_cnt == 0) {
       out.s.dump();
       logger::info("Finishing!");

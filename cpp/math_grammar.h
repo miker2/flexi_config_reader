@@ -37,40 +37,40 @@ struct v : peg::sor<config::NUMBER, config::VAR, config::VAR_REF> {};
 
 namespace grammar1 {
 // Grammar G1:
-//    E --> P {B P}
-//    P --> v | "(" E ")" | U P
+//    expression --> P {B P}
+//    P --> v | "(" expression ")" | U P
 //    B --> "+" | "-" | "*" | "/" | "^"
 //    U --> "-"
 
-struct E;
-struct BRACKET : peg::seq<Po, E, Pc> {};
+struct expression;
+struct BRACKET : peg::seq<Po, expression, Pc> {};
 struct atom : peg::sor<v, BRACKET, pi> {};
 struct P;
 struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};  // <-- recursive rule
-struct E : peg::list<P, Bo, ignored> {};                       // <-- Terminal
+struct expression : peg::list<P, Bo, ignored> {};              // <-- Terminal
 
 }  // namespace grammar1
 
 namespace grammar2 {
 /*
-E --> T {( "+" | "-" ) T}
+expression --> T {( "+" | "-" ) T}
 T --> F {( "*" | "/" ) F}
 F --> P ["^" F]
-P --> v | "(" E ")" | "-" T
+P --> v | "(" expression ")" | "-" T
 */
 
 struct PM : peg::sor<Bplus, Bminus> {};
 struct MD : peg::sor<Bmult, Bdiv> {};
 
-struct T;
-struct E : peg::seq<T, peg::star<pd<PM>, T>> {};  // <-- Terminal
 struct F;
-struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
 struct EXP : peg::seq<Bpow, F> {};
 struct P;
 struct F : peg::seq<P, peg::opt<EXP>> {};
+struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
 struct N : peg::seq<Um, T> {};
-struct BRACKET : peg::seq<Po, E, Pc> {};
+struct expression;
+struct BRACKET : peg::seq<Po, expression, Pc> {};
 struct P : peg::sor<pd<v>, pd<pi>, BRACKET, N> {};
+struct expression : peg::seq<T, peg::star<pd<PM>, T>> {};  // <-- Terminal
 
 }  // namespace grammar2

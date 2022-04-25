@@ -26,7 +26,7 @@
 namespace grammar1 {
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
-                      Rule, peg::parse_tree::store_content::on<v, E, Bo, Uo>,
+                      Rule, peg::parse_tree::store_content::on<v, expression, Bo, Uo>,
                       peg::parse_tree::remove_content::on</*Um, Bplus, Bminus, Bmult, Bdiv, Bpow*/>,
                       peg::parse_tree::fold_one::on<P, BRACKET>> {};
 
@@ -36,10 +36,11 @@ namespace grammar2 {
 // template< typename Rule > struct selector : std::true_type {};
 
 template <typename Rule>
-struct selector : peg::parse_tree::selector<
-                      Rule, peg::parse_tree::store_content::on<v, E, T, F, P, PM, MD, Bpow, N>,
-                      peg::parse_tree::remove_content::on</*Um, Bplus, Bminus, Bmult, Bdiv, Bpow*/>,
-                      peg::parse_tree::fold_one::on<EXP>> {};
+struct selector
+    : peg::parse_tree::selector<
+          Rule, peg::parse_tree::store_content::on<v, expression, T, F, P, PM, MD, Bpow, N>,
+          peg::parse_tree::remove_content::on</*Um, Bplus, Bminus, Bmult, Bdiv, Bpow*/>,
+          peg::parse_tree::fold_one::on<EXP>> {};
 
 }  // namespace grammar2
 
@@ -48,7 +49,7 @@ auto nearEq(double res, double exp_res, double tol = 1e-8) { return abs(exp_res 
 int main() {
   namespace math = grammar1;
 
-  struct grammar : peg::seq<Mo, math::E, Mc> {};
+  struct grammar : peg::seq<Mo, math::expression, Mc> {};
   auto ret = peg::analyze<grammar>();
 
   std::cout << "Grammar is valid: " << (ret == 0 ? "true" : "false") << std::endl;
