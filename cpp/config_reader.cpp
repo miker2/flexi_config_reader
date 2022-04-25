@@ -234,12 +234,9 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
   }
 }
 
-/// \brief Walk through CfgMap and find all references. Convert them to structs
-/// \param[in/out] cfg_map
-/// \param[in] base_name - ???
-/// \param[in] ref_vars - map of all reference variables available in the current context
 void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                                     const config::types::RefMap& ref_vars) {
+                                     const config::types::RefMap& ref_vars,
+                                     const std::vector<std::string>& refd_protos) {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -266,6 +263,15 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
         THROW_EXCEPTION(config::UndefinedProtoException,
                         "Unable to find proto '{}' referenced by '{}'.", v_ref->proto, new_name);
       }
+      if (utils::contains(refd_protos, v_ref->proto)) {
+        THROW_EXCEPTION(config::CyclicReferenceException,
+                        "Cyclic reference found when resolving reference at '{}'. Proto '{}' "
+                        "already referenced.\n  References: [{}]",
+                        new_name, v_ref->proto, fmt::join(refd_protos, " -> "));
+      }
+      // Need to make a copy of the already referenced protos and add the new proto to it.
+      auto updated_refd_protos = refd_protos;
+      updated_refd_protos.emplace_back(v_ref->proto);  // This will be passed to recursive calls.
       auto& p = protos_.at(v_ref->proto);
       logger::trace(
           "Creating struct from reference:\n"
@@ -290,17 +296,17 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       // Replace the existing reference with the new struct that was created.
       cfg_map[k] = new_struct;
       // Call recursively in case the current reference has another reference
-      resolveReferences(new_struct->data, utils::makeName(new_name, k), updated_ref_vars);
+      resolveReferences(new_struct->data, new_name, updated_ref_vars, updated_refd_protos);
 
     } else if (v->type == config::types::Type::kStructInProto) {
       // Resolve all proto/reference variables based on the values provided.
       auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(v);
       config::helpers::replaceProtoVar(struct_like->data, ref_vars);
 
-      resolveReferences(struct_like->data, new_name, ref_vars);
+      resolveReferences(struct_like->data, new_name, ref_vars, refd_protos);
     } else if (v->type == config::types::Type::kStruct) {
       resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
-                        ref_vars);
+                        ref_vars, refd_protos);
     }
   }
 }
