@@ -31,9 +31,10 @@ constexpr std::size_t tw{4};  // The width of the indentation
 namespace config::types {
 
 class ConfigBase;
-class ConfigVar;
 using CfgMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
 using RefMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
+class ConfigProto;
+using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
 
 enum class Type {
   kValue,

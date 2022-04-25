@@ -86,7 +86,7 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
 #endif
 
   logger::trace("{0} Resolving References {0}", debug_sep);
-  resolveReferences(cfg_data_, "", {});
+  resolveReferences(cfg_data_, "");
   logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
 
   // Unflatten any flat keys:
@@ -99,7 +99,7 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     config::helpers::unflatten(key, cfg_data_);
   }
 
-  resolveVarRefs(cfg_data_, cfg_data_);
+  config::helpers::resolveVarRefs(cfg_data_, cfg_data_);
 
   // Removes empty structs, fixes incorrect depth, etc.
   config::helpers::cleanupConfig(cfg_data_);
@@ -181,7 +181,7 @@ auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
   return flattened;
 }
 
-auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in)
+auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in) const
     -> config::types::CfgMap {
   if (in.empty()) {
     // TODO: Throw exception here? How to handle empty vector?
@@ -212,7 +212,7 @@ auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in)
 
 /// \brief Remove the protos from merged dictionary
 /// \param[in/out] cfg_map - The top level (resolved) config map
-void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
+void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
   // For each entry in the protos map, find the corresponding entry in the resolved config and
   // remove the proto. This isn't strictly necessary, but it simplifies some things later when
   // trying to resolve references and other variables.
@@ -236,7 +236,7 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) {
 
 void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
                                      const config::types::RefMap& ref_vars,
-                                     const std::vector<std::string>& refd_protos) {
+                                     const std::vector<std::string>& refd_protos) const {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -307,48 +307,6 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
     } else if (v->type == config::types::Type::kStruct) {
       resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
                         ref_vars, refd_protos);
-    }
-  }
-}
-
-void ConfigReader::resolveVarRefs(const config::types::CfgMap& root,
-                                  config::types::CfgMap& sub_tree, const std::string& parent_key) {
-  for (const auto& kv : sub_tree) {
-    const auto src_key = utils::makeName(parent_key, kv.first);
-    if (kv.second->type == config::types::Type::kValueLookup) {
-      // Add the source key to the reference list (if we ever get back to this key, it's a failure).
-      std::vector<std::string> refs = {src_key};
-      logger::trace("For {}, found {} (type={}).", src_key, kv.second, kv.second->type);
-      // Initialize 'value' for use within the loop.
-      auto value = kv.second;
-      // Follow the kValueLookup objects until:
-      //  (a) A terminal value is found, upon which the value is used.
-      //  (b) A cycle is found, upon which an exception is thrown.
-      do {
-        auto kv_lookup = dynamic_pointer_cast<config::types::ConfigValueLookup>(value);
-        if (utils::contains(refs, kv_lookup->var())) {
-          // This key has already been traversed/referenced. A cycle has been found!
-          THROW_EXCEPTION(config::CyclicReferenceException,
-                          "For {}, found a cyclic reference when trying to resolve {}.\n  "
-                          "Reference chain: [{}]\n",
-                          src_key, kv.second, fmt::join(refs, " -> "));
-        }
-        // Get the new value based on the kValueLookup object.
-        value = config::helpers::getConfigValue(root, kv_lookup);
-        logger::trace("{} points to {}", static_pointer_cast<config::types::ConfigBase>(kv_lookup),
-                      value);
-        // Add this key to the list of references/dependencies
-        refs.emplace_back(kv_lookup->var());
-        logger::trace("refs: [{}]", fmt::join(refs, " -> "));
-      } while (value->type == config::types::Type::kValueLookup);
-      logger::debug("{} contains instance of ValueLookup: {}. Has value={}", src_key, kv.second,
-                    value);
-
-      // If we've gotten here, then we can set the value of this key!
-      sub_tree[kv.first] = value;
-    } else if (config::helpers::isStructLike(kv.second)) {
-      resolveVarRefs(root, dynamic_pointer_cast<config::types::ConfigStructLike>(kv.second)->data,
-                     src_key);
     }
   }
 }
