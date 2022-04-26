@@ -421,3 +421,31 @@ TEST(config_helpers_test, replaceVarInStr) {
     EXPECT_NE(output, expected);
   }
 }
+
+TEST(config_helpers_test, resolveVarRefs) {
+  {
+    const std::string expected_value = "10";
+    auto struct_like = std::make_shared<config::types::ConfigStruct>("inner", 0);
+    struct_like->data = {{"key1", std::make_shared<config::types::ConfigValue>(expected_value)},
+                         {"key2", std::make_shared<config::types::ConfigValueLookup>("outer")}};
+    config::types::CfgMap cfg = {
+        {"outer", std::make_shared<config::types::ConfigValueLookup>("inner.key1")},
+        {struct_like->name, struct_like}};
+
+    EXPECT_NO_THROW(config::helpers::resolveVarRefs(cfg, cfg));
+
+    ASSERT_EQ(cfg["outer"]->type, config::types::Type::kValue);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(cfg["outer"])->value, expected_value);
+
+    ASSERT_EQ(struct_like->data["key2"]->type, config::types::Type::kValue);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(struct_like->data["key2"])->value, expected_value);
+  }
+  {
+    config::types::CfgMap cfg = {
+        {"foo", std::make_shared<config::types::ConfigValueLookup>("bar")},
+        {"bar", std::make_shared<config::types::ConfigValueLookup>("baz")},
+        {"baz", std::make_shared<config::types::ConfigValueLookup>("foo")}};
+
+    EXPECT_THROW(config::helpers::resolveVarRefs(cfg, cfg), config::CyclicReferenceException);
+  }
+}
