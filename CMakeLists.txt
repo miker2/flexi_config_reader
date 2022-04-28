@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 
 project (FLEXI_CONFIG_READER)
@@ -8,7 +10,6 @@ project (FLEXI_CONFIG_READER)
 include(${CMAKE_SOURCE_DIR}/cmake/colours.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/add_clang_format.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-
 include(FetchContent)
 # Get taocpp::pegtl
 FetchContent_Declare(
@@ -70,6 +71,27 @@ else(ENABLE_CLANG_TIDY)
 endif(ENABLE_CLANG_TIDY)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
+
+include(code-coverage.cmake)
+
+add_code_coverage()
+add_code_coverage_all_targets()
+
+if(COLLECT_CODE_COVERAGE)
+	include(CodeCoverage.cmake)
+	append_coverage_compiler_flags()
+
+	set(COVERAGE_EXCLUDES
+		"/Application/Xcode.app/*"
+		"opt/local/*"
+		"*/_deps/*"
+	)
+
+	setup_target_for_coverage_gcovr_html(
+		NAME ctest_coverage
+		EXECUTABLE ctest
+	)
+endif()
 
 add_subdirectory(cpp)
 
