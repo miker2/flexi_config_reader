@@ -58,3 +58,23 @@ target_include_directories(config_grammar_test PRIVATE
 	)
 
 gtest_discover_tests(config_grammar_test)
+
+################################################################################
+add_executable(
+	math_test
+	math_test.cpp
+	)
+
+target_link_libraries(
+	math_test
+	taocpp::pegtl
+	fmt::fmt
+	magic_enum::magic_enum
+	gtest_main
+	)
+
+target_include_directories(math_test PRIVATE
+	${CMAKE_SOURCE_DIR}/cpp/
+	)
+
+gtest_discover_tests(math_test)

@@ -16,6 +16,13 @@
 // This article was also extremely useful during development:
 //   https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
 
+// Also usefule info:
+// See: https://godbolt.org/z/7vdE6aYdh
+//      https://godbolt.org/z/9aeh7hvjv
+//      https://godbolt.org/z/35c19neYG
+// https://marginalhacks.com/Hacks/libExpr.rb/
+
+
 namespace math {
 
 namespace ops {
