@@ -152,6 +152,10 @@ TEST(config_grammar, FLOAT) {
     checkFloat(content);
   }
   {
+    std::string content = "1e3";
+    checkFloat(content);
+  }
+  {
     // This will fail due to the leading zero.
     std::string content = "01.23";
     std::optional<RetType> ret;
