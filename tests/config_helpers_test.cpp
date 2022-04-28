@@ -435,10 +435,12 @@ TEST(config_helpers_test, resolveVarRefs) {
     EXPECT_NO_THROW(config::helpers::resolveVarRefs(cfg, cfg));
 
     ASSERT_EQ(cfg["outer"]->type, config::types::Type::kValue);
-    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(cfg["outer"])->value, expected_value);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(cfg["outer"])->value,
+              expected_value);
 
     ASSERT_EQ(struct_like->data["key2"]->type, config::types::Type::kValue);
-    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(struct_like->data["key2"])->value, expected_value);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(struct_like->data["key2"])->value,
+              expected_value);
   }
   {
     config::types::CfgMap cfg = {

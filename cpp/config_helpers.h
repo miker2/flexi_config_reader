@@ -306,8 +306,8 @@ inline auto getConfigValue(const config::types::CfgMap& cfg,
   return cfg.at(var->keys.back());
 }
 
-inline void resolveVarRefs(const config::types::CfgMap& root,
-                           config::types::CfgMap& sub_tree, const std::string& parent_key = "") {
+inline void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree,
+                           const std::string& parent_key = "") {
   for (const auto& kv : sub_tree) {
     const auto src_key = utils::makeName(parent_key, kv.first);
     if (kv.second->type == config::types::Type::kValueLookup) {

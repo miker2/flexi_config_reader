@@ -22,7 +22,6 @@
 //      https://godbolt.org/z/35c19neYG
 // https://marginalhacks.com/Hacks/libExpr.rb/
 
-
 namespace math {
 
 namespace ops {
