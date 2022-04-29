@@ -5,7 +5,7 @@
 #include <exception>
 
 #define THROW_EXCEPTION(E_TYPE, MSG_F, ...) \
-  throw E_TYPE(fmt::format(MSG_F " - at {}:{}", ##__VA_ARGS__, __FILE__, __LINE__));
+  throw E_TYPE(fmt::format("At {}:{} \n" MSG_F, __FILE__, __LINE__, ##__VA_ARGS__));
 
 namespace config {
 
