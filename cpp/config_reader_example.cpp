@@ -1,7 +1,6 @@
 // Read a configuration file and get values from it.
 
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
 #include <array>
 #include <exception>
