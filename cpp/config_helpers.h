@@ -286,31 +286,36 @@ inline auto getNestedConfig(const config::types::CfgMap& cfg, const std::string&
   return getNestedConfig(cfg, keys);
 }
 
-inline auto getConfigValue(const config::types::CfgMap& cfg,
-                           const std::shared_ptr<config::types::ConfigValueLookup>& var)
+inline auto getConfigValue(const config::types::CfgMap& cfg, const std::vector<std::string>& keys)
     -> std::shared_ptr<config::types::ConfigBase> {
   // Get the struct-like object containing the last key of the ConfigValueLookup:
-  const auto struct_like = getNestedConfig(cfg, var->keys);
+  const auto struct_like = getNestedConfig(cfg, keys);
   // Extract the value from the struct-like object by accessing the internal data and locating the
   // requested key.
   if (struct_like != nullptr) {
-    if (!struct_like->data.contains(var->keys.back())) {
-      auto keys = var->keys;
-      keys.pop_back();
-      THROW_EXCEPTION(config::InvalidKeyException, "Unable to find '{}' in '{}'!", var->keys.back(),
-                      utils::join(keys, "."));
+    if (!struct_like->data.contains(keys.back())) {
+      auto keys_minus_tail = keys;
+      keys_minus_tail.pop_back();
+      THROW_EXCEPTION(config::InvalidKeyException, "Unable to find '{}' in '{}'!", keys.back(),
+                      utils::join(keys_minus_tail, "."));
     }
-    return struct_like->data.at(var->keys.back());
+    return struct_like->data.at(keys.back());
   }
 
-  return cfg.at(var->keys.back());
+  return cfg.at(keys.back());
+}
+
+inline auto getConfigValue(const config::types::CfgMap& cfg,
+                           const std::shared_ptr<config::types::ConfigValueLookup>& var)
+    -> std::shared_ptr<config::types::ConfigBase> {
+  return getConfigValue(cfg, var->keys);
 }
 
 inline void resolveVarRefs(const config::types::CfgMap& root, config::types::CfgMap& sub_tree,
                            const std::string& parent_key = "") {
   for (const auto& kv : sub_tree) {
     const auto src_key = utils::makeName(parent_key, kv.first);
-    if (kv.second->type == config::types::Type::kValueLookup) {
+    if (kv.second && kv.second->type == config::types::Type::kValueLookup) {
       // Add the source key to the reference list (if we ever get back to this key, it's a failure).
       std::vector<std::string> refs = {src_key};
       logger::trace("For {}, found {} (type={}).", src_key, kv.second, kv.second->type);

@@ -324,7 +324,11 @@ struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<st
   template <typename FormatContext>
   auto format(const std::shared_ptr<config::types::ConfigBase>& cfg, FormatContext& ctx) {
     std::stringstream ss;
-    cfg->stream(ss);
+    if (cfg != nullptr) {
+      cfg->stream(ss);
+    } else {
+      ss << "NULL";
+    }
     return formatter<std::string>::format(ss.str(), ctx);
   }
 };

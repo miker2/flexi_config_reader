@@ -93,11 +93,6 @@ struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, ENDk> {};
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
 
-struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
-// Allow for VAR to be expessed as: $VAR or ${VAR}
-struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
-};
-
 struct sign : peg::one<'+', '-'> {};
 struct exp : peg::seq<peg::one<'e', 'E'>, peg::opt<sign>, peg::plus<peg::digit>> {};
 
@@ -125,6 +120,11 @@ struct VALUE : peg::sor<VAL_, LIST> {};
 // Account for all reserved keywords when looking for keys
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
+
+struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
+// Allow for VAR to be expessed as: $VAR or ${VAR}
+struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
+};
 
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                           peg::one<')'>> {};
