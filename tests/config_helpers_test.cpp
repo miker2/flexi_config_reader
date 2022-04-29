@@ -5,6 +5,7 @@
 #include <magic_enum.hpp>
 
 #include "config_classes.h"
+#include "config_exceptions.h"
 
 namespace {
 template <typename T, typename... Args>

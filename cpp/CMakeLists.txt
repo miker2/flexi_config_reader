@@ -17,7 +17,7 @@ target_link_libraries(config_test
   fmt::fmt
   range-v3::range-v3)
 
-add_executable(config_build config_build.cpp config_reader.cpp)
+add_executable(config_build config_build.cpp config_reader.cpp config_helpers.cpp)
 target_link_libraries(config_build
   PRIVATE
   taocpp::pegtl
@@ -25,7 +25,7 @@ target_link_libraries(config_build
   fmt::fmt
   range-v3::range-v3)
 
-add_executable(config_reader_example config_reader_example.cpp config_reader.cpp)
+add_executable(config_reader_example config_reader_example.cpp config_reader.cpp config_helpers.cpp)
 target_link_libraries(config_reader_example
   PRIVATE
   taocpp::pegtl
