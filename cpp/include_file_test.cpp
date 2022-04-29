@@ -10,21 +10,11 @@
 #include <tao/pegtl/contrib/trace.hpp>
 #include <vector>
 
+#include "config_grammar.h"
+
 namespace peg = TAO_PEGTL_NAMESPACE;
 
 namespace filename {
-
-struct DOTDOT : peg::two<'.'> {};
-struct EXT : TAO_PEGTL_KEYWORD(".cfg") {};
-struct SEP : peg::one<'/'> {};
-
-struct ALPHAPLUS
-    : peg::plus<peg::sor<peg::ranges<'A', 'Z', 'a', 'z', '0', '9', '_'>, peg::one<'-'>>> {};
-
-struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
-struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
-
-struct grammar : peg::must<FILENAME> {};
 
 template <typename Rule>
 using selector =
@@ -38,50 +28,6 @@ struct INCLUDE : TAO_PEGTL_KEYWORD("#include") {};
 
 struct grammar : peg::seq<INCLUDE, peg::plus<peg::blank>, filename::FILENAME> {};
 }  // namespace include_file
-
-#if 0
-template <typename GTYPE>
-auto runTest(size_t idx, const std::string &test_str, bool pdot = true)
-    -> bool {
-  std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-  std::cout << "Parsing example " << idx << ":\n";
-  std::cout << test_str << std::endl;
-  std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
-
-  peg::memory_input in(test_str, "example " + std::to_string(idx));
-
-  bool ret{false};
-  std::string out;
-  try {
-    if (const auto root = peg::parse_tree::parse<GTYPE, filename::selector>(in)) {
-      if (pdot) {
-        peg::parse_tree::print_dot(std::cout, *root);
-      }
-      std::cout << "  Parse tree success.\n";
-    } else {
-      std::cout << "  Parse tree failure!\n";
-      in.restart();
-      peg::standard_trace<GTYPE>(in);
-    }
-
-    in.restart();
-    ret = peg::parse<GTYPE>(in);
-    std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
-    std::cout << "out: " << out << std::endl;
-  } catch (const peg::parse_error &e) {
-    std::cout << "!!!\n";
-    std::cout << "  Parser failure!\n";
-    const auto p = e.positions().front();
-    std::cout << e.what() << '\n'
-              << in.line_at(p) << '\n'
-              << std::setw(p.column) << '^' << '\n';
-    std::cout << "!!!\n";
-  }
-
-  std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-  return ret;
-}
-#endif
 
 template <typename GTYPE, typename SOURCE>
 auto runTest(SOURCE& src, bool pdot = true) -> bool {

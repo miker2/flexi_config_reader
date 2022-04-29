@@ -31,8 +31,10 @@ constexpr std::size_t tw{4};  // The width of the indentation
 namespace config::types {
 
 class ConfigBase;
-using CfgMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
-using RefMap = std::map<std::string, std::shared_ptr<ConfigBase>>;
+using BasePtr = std::shared_ptr<ConfigBase>;
+
+using CfgMap = std::map<std::string, BasePtr>;
+using RefMap = std::map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
 
@@ -68,7 +70,7 @@ class ConfigBase {
 
   virtual void stream(std::ostream&) const = 0;
 
-  virtual auto clone() const -> std::shared_ptr<ConfigBase> = 0;
+  virtual auto clone() const -> BasePtr = 0;
 
   auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
 
@@ -87,7 +89,7 @@ class ConfigBaseClonable : public Base {
  public:
   using Base::Base;
 
-  virtual auto clone() const -> std::shared_ptr<ConfigBase> override {
+  virtual auto clone() const -> BasePtr override {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
     struct make_shared_enabler : public Derived {};

@@ -30,7 +30,7 @@ inline constexpr bool accepts_list_v = accepts_list<T>::value;
 
 namespace config::helpers {
 
-auto isStructLike(const std::shared_ptr<types::ConfigBase>& el) -> bool;
+auto isStructLike(const types::BasePtr& el) -> bool;
 
 // Three cases to check for:
 //   - Both are dictionaries     - This is okay
@@ -63,10 +63,10 @@ auto getNestedConfig(const types::CfgMap& cfg, const std::string& flat_key)
     -> std::shared_ptr<types::ConfigStructLike>;
 
 auto getConfigValue(const types::CfgMap& cfg, const std::vector<std::string>& keys)
-    -> std::shared_ptr<types::ConfigBase>;
+    -> types::BasePtr;
 
 auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::ConfigValueLookup>& var)
-    -> std::shared_ptr<types::ConfigBase>;
+    -> types::BasePtr;
 
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key = "");
