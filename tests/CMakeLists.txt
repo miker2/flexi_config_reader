@@ -22,6 +22,7 @@ gtest_discover_tests(utils_test)
 add_executable(
 	config_helpers_test
 	config_helpers_test.cpp
+	../cpp/config_helpers.cpp
 	)
 
 target_link_libraries(
