@@ -6,9 +6,13 @@
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
-// A rule for padding another rule with blanks on either side
-template <typename Rule>
-struct pd : peg::pad<Rule, peg::blank> {};
+namespace math {
+/*
+ expression --> P {B P}
+ P --> v | "(" expression ")" | U P
+ B --> "+" | "-" | "*" | "/" | "^"
+ U --> "-"
+*/
 
 struct Um : peg::one<'-'> {};
 struct Up : peg::one<'+'> {};
@@ -21,56 +25,46 @@ struct Bdiv : peg::one<'/'> {};
 struct Bpow : peg::sor<peg::one<'^'>, TAO_PEGTL_STRING("**")> {};
 struct Bo : peg::sor<Bpow, Bplus, Bminus, Bmult, Bdiv> {};
 
-struct Po : pd<peg::one<'('>> {};
-struct Pc : pd<peg::one<')'>> {};
+struct Po : config::pd<peg::one<'('>> {};
+struct Pc : config::pd<peg::one<')'>> {};
 
 // Consider other named constants as well.
 struct pi : TAO_PEGTL_STRING("pi") {};
-
-struct Mo : pd<TAO_PEGTL_STRING("{{")> {};
-struct Mc : pd<TAO_PEGTL_STRING("}}")> {};
 
 struct ignored : peg::space {};
 
 // v includes numbers, variables & var refs
 struct v : peg::sor<config::NUMBER, config::VAR, config::VAR_REF> {};
 
-namespace grammar1 {
-// Grammar G1:
-//    expression --> P {B P}
-//    P --> v | "(" expression ")" | U P
-//    B --> "+" | "-" | "*" | "/" | "^"
-//    U --> "-"
-
 struct expression;
 struct BRACKET : peg::seq<Po, expression, Pc> {};
-struct atom : peg::sor<v, BRACKET, pi> {};
+struct atom : config::pd<peg::sor<v, BRACKET, pi>> {};
 struct P;
 struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};  // <-- recursive rule
 struct expression : peg::list<P, Bo, ignored> {};              // <-- Terminal
 
-}  // namespace grammar1
+}  // namespace math
 
 namespace grammar2 {
 /*
-expression --> T {( "+" | "-" ) T}
-T --> F {( "*" | "/" ) F}
-F --> P ["^" F]
-P --> v | "(" expression ")" | "-" T
+ expression --> T {( "+" | "-" ) T}
+ T --> F {( "*" | "/" ) F}
+ F --> P ["^" F]
+ P --> v | "(" expression ")" | "-" T
 */
 
-struct PM : peg::sor<Bplus, Bminus> {};
-struct MD : peg::sor<Bmult, Bdiv> {};
+struct PM : peg::sor<math::Bplus, math::Bminus> {};
+struct MD : peg::sor<math::Bmult, math::Bdiv> {};
 
-struct F;
-struct EXP : peg::seq<Bpow, F> {};
-struct P;
-struct F : peg::seq<P, peg::opt<EXP>> {};
-struct T : peg::seq<F, peg::star<pd<MD>, F>> {};
-struct N : peg::seq<Um, T> {};
 struct expression;
-struct BRACKET : peg::seq<Po, expression, Pc> {};
-struct P : peg::sor<pd<v>, pd<pi>, BRACKET, N> {};
-struct expression : peg::seq<T, peg::star<pd<PM>, T>> {};  // <-- Terminal
+struct BRACKET : peg::seq<math::Po, expression, math::Pc> {};
+struct N;
+struct P : config::pd<peg::sor<math::v, math::pi, BRACKET, N>> {};
+struct F;
+struct EXP : peg::seq<math::Bpow, F> {};
+struct F : peg::seq<P, peg::opt<EXP>> {};
+struct T : peg::seq<F, peg::star<config::pd<MD>, F>> {};
+struct N : peg::seq<math::Um, T> {};
+struct expression : peg::seq<T, peg::star<config::pd<PM>, T>> {};  // <-- Terminal
 
 }  // namespace grammar2
