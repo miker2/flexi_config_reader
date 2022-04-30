@@ -75,12 +75,16 @@ struct SP : peg::plus<peg::blank> {};
 struct oSP : peg::star<peg::blank> {};
 struct COMMENT : peg::seq<peg::one<'#'>, peg::until<peg::eol>, WS_> {};
 struct TAIL : peg::seq<WS_, peg::star<COMMENT>> {};
-struct COMMA : peg::pad<peg::one<','>, peg::blank> {};
-struct SBo : peg::pad<peg::one<'['>, peg::blank> {};
-struct SBc : peg::pad<peg::one<']'>, peg::blank> {};
-struct CBo : peg::pad<peg::one<'{'>, peg::blank> {};
-struct CBc : peg::pad<peg::one<'}'>, peg::blank> {};
-struct KVs : peg::pad<peg::one<'='>, peg::blank> {};
+// A rule for padding another rule with blanks on either side
+template <typename Rule>
+struct pd : peg::pad<Rule, peg::blank> {};
+
+struct COMMA : pd<peg::one<','>> {};
+struct SBo : pd<peg::one<'['>> {};
+struct SBc : pd<peg::one<']'>> {};
+struct CBo : pd<peg::one<'{'>> {};
+struct CBc : pd<peg::one<'}'>> {};
+struct KVs : pd<peg::one<'='>> {};
 
 struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
@@ -129,7 +133,7 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                           peg::one<')'>> {};
 
-struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, VALUE, TAIL> {};
+struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
 
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};

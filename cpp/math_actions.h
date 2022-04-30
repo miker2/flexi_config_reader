@@ -192,8 +192,6 @@ struct stacks {
   std::vector<stack> s_;
 };
 
-}  // namespace math
-
 struct ActionData {
   math::stacks s;
 
@@ -203,7 +201,9 @@ struct ActionData {
   double res;  // The final result of the computation.
 };
 
-namespace grammar1 {
+}  // namespace math
+
+namespace math {
 
 template <typename Rule>
 struct action : peg::nothing<Rule> {};
@@ -252,10 +252,10 @@ struct action<expression> {
     // The top-most stack is automatically "finished" when leaving a bracketed operation. The
     // `expression` rule is also contained within a bracketed operation, but is also the terminal
     // rule, so we only want to call `finish` when not within brackets.
-    logger::warn("In expression action.");
+    logger::info(" !!! In expression action !!!");
     if (out.bracket_cnt == 0) {
       out.s.dump();
-      logger::info("Finishing!");
+      logger::info(" !!!  Finishing  !!!");
       out.res = out.s.finish();
       out.s.dump();
     }
@@ -272,7 +272,7 @@ struct action<Bo> {
   }
 };
 
-}  // namespace grammar1
+}  // namespace math
 
 namespace grammar2 {
 
@@ -280,65 +280,29 @@ template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
 template <>
-struct action<v> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    out.s.push(std::stod(in.string()));
-  }
-};
+struct action<math::v> : math::action<math::v> {};
 
 template <>
-struct action<pi> {
-  static void apply0(ActionData& out) { out.s.push(M_PI); }
-};
+struct action<math::pi> : math::action<math::pi> {};
 
 template <>
-struct action<Um> {
-  static void apply0(ActionData& out) {
-    // Cheeky trick to support unary minus operator. Sneaky but simple!
-    out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
-    out.s.push("m");
-  }
-};
+struct action<math::Um> : math::action<math::Um> {};
 
 template <>
-struct action<Po> {
-  static void apply0(ActionData& out) {
-    out.s.open();
-    out.bracket_cnt++;
-  }
-};
+struct action<math::Po> : math::action<math::Po> {};
 
 template <>
-struct action<Pc> {
-  static void apply0(ActionData& out) {
-    out.s.close();
-    out.bracket_cnt--;
-  }
-};
+struct action<math::Pc> : math::action<math::Pc> {};
 
 template <>
-struct action<expression> {
-  static void apply0(ActionData& out) {
-    // The top-most stack is automatically "finished" when leaving a bracketed operation. The
-    // `expression` rule is also contained within a bracketed operation, but is also the terminal
-    // rule, so we only want to call `finish` when not within brackets.
-    logger::warn("In expression action.");
-    if (out.bracket_cnt == 0) {
-      out.s.dump();
-      logger::info("Finishing!");
-      out.res = out.s.finish();
-      out.s.dump();
-    }
-  }
-};
+struct action<expression> : math::action<math::expression> {};
 
 /// Everything above here is common to both grammars. Everything below exclusive to this one.
 
 template <>
 struct action<PM> {
   template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
+  static void apply(const ActionInput& in, math::ActionData& out) {
     out.s.push(in.string());
   }
 };
@@ -346,35 +310,35 @@ struct action<PM> {
 template <>
 struct action<MD> {
   template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
+  static void apply(const ActionInput& in, math::ActionData& out) {
     out.s.push(in.string());
   }
 };
 
 template <>
-struct action<Bpow> {
+struct action<math::Bpow> {
   template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
+  static void apply(const ActionInput& in, math::ActionData& out) {
     logger::warn("Found {}!", in.string());
     out.s.push(in.string());
   }
 };
 
 // These are no-ops. They're only part of the grammar in order to build the AST, but not actually
-// functional in performing the math.
+// functional in performing the math. We include them here for tracing purposes only.
 template <>
 struct action<T> {
-  static void apply0(ActionData& out) { logger::warn("In T action"); }
+  static void apply0(math::ActionData& out) { logger::debug(" --- In T action"); }
 };
 
 template <>
 struct action<F> {
-  static void apply0(ActionData& out) { logger::warn("In F action"); };
+  static void apply0(math::ActionData& out) { logger::debug(" --- In F action"); };
 };
 
 template <>
 struct action<P> {
-  static void apply0(ActionData& out) { logger::warn("In P action"); };
+  static void apply0(math::ActionData& out) { logger::debug(" --- In P action"); };
 };
 
 }  // namespace grammar2
