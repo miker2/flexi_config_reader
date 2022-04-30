@@ -184,7 +184,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         v_var->name, v->loc());
       }
       cfg_map[k] = ref_vars.at(v_var->name);
-    } else if (v->type == types::Type::kString) {
+    } else if (v->type == types::Type::kString || v->type == types::Type::kExpression) {
       auto v_value = dynamic_pointer_cast<types::ConfigValue>(v);
 
       auto out = replaceVarInStr(v_value->value, ref_vars);

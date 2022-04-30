@@ -187,6 +187,20 @@ struct action<LIST> {
 };
 
 template <>
+struct action<EXPRESSION> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    CONFIG_ACTION_TRACE("In math::GRAMMAR action: {}", in.string());
+#endif
+    // Grab the entire input and stuff it into a ConfigValue. We'll properly evaluate it later.
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kExpression);
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {

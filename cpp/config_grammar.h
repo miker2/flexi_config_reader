@@ -26,6 +26,11 @@ struct grammar : peg::must<FILENAME> {};
 
 }  // namespace filename
 
+// Pre-declare the top level rule for the math grammar here.
+namespace math {
+struct expression;
+}
+
 namespace config {
 
 // clang-format off
@@ -85,6 +90,9 @@ struct SBc : pd<peg::one<']'>> {};
 struct CBo : pd<peg::one<'{'>> {};
 struct CBc : pd<peg::one<'}'>> {};
 struct KVs : pd<peg::one<'='>> {};
+// These two rules define the enclosing delimiters for a math expression (i.e. "{{" and "}}")
+struct Eo : pd<peg::two<'{'>> {};
+struct Ec : pd<peg::two<'}'>> {};
 
 struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
@@ -121,6 +129,8 @@ struct LIST : peg::seq<SBo, peg::list<VAL_, COMMA, peg::space>, SBc> {};
 
 struct VALUE : peg::sor<VAL_, LIST> {};
 
+struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
+
 // Account for all reserved keywords when looking for keys
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
@@ -133,12 +143,13 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                           peg::one<')'>> {};
 
-struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
-struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
+struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {
+};
+struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
 
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF>, TAIL> {};
-struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, VAR>, TAIL> {};
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, VAR>, TAIL> {};
 
 struct END : peg::seq<ENDk, SP, KEY> {};
 
@@ -187,3 +198,5 @@ struct CONFIG
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
 }  // namespace config
+
+#include "math_grammar.h"

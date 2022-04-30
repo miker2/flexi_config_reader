@@ -43,6 +43,7 @@ enum class Type {
   kString,
   kNumber,
   kList,
+  kExpression,
   kValueLookup,
   kVar,
   kStruct,
