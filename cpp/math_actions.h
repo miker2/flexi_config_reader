@@ -6,6 +6,7 @@
 
 #include "logger.h"
 #include "math_grammar.h"
+#include "utils.h"
 
 // NOTE: A large portion of this code was derived from:
 //   https://github.com/taocpp/PEGTL/blob/main/src/example/pegtl/calculator.cpp
@@ -195,6 +196,10 @@ struct stacks {
 struct ActionData {
   math::stacks s;
 
+  // This could be a `config::types::CfgMap` object, but rather than introduce that dependency,
+  // we'll make it a simple map from strings to values.
+  std::map<std::string, double> var_ref_map;
+
   // Track open/close brackets to know when to finalize the result.
   size_t bracket_cnt{0};
 
@@ -209,7 +214,7 @@ template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
 template <>
-struct action<v> {
+struct action<config::NUMBER> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     out.s.push(std::stod(in.string()));
@@ -262,6 +267,23 @@ struct action<expression> {
   }
 };
 
+template <>
+struct action<config::VAR_REF> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    // Remove the VAR_REF enclosing delimiters from the VAR_REF
+    const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
+
+    // Look up the corresponding value from the map.
+    if (!out.var_ref_map.contains(var_ref)) {
+      throw std::runtime_error("This should never happen! " + var_ref + " not found!");
+    }
+    logger::debug("Replacing {} with {}.", in.string(), out.var_ref_map[var_ref]);
+
+    out.s.push(out.var_ref_map[var_ref]);
+  }
+};
+
 /// Everything above here is common to both grammars. Everything below exclusive to this one.
 
 template <>
@@ -280,7 +302,7 @@ template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
 template <>
-struct action<math::v> : math::action<math::v> {};
+struct action<config::NUMBER> : math::action<config::NUMBER> {};
 
 template <>
 struct action<math::pi> : math::action<math::pi> {};
@@ -296,6 +318,9 @@ struct action<math::Pc> : math::action<math::Pc> {};
 
 template <>
 struct action<expression> : math::action<math::expression> {};
+
+template <>
+struct action<config::VAR_REF> : math::action<config::VAR_REF> {};
 
 /// Everything above here is common to both grammars. Everything below exclusive to this one.
 
