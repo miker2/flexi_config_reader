@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <exception>
@@ -43,6 +44,10 @@ struct ActionData {
   bool in_proto{false};
   std::string proto_key{};
 
+  std::vector<std::string>
+      value_lookups;  // This is purely for keeping track of any value lookup objects that might be
+                      // contained within an expression object.
+
   // NOTE: A struct, is just a fancy way of describing a key, that contains an array of key/value
   // pairs (much like a json object). We want to be able to represent both a struct and a simple
   // key/value pair, so the top level can't be a struct, but must be more generically representable.
@@ -76,6 +81,12 @@ struct ActionData {
       os << "objects: " << std::endl;
       for (const auto& obj : objects) {
         os << obj << std::endl;
+      }
+    }
+    if (!value_lookups.empty()) {
+      os << "value_lookups: \n";
+      for (const auto& s : value_lookups) {
+        os << "  " << s << "\n";
       }
     }
     os << "==========" << std::endl;
@@ -191,10 +202,12 @@ struct action<EXPRESSION> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
 #if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In math::GRAMMAR action: {}", in.string());
+    CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
 #endif
-    // Grab the entire input and stuff it into a ConfigValue. We'll properly evaluate it later.
-    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kExpression);
+    CONFIG_ACTION_TRACE("EXPRESSION contains the following VAR_REF objects: {}", out.value_lookups);
+    // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
+    out.obj_res = std::make_shared<types::ConfigExpression>(in.string(), out.value_lookups);
+    out.value_lookups.clear();
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
   }
@@ -297,6 +310,7 @@ struct action<VAR_REF> {
         out.keys.pop_back();
       }
     }
+    out.value_lookups.push_back(var_ref);
     out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
     out.obj_res->source = in.position().source;
     out.obj_res->line = in.position().line;

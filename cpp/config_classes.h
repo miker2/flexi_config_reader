@@ -175,6 +175,23 @@ class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
   ConfigValue& operator=(const ConfigValue&) = delete;
 };
 
+// ConfigExpression is a special "value" type. We want the same interface as ConfigValue because it
+// facilitates certain operations, but we also want to track the enclosed "ConfigValueLookup"
+// strings
+class ConfigExpression : public ConfigBaseClonable<ConfigValue, ConfigExpression> {
+ public:
+  explicit ConfigExpression(std::string expression_in, const std::vector<std::string>& val_lookups)
+      : ConfigBaseClonable(expression_in, Type::kExpression), value_lookups{val_lookups} {};
+
+  const std::vector<std::string> value_lookups{};
+
+  ~ConfigExpression() noexcept override = default;
+
+ protected:
+  ConfigExpression(const ConfigExpression&) = default;
+  ConfigExpression& operator=(const ConfigExpression&) = delete;
+};
+
 class ConfigValueLookup : public ConfigBaseClonable<ConfigBase, ConfigValueLookup> {
  public:
   ConfigValueLookup(const std::string& var_ref)

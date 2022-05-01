@@ -192,7 +192,12 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         continue;
       }
       // Replace the existing value with the new value.
-      auto new_value = std::make_shared<types::ConfigValue>(out.value(), v->type);
+      std::shared_ptr<types::ConfigBase> new_value =
+          v->type == types::Type::kExpression
+              ? std::make_shared<types::ConfigExpression>(
+                    out.value(), dynamic_pointer_cast<types::ConfigExpression>(v)->value_lookups)
+              : std::make_shared<types::ConfigValue>(out.value(), v->type);
+
       new_value->line = v->line;
       new_value->source = v->source;
       cfg_map[k] = std::move(new_value);
