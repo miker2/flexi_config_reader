@@ -285,40 +285,43 @@ auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::Confi
   return getConfigValue(cfg, var->keys);
 }
 
+auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
+                    const std::shared_ptr<types::ConfigBase>& src)
+    -> std::shared_ptr<types::ConfigBase> {
+  std::vector<std::string> refs = {src_key};
+  auto value = src;
+  // Follow the kValueLookup objects until:
+  //  (a) A terminal value is found, upon which the value is used.
+  //  (b) A cycle is found, upon which an exception is thrown.
+  do {
+    auto kv_lookup = dynamic_pointer_cast<types::ConfigValueLookup>(value);
+    if (utils::contains(refs, kv_lookup->var())) {
+      // This key has already been traversed/referenced. A cycle has been found!
+      THROW_EXCEPTION(CyclicReferenceException,
+                      "For {}, found a cyclic reference when trying to resolve {}.\n  "
+                      "Reference chain: [{}]\n",
+                      src_key, src, fmt::join(refs, " -> "));
+    }
+    // Get the new value based on the kValueLookup object.
+    value = getConfigValue(root, kv_lookup);
+    logger::trace("{} points to {}", kv_lookup, value);
+    // Add this key to the list of references/dependencies
+    refs.emplace_back(kv_lookup->var());
+    logger::trace("refs: [{}]", fmt::join(refs, " -> "));
+  } while (value->type == types::Type::kValueLookup);
+  logger::debug("{} contains instance of ValueLookup: {}. Has value={}", src_key, src, value);
+  // If we've gotten here, then we can return the current 'value'!
+  return std::move(value);
+}
+
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key) {
   for (const auto& kv : sub_tree) {
     const auto src_key = utils::makeName(parent_key, kv.first);
     if (kv.second && kv.second->type == types::Type::kValueLookup) {
       // Add the source key to the reference list (if we ever get back to this key, it's a failure).
-      std::vector<std::string> refs = {src_key};
       logger::trace("For {}, found {} (type={}).", src_key, kv.second, kv.second->type);
-      // Initialize 'value' for use within the loop.
-      auto value = kv.second;
-      // Follow the kValueLookup objects until:
-      //  (a) A terminal value is found, upon which the value is used.
-      //  (b) A cycle is found, upon which an exception is thrown.
-      do {
-        auto kv_lookup = dynamic_pointer_cast<types::ConfigValueLookup>(value);
-        if (utils::contains(refs, kv_lookup->var())) {
-          // This key has already been traversed/referenced. A cycle has been found!
-          THROW_EXCEPTION(CyclicReferenceException,
-                          "For {}, found a cyclic reference when trying to resolve {}.\n  "
-                          "Reference chain: [{}]\n",
-                          src_key, kv.second, fmt::join(refs, " -> "));
-        }
-        // Get the new value based on the kValueLookup object.
-        value = getConfigValue(root, kv_lookup);
-        logger::trace("{} points to {}", static_pointer_cast<types::ConfigBase>(kv_lookup), value);
-        // Add this key to the list of references/dependencies
-        refs.emplace_back(kv_lookup->var());
-        logger::trace("refs: [{}]", fmt::join(refs, " -> "));
-      } while (value->type == types::Type::kValueLookup);
-      logger::debug("{} contains instance of ValueLookup: {}. Has value={}", src_key, kv.second,
-                    value);
-
-      // If we've gotten here, then we can set the value of this key!
-      sub_tree[kv.first] = value;
+      sub_tree[kv.first] = resolveVarRefs(root, src_key, kv.second);
     } else if (isStructLike(kv.second)) {
       resolveVarRefs(root, dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, src_key);
     }
