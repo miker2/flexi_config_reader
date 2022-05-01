@@ -320,8 +320,11 @@ struct fmt::formatter<config::types::Type> : formatter<std::string_view> {
   }
 };
 
-template <>
-struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<std::string> {
+// Formatter for all types that inherit from `config::types::ConfigBase`.
+template <typename T>
+struct fmt::formatter<
+    T, std::enable_if_t<std::is_convertible_v<T, std::shared_ptr<config::types::ConfigBase>>, char>>
+    : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
   auto format(const std::shared_ptr<config::types::ConfigBase>& cfg, FormatContext& ctx) {
@@ -331,7 +334,7 @@ struct fmt::formatter<std::shared_ptr<config::types::ConfigBase>> : formatter<st
     } else {
       ss << "NULL";
     }
-    return formatter<std::string>::format(ss.str(), ctx);
+    return formatter<std::string_view>::format(ss.str(), ctx);
   }
 };
 

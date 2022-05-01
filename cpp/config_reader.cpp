@@ -280,11 +280,10 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
           "Creating struct from reference:\n"
           "reference: \n{}\n"
           "proto: \n{}",
-          v, static_pointer_cast<config::types::ConfigBase>(p));
+          v, p);
       // Create a new struct from the reference and the proto
       auto new_struct = config::helpers::structFromReference(v_ref, p);
-      logger::debug("struct from reference: \n{}",
-                    static_pointer_cast<config::types::ConfigBase>(new_struct));
+      logger::debug("struct from reference: \n{}", new_struct);
       // If there's a nested dictionary, we want to add any new ref_vars into the existing
       // ref_vars.
       logger::trace("Current ref_vars: {}", ref_vars);
