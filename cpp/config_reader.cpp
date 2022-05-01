@@ -101,6 +101,8 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
 
   config::helpers::resolveVarRefs(cfg_data_, cfg_data_);
 
+  config::helpers::evaluateExpressions(cfg_data_);
+
   // Removes empty structs, fixes incorrect depth, etc.
   config::helpers::cleanupConfig(cfg_data_);
 
