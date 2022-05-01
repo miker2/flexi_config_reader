@@ -327,6 +327,11 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       // Add the source key to the reference list (if we ever get back to this key, it's a failure).
       logger::trace("For {}, found {} (type={}).", src_key, kv.second, kv.second->type);
       sub_tree[kv.first] = resolveVarRefs(root, src_key, kv.second);
+    } else if (kv.second && kv.second->type == types::Type::kExpression) {
+      auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
+      for (auto& kvl : expression->value_lookups) {
+        expression->value_lookups[kvl.first] = resolveVarRefs(root, src_key, kvl.second);
+      }
     } else if (isStructLike(kv.second)) {
       resolveVarRefs(root, dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, src_key);
     }
