@@ -22,35 +22,34 @@
 
 namespace {
 const std::string debug_sep(35, '=');
-}
 
-auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+template <typename INPUT>
+auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
   bool success = true;
-  peg::file_input cfg_file(cfg_filename);
   try {
-    success = peg::parse<config::grammar, config::action>(cfg_file, out_);
-    // If parsing is successful, all of these containers should be emtpy (consumed into
-    // 'out_.cfg_res').
-    success &= out_.keys.empty();
-    success &= out_.flat_keys.empty();
-    success &= out_.objects.empty();
-    success &= out_.obj_res == nullptr;
+    success = peg::parse<config::grammar, config::action>(input, output);
+    // If parsing is successful, all of these containers should be empty (consumed into
+    // 'output.cfg_res').
+    success &= output.keys.empty();
+    success &= output.flat_keys.empty();
+    success &= output.objects.empty();
+    success &= output.obj_res == nullptr;
 
     // Eliminate any vector elements with an empty map.
-    out_.cfg_res |=
+    output.cfg_res |=
         ranges::actions::remove_if([](const config::types::CfgMap& m) { return m.empty(); });
 
     if (!success) {
       logger::critical("  Parse failure");
-      logger::error("  cfg_res size: {}", out_.cfg_res.size());
+      logger::error("  cfg_res size: {}", output.cfg_res.size());
 
       std::stringstream ss;
-      out_.print(ss);
+      output.print(ss);
       logger::error("Incomplete output: \n{}", ss.str());
 
       // Print a trace if a failure occured.
-      cfg_file.restart();
-      peg::standard_trace<config::grammar>(cfg_file);
+      input.restart();
+      peg::standard_trace<config::grammar>(input);
       return success;
     }
   } catch (const peg::parse_error& e) {
@@ -59,52 +58,33 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
     logger::critical("  Parser failure!");
     const auto p = e.positions().front();
     logger::critical("{}", e.what());
-    logger::critical("{}", cfg_file.line_at(p));
+    logger::critical("{}", input.line_at(p));
     logger::critical("{}^", std::string(' ', p.column - 1));
     std::stringstream ss;
-    out_.print(ss);
+    output.print(ss);
     logger::critical("Partial output: \n{}", ss.str());
     logger::critical("!!!");
     return success;
   }
 
-  config::types::CfgMap flat{};
-  for (const auto& e : out_.cfg_res) {
-    flat = flattenAndFindProtos(e, "", flat);
-  }
-  logger::debug("Flattened: \n{}", fmt::join(flat, "\n"));
+  return success;
+}
+}  // namespace
 
-  logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
+auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+  peg::file_input cfg_file(cfg_filename);
+  auto success = parseCommon(cfg_file, out_);
 
-  cfg_data_ = mergeNested(out_.cfg_res);
+  resolveConfig();
 
-#if 1
-  // TODO: Determine if this is actually necessary.
-  logger::trace("{0} Strip Protos {0}", debug_sep);
-  stripProtos(cfg_data_);
-  logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
-#endif
+  return success;
+}
 
-  logger::trace("{0} Resolving References {0}", debug_sep);
-  resolveReferences(cfg_data_, "");
-  logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
+auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -> bool {
+  peg::memory_input cfg_file(cfg_string, source);
+  auto success = parseCommon(cfg_file, out_);
 
-  // Unflatten any flat keys:
-  const auto flat_keys =
-      cfg_data_ | ranges::views::keys |
-      ranges::views::filter([](auto& key) { return key.find(".") != std::string::npos; }) |
-      ranges::to<std::vector<std::string>> | ranges::actions::sort | ranges::actions::reverse;
-  logger::debug("The following keys need to be flattened: {}", flat_keys);
-  for (const auto& key : flat_keys) {
-    config::helpers::unflatten(key, cfg_data_);
-  }
-
-  config::helpers::resolveVarRefs(cfg_data_, cfg_data_);
-
-  config::helpers::evaluateExpressions(cfg_data_);
-
-  // Removes empty structs, fixes incorrect depth, etc.
-  config::helpers::cleanupConfig(cfg_data_);
+  resolveConfig();
 
   return success;
 }
@@ -163,6 +143,46 @@ void ConfigReader::convert(const std::string& value_str, bool& value) const {
 
 void ConfigReader::convert(const std::string& value_str, std::string& value) const {
   value = value_str;
+}
+
+void ConfigReader::resolveConfig() {
+  config::types::CfgMap flat{};
+  for (const auto& e : out_.cfg_res) {
+    flat = flattenAndFindProtos(e, "", flat);
+  }
+  logger::debug("Flattened: \n{}", fmt::join(flat, "\n"));
+
+  logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
+
+  cfg_data_ = mergeNested(out_.cfg_res);
+
+#if 1
+  // TODO: Determine if this is actually necessary.
+  logger::trace("{0} Strip Protos {0}", debug_sep);
+  stripProtos(cfg_data_);
+  logger::trace(" --- Result of 'stripProtos':\n{}", fmt::join(cfg_data_, "\n"));
+#endif
+
+  logger::trace("{0} Resolving References {0}", debug_sep);
+  resolveReferences(cfg_data_, "");
+  logger::trace("\n{}", fmt::join(cfg_data_, "\n"));
+
+  // Unflatten any flat keys:
+  const auto flat_keys =
+      cfg_data_ | ranges::views::keys |
+      ranges::views::filter([](auto& key) { return key.find(".") != std::string::npos; }) |
+      ranges::to<std::vector<std::string>> | ranges::actions::sort | ranges::actions::reverse;
+  logger::debug("The following keys need to be flattened: {}", flat_keys);
+  for (const auto& key : flat_keys) {
+    config::helpers::unflatten(key, cfg_data_);
+  }
+
+  config::helpers::resolveVarRefs(cfg_data_, cfg_data_);
+
+  config::helpers::evaluateExpressions(cfg_data_);
+
+  // Removes empty structs, fixes incorrect depth, etc.
+  config::helpers::cleanupConfig(cfg_data_);
 }
 
 auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
@@ -226,7 +246,8 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
     // Split the keys so we can use them to recurse into the map.
     const auto parts = utils::split(key, '.');
 
-    auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
+    auto& content =
+        parts.size() == 1 ? cfg_map : config::helpers::getNestedConfig(cfg_map, parts)->data;
 
     logger::trace("Final component: \n{}", content.at(parts.back()));
     content.erase(parts.back());
