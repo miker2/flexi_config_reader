@@ -36,13 +36,6 @@ install(TARGETS config_reader
   LIBRARY DESTINATION lib
   PUBLIC_HEADER DESTINATION include)
 
-add_executable(config_test config_test.cpp)
-target_link_libraries(config_test
-  PRIVATE
-  config_reader
-  taocpp::pegtl
-)
-
 add_executable(config_build config_build.cpp)
 target_link_libraries(config_build
   PRIVATE
@@ -61,5 +54,5 @@ add_executable(include_file_test include_file_test.cpp)
 target_link_libraries(include_file_test PRIVATE taocpp::pegtl)
 
 
-install(TARGETS jsonish_test toml_test config_test config_build config_reader_example include_file_test
+install(TARGETS jsonish_test toml_test config_build config_reader_example include_file_test
         DESTINATION bin)

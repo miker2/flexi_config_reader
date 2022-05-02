@@ -4,6 +4,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
 #include "config_grammar.h"
+#include "logger.h"
 
 namespace config {
 // TODO: Strip trailing whitespace from comments!
@@ -21,12 +22,12 @@ template <>
 struct selector<INCLUDE> : std::true_type {
   template <typename... States>
   static void transform(std::unique_ptr<peg::parse_tree::node>& n, States&&... st) {
-    std::cout << "Successfully found a " << n->type << " node in " << n->source << "!\n";
+    logger::info("Successfully found a {} node in {}!", n->type, n->source);
     std::string filename = "";
     for (const auto& c : n->children) {
-      std::cout << "Has child of type " << c->type << ".\n";
+      logger::debug("Has child of type {}.", c->type);
       if (c->has_content()) {
-        std::cout << "  Content: " << c->string_view() << "\n";
+        logger::debug("  Content: {}", c->string_view());
       }
       if (c->is_type<filename::FILENAME>()) {
         filename = c->string();
@@ -34,13 +35,13 @@ struct selector<INCLUDE> : std::true_type {
     }
     std::cout << std::endl;
 
-    std::cout << " --- Node has " << n->children.size() << " children.\n";
+    logger::debug(" --- Node has {} children.", n->children.size());
 
     //// Let's try to parse the "include" file and replace this node with the output!
     // Build the parse path:
     auto include_path = std::filesystem::path(n->source).parent_path() / filename;
 
-    std::cout << "Trying to parse: " << include_path << std::endl;
+    logger::debug("Trying to parse: {}", include_path.string());
     auto input_file = peg::file_input(include_path);
 
     // This is a bit of a hack. We need to use a 'string_input' here because if we don't, the
@@ -61,17 +62,19 @@ struct selector<INCLUDE> : std::true_type {
       peg::parse_tree::print_dot(std::cout, *new_tree->children.back());
 #endif
       auto c = std::move(new_tree->children.back());
-      std::cout << " --- Parsed include file has " << c->children.size() << " children.\n";
+      logger::trace(" --- Parsed include file has {} children.", c->children.size());
       new_tree->children.pop_back();
       n->remove_content();
       n = std::move(c);
-      std::cout << "c=" << c.get() << std::endl;
-      std::cout << "n=" << n.get() << std::endl;
-      std::cout << " --- n has " << n->children.size() << " children." << std::endl;
-      std::cout << " --- Source: " << n->source << std::endl;
-      std::cout << " ------ size: " << n->source.size() << std::endl;
+      logger::trace("c={}", fmt::ptr(c));
+      logger::trace(
+          "n={}\n"
+          " --- n has {} children.\n"
+          " --- Source: {}\n"
+          " ------ size: {}",
+          fmt::ptr(n), n->children.size(), n->source, n->source.size());
     } else {
-      std::cout << "Failed to properly parse " << include_path << "." << std::endl;
+      logger::error("Failed to properly parse {}", include_path.string());
     }
   }
 };
