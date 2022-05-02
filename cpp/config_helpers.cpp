@@ -16,6 +16,7 @@
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "logger.h"
+#include "math_actions.h"
 #include "utils.h"
 
 #define CONFIG_HELPERS_DEBUG 0
@@ -184,7 +185,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         v_var->name, v->loc());
       }
       cfg_map[k] = ref_vars.at(v_var->name);
-    } else if (v->type == types::Type::kString) {
+    } else if (v->type == types::Type::kString || v->type == types::Type::kExpression) {
       auto v_value = dynamic_pointer_cast<types::ConfigValue>(v);
 
       auto out = replaceVarInStr(v_value->value, ref_vars);
@@ -192,7 +193,12 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         continue;
       }
       // Replace the existing value with the new value.
-      auto new_value = std::make_shared<types::ConfigValue>(out.value(), v->type);
+      std::shared_ptr<types::ConfigBase> new_value =
+          v->type == types::Type::kExpression
+              ? std::make_shared<types::ConfigExpression>(
+                    out.value(), dynamic_pointer_cast<types::ConfigExpression>(v)->value_lookups)
+              : std::make_shared<types::ConfigValue>(out.value(), v->type);
+
       new_value->line = v->line;
       new_value->source = v->source;
       cfg_map[k] = std::move(new_value);
@@ -322,8 +328,52 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       // Add the source key to the reference list (if we ever get back to this key, it's a failure).
       logger::trace("For {}, found {} (type={}).", src_key, kv.second, kv.second->type);
       sub_tree[kv.first] = resolveVarRefs(root, src_key, kv.second);
+    } else if (kv.second && kv.second->type == types::Type::kExpression) {
+      auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
+      for (auto& kvl : expression->value_lookups) {
+        auto value = resolveVarRefs(root, src_key, kvl.second);
+        if (value->type != types::Type::kNumber) {
+          THROW_EXCEPTION(InvalidTypeException,
+                          "All key/value references in expressions must be of numeric type!\n"
+                          "When looking up '{}' in '{} = {}' at {} found '{}' of type {}.",
+                          kvl.first, src_key, kv.second, kv.second->loc(), value, value->type);
+        }
+        expression->value_lookups[kvl.first] = value;
+      }
     } else if (isStructLike(kv.second)) {
       resolveVarRefs(root, dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, src_key);
+    }
+  }
+}
+
+void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {
+  for (auto& kv : cfg) {
+    const auto key = utils::makeName(parent_key, kv.first);
+    if (kv.second && kv.second->type == types::Type::kExpression) {
+      // Evaluate expression
+      logger::debug("Evaluating expression {} = {}", key, kv.second);
+      auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
+      math::ActionData math;
+      // Fill in math.var_ref_map;
+      for (const auto& var_ref : expression->value_lookups) {
+        if (var_ref.second->type != types::Type::kNumber) {
+          logger::critical("{} is not a number (type={})!", var_ref.first, var_ref.second->type);
+          THROW_EXCEPTION(
+              InvalidTypeException,
+              "When trying to evaluate expression '{} = {}' at {}, found {} of type={}, but "
+              "expected {}",
+              key, kv.second, kv.second->loc(), var_ref.first, var_ref.second->type,
+              types::Type::kNumber);
+        }
+        math.var_ref_map[var_ref.first] =
+            std::stod(dynamic_pointer_cast<types::ConfigValue>(var_ref.second)->value);
+      }
+      peg::memory_input input(expression->value, kv.first);
+      peg::parse<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input, math);
+      cfg[kv.first] = std::make_shared<types::ConfigValue>(std::to_string(math.res),
+                                                           types::Type::kNumber, math.res);
+    } else if (isStructLike(kv.second)) {
+      evaluateExpressions(dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, key);
     }
   }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <exception>
@@ -9,6 +10,7 @@
 #include <magic_enum.hpp>
 #include <map>
 #include <memory>
+#include <range/v3/view/map.hpp>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
@@ -43,6 +45,16 @@ struct ActionData {
   bool in_proto{false};
   std::string proto_key{};
 
+#if 0
+  // I'd prefer something like this that provides a bit more type safety, but this map can't be
+  // implicitly convert to a CfgMap object.
+  std::map<std::string, std::shared_ptr<types::ConfigValueLookup>>
+      value_lookups;  // This is purely for keeping track of any value lookup objects that might be
+                      // contained within an expression object.
+#else
+  types::CfgMap value_lookups;
+#endif
+
   // NOTE: A struct, is just a fancy way of describing a key, that contains an array of key/value
   // pairs (much like a json object). We want to be able to represent both a struct and a simple
   // key/value pair, so the top level can't be a struct, but must be more generically representable.
@@ -76,6 +88,12 @@ struct ActionData {
       os << "objects: " << std::endl;
       for (const auto& obj : objects) {
         os << obj << std::endl;
+      }
+    }
+    if (!value_lookups.empty()) {
+      os << "value_lookups: \n";
+      for (const auto& s : value_lookups) {
+        os << "  " << s.first << "\n";
       }
     }
     os << "==========" << std::endl;
@@ -187,6 +205,32 @@ struct action<LIST> {
 };
 
 template <>
+struct action<Eo> {
+  static void apply0(ActionData& out) {
+    // Reset the value lookup map since we're starting a new expression.
+    out.value_lookups.clear();
+  }
+};
+
+template <>
+struct action<EXPRESSION> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG
+    CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
+#endif
+    CONFIG_ACTION_TRACE("EXPRESSION contains the following VAR_REF objects: {}",
+                        ranges::views::values(out.value_lookups));
+    // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
+
+    out.obj_res = std::make_shared<types::ConfigExpression>(in.string(), out.value_lookups);
+    out.value_lookups.clear();
+    out.obj_res->line = in.position().line;
+    out.obj_res->source = in.position().source;
+  }
+};
+
+template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
@@ -283,9 +327,11 @@ struct action<VAR_REF> {
         out.keys.pop_back();
       }
     }
-    out.obj_res = std::make_shared<types::ConfigValueLookup>(var_ref);
+    auto val_lookup = std::make_shared<types::ConfigValueLookup>(var_ref);
+    out.obj_res = val_lookup;
     out.obj_res->source = in.position().source;
     out.obj_res->line = in.position().line;
+    out.value_lookups[var_ref] = val_lookup;
   }
 };
 
