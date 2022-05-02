@@ -1,3 +1,4 @@
+#include <filesystem>
 
 #include "config_reader.h"
 #include "logger.h"
@@ -13,7 +14,7 @@ auto main(int argc, char* argv[]) -> int {
   logger::setLevel(logger::Severity::INFO);
 
   ConfigReader cfg;
-  const auto success = cfg.parse(argv[1]);
+  const auto success = cfg.parse(std::filesystem::path(argv[1]));
   if (success) {
     std::cout << "\n" << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
     cfg.dump();

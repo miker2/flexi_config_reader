@@ -7,6 +7,7 @@
 #include <memory>
 #include <range/v3/view/drop_last.hpp>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "config_actions.h"
@@ -23,6 +24,8 @@ class ConfigReader {
   ~ConfigReader() = default;
 
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
+
+  auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> bool;
 
   void dump() const;
 
@@ -49,6 +52,8 @@ class ConfigReader {
   // to work for single values that aren't read as a LIST type.
   template <typename T, size_t N>
   void convert(const std::string& value_str, std::array<T, N>& value) const;
+
+  void resolveConfig();
 
   auto flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
                             config::types::CfgMap flattened = {}) -> config::types::CfgMap;
