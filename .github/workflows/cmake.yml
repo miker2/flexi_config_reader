@@ -124,7 +124,6 @@ jobs:
         ctest -C ${{env.BUILD_TYPE}}
         ${{github.workspace}}/build/cpp/jsonish_test
         ${{github.workspace}}/build/cpp/include_file_test
-        ${{github.workspace}}/build/cpp/config_test
         for i in `seq 1 8`; do
           ${{github.workspace}}/build/cpp/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done

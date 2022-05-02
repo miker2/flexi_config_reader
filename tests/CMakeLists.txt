@@ -84,6 +84,25 @@ gtest_discover_tests(config_exception_test)
 
 ################################################################################
 add_executable(
+  config_parse_test
+  config_parse_test.cpp
+  )
+
+target_link_libraries(
+  config_parse_test
+	config_reader
+  taocpp::pegtl
+  gtest_main
+  )
+
+target_include_directories(config_parse_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/cpp/
+  )
+
+gtest_discover_tests(config_parse_test)
+
+################################################################################
+add_executable(
   math_test
   math_test.cpp
   )
