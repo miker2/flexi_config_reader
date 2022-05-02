@@ -408,7 +408,7 @@ struct action<PROTO_PAIR> {
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '{} = {}' in {}. Expected 'proto', found '{}'.",
                       out.keys.back(), out.result, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
+                      out.objects.back()->type);
     }
 
     // TODO: Check for duplicate keys here!
@@ -433,13 +433,12 @@ struct action<REF_VARADD> {
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '+{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.keys.back(), out.obj_res, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
+                      out.objects.back()->type);
     }
 
     if (out.objects.back()->data.contains(out.keys.back())) {
       THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {} ({})!",
-                      out.keys.back(), out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type));
+                      out.keys.back(), out.objects.back()->name, out.objects.back()->type);
     }
     CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
 
@@ -456,8 +455,7 @@ struct action<REF_VARSUB> {
     if (out.objects.back()->type != types::Type::kReference) {
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
-                      out.result, out.obj_res, out.objects.back()->name,
-                      magic_enum::enum_name<types::Type>(out.objects.back()->type))
+                      out.result, out.obj_res, out.objects.back()->name, out.objects.back()->type);
     }
     CONFIG_ACTION_TRACE("In REF_VARSUB action: '{} = {}'", out.result, out.obj_res);
 
@@ -510,11 +508,9 @@ struct action<STRUCT> {
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
-      const auto location =
-          out.objects.empty()
-              ? std::string("top_level")
-              : fmt::format("{} ({})", out.objects.back()->name,
-                            magic_enum::enum_name<types::Type>(out.objects.back()->type));
+      const auto location = out.objects.empty() ? std::string("top_level")
+                                                : fmt::format("{} ({})", out.objects.back()->name,
+                                                              out.objects.back()->type);
       THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
                       location);
     }
@@ -542,11 +538,9 @@ struct action<PROTO> {
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
-      const auto location =
-          out.objects.empty()
-              ? std::string("top_level")
-              : fmt::format("{} ({})", out.objects.back()->name,
-                            magic_enum::enum_name<types::Type>(out.objects.back()->type));
+      const auto location = out.objects.empty() ? std::string("top_level")
+                                                : fmt::format("{} ({})", out.objects.back()->name,
+                                                              out.objects.back()->type);
       THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
                       location);
     }
@@ -576,18 +570,16 @@ struct action<REFERENCE> {
     out.objects.pop_back();
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
-      const auto location =
-          out.objects.empty()
-              ? std::string("top_level")
-              : fmt::format("{} ({})", out.objects.back()->name,
-                            magic_enum::enum_name<types::Type>(out.objects.back()->type));
+      const auto location = out.objects.empty() ? std::string("top_level")
+                                                : fmt::format("{} ({})", out.objects.back()->name,
+                                                              out.objects.back()->type);
       THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
                       location);
     }
     data[out.keys.back()] = std::move(this_obj);
 
     // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
-    // in case we have a duplicat struct later. We won't resolve that now, but later in another
+    // in case we have a duplicate struct later. We won't resolve that now, but later in another
     // pass.
     if (out.objects.empty()) {
       out.cfg_res.push_back({});
