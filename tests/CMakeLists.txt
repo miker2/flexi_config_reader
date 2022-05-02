@@ -62,6 +62,28 @@ gtest_discover_tests(config_grammar_test)
 
 ################################################################################
 add_executable(
+  config_exception_test
+  config_exception_test.cpp
+  )
+
+target_link_libraries(
+  config_exception_test
+	config_reader
+  #fmt::fmt
+  #magic_enum::magic_enum
+  #range-v3::range-v3
+  taocpp::pegtl
+  gtest_main
+  )
+
+target_include_directories(config_exception_test PRIVATE
+  ${CMAKE_SOURCE_DIR}/cpp/
+  )
+
+gtest_discover_tests(config_exception_test)
+
+################################################################################
+add_executable(
   math_test
   math_test.cpp
   )
