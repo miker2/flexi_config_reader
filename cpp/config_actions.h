@@ -405,6 +405,7 @@ struct action<PROTO_PAIR> {
     // If we're here, then there must be an object and it must be a proto!
     if (out.objects.back()->type != types::Type::kProto &&
         out.objects.back()->type != types::Type::kStructInProto) {
+      // The only way to get here is if there is an error in the grammar!
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '{} = {}' in {}. Expected 'proto', found '{}'.",
                       out.keys.back(), out.result, out.objects.back()->name,
@@ -430,6 +431,7 @@ struct action<REF_VARADD> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
+      // The only way to get here is if there is an error in the grammar!
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '+{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.keys.back(), out.obj_res, out.objects.back()->name,
@@ -453,6 +455,7 @@ struct action<REF_VARSUB> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
+      // The only way to get here is if there is an error in the grammar!
       THROW_EXCEPTION(InvalidTypeException,
                       "Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.result, out.obj_res, out.objects.back()->name, out.objects.back()->type);
@@ -509,10 +512,11 @@ struct action<STRUCT> {
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
       const auto location = out.objects.empty() ? std::string("top_level")
-                                                : fmt::format("{} ({})", out.objects.back()->name,
-                                                              out.objects.back()->type);
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
-                      location);
+                                                : fmt::format("{}", out.objects.back()->name);
+      THROW_EXCEPTION(
+          DuplicateKeyException,
+          "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
+          out.keys.back(), location, data[out.keys.back()]->type, types::Type::kStruct);
     }
     data[out.keys.back()] = std::move(this_obj);
 
@@ -539,10 +543,11 @@ struct action<PROTO> {
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
       const auto location = out.objects.empty() ? std::string("top_level")
-                                                : fmt::format("{} ({})", out.objects.back()->name,
-                                                              out.objects.back()->type);
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
-                      location);
+                                                : fmt::format("{}", out.objects.back()->name);
+      THROW_EXCEPTION(
+          DuplicateKeyException,
+          "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
+          out.keys.back(), location, data[out.keys.back()]->type, types::Type::kProto);
     }
     data[out.keys.back()] = std::move(this_obj);
 
@@ -571,10 +576,11 @@ struct action<REFERENCE> {
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
     if (data.contains(out.keys.back())) {
       const auto location = out.objects.empty() ? std::string("top_level")
-                                                : fmt::format("{} ({})", out.objects.back()->name,
-                                                              out.objects.back()->type);
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {}!", out.keys.back(),
-                      location);
+                                                : fmt::format("{}", out.objects.back()->name);
+      THROW_EXCEPTION(
+          DuplicateKeyException,
+          "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
+          out.keys.back(), location, data[out.keys.back()]->type, types::Type::kReference);
     }
     data[out.keys.back()] = std::move(this_obj);
 
