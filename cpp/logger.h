@@ -5,6 +5,7 @@
 #include <fmt/ranges.h>
 
 #include <cstdint>
+#include <deque>
 #include <magic_enum.hpp>
 #include <string_view>
 
@@ -24,12 +25,30 @@ class Logger {
   void setLevel(Severity level) { log_level_ = level; }
   auto logLevel() const -> Severity { return log_level_; }
 
+  void setMaxHistory(std::size_t max_history) { max_history_ = max_history; }
+  void clearHistory() { log_history_.clear(); }
+
   template <typename... Args>
   void log(Severity level, std::string_view msg_f, Args&&... args) {
+    const auto msg = fmt::vformat(msg_f, fmt::make_format_args(std::forward<Args>(args)...));
+    log_history_.emplace_back(level, msg);
+    if (log_history_.size() > max_history_) {
+      log_history_.pop_front();
+    }
     if (level >= log_level_) {
       // NOTE: The clear format sequence shouldn't be necessary, but appears to be.
-      fmt::print(fg_color_.at(level), "[{}] {}\x1b[0m\n", level,
-                 fmt::vformat(msg_f, fmt::make_format_args(std::forward<Args>(args)...)));
+      fmt::print(fg_color_.at(level), "[{}] {}\x1b[0m\n", level, msg);
+    }
+  }
+
+  /// \brief Prints the history of messages (ignoring log level)
+  /// \param[in] clear - Flag to indicate if history should be cleared after printing
+  void backtrace(bool clear = true) {
+    for (const auto& msg : log_history_) {
+      fmt::print(fg_color_.at(msg.first), "[{}] {}\x1b[0m\n", msg.first, msg.second);
+    }
+    if (clear) {
+      clearHistory();
     }
   }
 
@@ -45,13 +64,20 @@ class Logger {
       {Severity::CRITICAL,
        fmt::emphasis::bold | fmt::bg(fmt::color::red) | fmt::fg(fmt::color::white)}};
 
-  // TODO: Add an container here for multiple messages for a type of "backtrace" functionality
+  // This container holds a history of messages to provide a type of "backtrace" functionality
+  std::size_t max_history_{15};
+  std::deque<std::pair<Severity, std::string>> log_history_;
 };
 
 static void setLevel(Severity lvl) { Logger::instance().setLevel(lvl); }
 static auto logLevel() -> Severity { return Logger::instance().logLevel(); }
 
-static void log(Severity level, std::string_view msg) { Logger::instance().log(level, msg); }
+static void backtrace(bool clear = true) { Logger::instance().backtrace(clear); }
+
+template <typename... Args>
+static void log(Severity level, std::string_view msg_f, Args&&... args) {
+  Logger::instance().log(level, msg_f, std::forward<Args>(args)...);
+}
 
 template <typename... Args>
 static void trace(std::string_view msg_f, Args&&... args) {
