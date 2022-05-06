@@ -294,7 +294,7 @@ struct action<FLAT_KEY> {
     // Walk through the keys, and pop them off of out.keys
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
-      // TODO: Check if the keys are the same?
+      assert(keys.back() == out.keys.back());
 #if VERBOSE_DEBUG
       CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
 #endif
@@ -347,8 +347,11 @@ struct action<PAIR> {
     if (data.contains(out.keys.back())) {
       const auto location =
           out.objects.empty() ? std::string("top_level") : out.objects.back()->name;
-      THROW_EXCEPTION(DuplicateKeyException, "[PAIR] Duplicate key '{}' found in {}!",
-                      out.keys.back(), location);
+      THROW_EXCEPTION(DuplicateKeyException,
+                      "Duplicate key '{}' found in {}! "
+                      "Previously encountered at {} ({}), now at {} ({})",
+                      out.keys.back(), location, data[out.keys.back()]->loc(),
+                      data[out.keys.back()]->type, out.obj_res->loc(), out.obj_res->type);
     }
     CONFIG_ACTION_TRACE("In PAIR action: '{} = {}'", out.keys.back(), out.obj_res);
 
@@ -412,7 +415,15 @@ struct action<PROTO_PAIR> {
                       out.objects.back()->type);
     }
 
-    // TODO: Check for duplicate keys here!
+    if (out.objects.back() && out.objects.back()->data.contains(out.keys.back())) {
+      THROW_EXCEPTION(DuplicateKeyException,
+                      "Duplicate key '{}' found in {} ({})! "
+                      "Previously encountered at {} ({}), now at {} ({})",
+                      out.keys.back(), out.objects.back()->name, out.objects.back()->type,
+                      out.objects.back()->data[out.keys.back()]->loc(),
+                      out.objects.back()->data[out.keys.back()]->type, out.obj_res->loc(),
+                      out.obj_res->type);
+    }
     if (out.obj_res->type == types::Type::kVar) {
       auto proto = dynamic_pointer_cast<types::ConfigStructLike>(out.objects.back());
       auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
@@ -439,8 +450,13 @@ struct action<REF_VARADD> {
     }
 
     if (out.objects.back()->data.contains(out.keys.back())) {
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found in {} ({})!",
-                      out.keys.back(), out.objects.back()->name, out.objects.back()->type);
+      THROW_EXCEPTION(DuplicateKeyException,
+                      "Duplicate key '{}' found in {} ({})! "
+                      "Previously encountered at {} ({}), now at {} ({})",
+                      out.keys.back(), out.objects.back()->name, out.objects.back()->type,
+                      out.objects.back()->data[out.keys.back()]->loc(),
+                      out.objects.back()->data[out.keys.back()]->type, out.obj_res->loc(),
+                      out.obj_res->type);
     }
     CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
 

@@ -122,18 +122,18 @@ class stack {
     return v;
   }
 
-  void dump() const {
-    logger::info("ops={}, vs={}", ops_.size(), vs_.size());
+  void dump(logger::Severity lvl = logger::Severity::DEBUG) const {
+    logger::log(lvl, "ops={}, vs={}", ops_.size(), vs_.size());
     std::stringstream ss;
     for (const auto& o : ops_) {
       ss << o << ", ";
     }
-    logger::debug("ops = [{}]", ss.str());
+    logger::log(lvl, "ops = [{}]", ss.str());
     ss.str(std::string());
     for (const auto& v : vs_) {
       ss << v << ", ";
     }
-    logger::debug("vs = [{}]", ss.str());
+    logger::log(lvl, "vs = [{}]", ss.str());
   }
 
  private:
@@ -183,9 +183,9 @@ struct stacks {
     return s_.back().finish();
   }
 
-  void dump() {
+  void dump(logger::Severity lvl = logger::Severity::DEBUG) {
     for (const auto& s : s_) {
-      s.dump();
+      s.dump(lvl);
     }
   }
 
@@ -257,10 +257,10 @@ struct action<expression> {
     // The top-most stack is automatically "finished" when leaving a bracketed operation. The
     // `expression` rule is also contained within a bracketed operation, but is also the terminal
     // rule, so we only want to call `finish` when not within brackets.
-    logger::info(" !!! In expression action !!!");
+    logger::debug(" !!! In expression action !!!");
     if (out.bracket_cnt == 0) {
-      out.s.dump();
-      logger::info(" !!!  Finishing  !!!");
+      out.s.dump(logger::Severity::DEBUG);
+      logger::debug(" !!!  Finishing  !!!");
       out.res = out.s.finish();
       out.s.dump();
     }

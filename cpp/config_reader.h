@@ -1,11 +1,9 @@
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
 #include <array>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <range/v3/view/drop_last.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -94,7 +92,7 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
   // I'm not sure this really belongs here, but unless we pass more info to `convert` we can't check
   // there.
   if (config::accepts_list_v<T> && cfg_val->type != config::types::Type::kList) {
-    throw std::runtime_error(
+    throw config::InvalidTypeException(
         fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
   }
 

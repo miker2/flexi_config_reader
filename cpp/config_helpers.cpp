@@ -410,7 +410,7 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
     // Get this element, and find the internal data and assign it to our pointer.
     auto v = cfg[head];
     if (!isStructLike(v)) {
-      THROW_EXCEPTION(std::runtime_error,
+      THROW_EXCEPTION(InvalidTypeException,
                       "In unflatten, expected {} to be struct-like, but found {} instead.", head,
                       v->type);
     }

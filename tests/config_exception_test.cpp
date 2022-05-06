@@ -111,6 +111,16 @@ TEST(config_exception_test, DuplicateKeyException) {
     peg::memory_input in_cfg(var_add_duplicate, "test2.bar defined twice");
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
   }
+  {
+    const std::string_view proto_pair_duplicate =
+        "proto proto_foo {              \n\
+           baz = $BAZ                   \n\
+           bar = 0                      \n\
+           baz = $(duplicate.key)       \n\
+         }\n";
+    peg::memory_input in_cfg(proto_pair_duplicate, "proto_foo.baz defined twice");
+    EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
+  }
 }
 
 namespace {
