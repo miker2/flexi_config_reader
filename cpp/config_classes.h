@@ -269,6 +269,18 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
     os << ws << "}";
   }
 
+  auto clone() const -> std::shared_ptr<ConfigBase> final {
+    // This sort of feels like a dirty hack, but appears to work.
+    // See: https://stackoverflow.com/a/25069711
+    struct make_shared_enabler : public ConfigStruct {};
+    auto cloned =
+        std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+    for (const auto& kv : data) {
+      cloned->data[kv.first] = kv.second->clone();
+    }
+    return cloned;
+  }
+
   ~ConfigStruct() noexcept override = default;
 
  protected:
@@ -289,6 +301,18 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
 #endif
     pprint(os, data, depth + 1);
     os << ws << "}";
+  }
+
+  auto clone() const -> std::shared_ptr<ConfigBase> final {
+    // This sort of feels like a dirty hack, but appears to work.
+    // See: https://stackoverflow.com/a/25069711
+    struct make_shared_enabler : public ConfigProto {};
+    auto cloned =
+        std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+    for (const auto& kv : data) {
+      cloned->data[kv.first] = kv.second->clone();
+    }
+    return cloned;
   }
 
   ~ConfigProto() noexcept override = default;
