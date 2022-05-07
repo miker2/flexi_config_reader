@@ -13,6 +13,7 @@
 #include <regex>
 #include <span>
 
+#include "config_actions.h"
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "logger.h"
@@ -185,7 +186,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         v_var->name, v->loc());
       }
       cfg_map[k] = ref_vars.at(v_var->name);
-    } else if (v->type == types::Type::kString || v->type == types::Type::kExpression) {
+    } else if (v->type == types::Type::kString) {
       auto v_value = dynamic_pointer_cast<types::ConfigValue>(v);
 
       auto out = replaceVarInStr(v_value->value, ref_vars);
@@ -194,14 +195,28 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       }
       // Replace the existing value with the new value.
       std::shared_ptr<types::ConfigBase> new_value =
-          v->type == types::Type::kExpression
-              ? std::make_shared<types::ConfigExpression>(
-                    out.value(), dynamic_pointer_cast<types::ConfigExpression>(v)->value_lookups)
-              : std::make_shared<types::ConfigValue>(out.value(), v->type);
+          std::make_shared<types::ConfigValue>(out.value(), v->type);
 
       new_value->line = v->line;
       new_value->source = v->source;
       cfg_map[k] = std::move(new_value);
+    } else if (v->type == types::Type::kExpression) {
+      auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
+
+      auto out = replaceVarInStr(expression->value, ref_vars);
+      if (!out.has_value()) {
+        continue;
+      }
+      // If anything has been replaced, we need to recreate the entire expression using the grammar
+      // (in order to identify any ValueLookup objects in the expression now that the Var objects
+      // have been resolved.
+      config::ActionData state;
+      peg::memory_input input(out.value(), k);
+      peg::parse<EXPRESSION, config::action>(input, state);
+
+      state.obj_res->line = v->line;
+      state.obj_res->source = v->source;
+      cfg_map[k] = std::move(state.obj_res);
     } else if (v->type == types::Type::kValueLookup) {
       logger::debug("Key: {}, checking {} for vars.", k, v);
       auto v_val_lookup = dynamic_pointer_cast<types::ConfigValueLookup>(v);
@@ -331,6 +346,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
     } else if (kv.second && kv.second->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
       for (auto& kvl : expression->value_lookups) {
+        logger::trace("Attempting to resolve {} = {}", kvl.first, kvl.second);
         auto value = resolveVarRefs(root, src_key, kvl.second);
         if (value->type == types::Type::kExpression) {
           logger::debug("Found sub expression '{}' when trying to evaluate '{}'.", kvl.first,
