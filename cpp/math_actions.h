@@ -89,9 +89,9 @@ class stack {
       while (!ops_.empty() &&
              (math::ops::map.at(o2).p > math::ops::map.at(op).p ||
               (math::ops::map.at(o2).p == math::ops::map.at(op).p && math::ops::map.at(op).l))) {
-        logger::info("{} > {}", math::ops::map.at(o2).p, math::ops::map.at(op).p);
-        logger::info("{} == {} && {}", math::ops::map.at(o2).p, math::ops::map.at(op).p,
-                     math::ops::map.at(op).l);
+        logger::trace("{} > {}", math::ops::map.at(o2).p, math::ops::map.at(op).p);
+        logger::trace("{} == {} && {}", math::ops::map.at(o2).p, math::ops::map.at(op).p,
+                      math::ops::map.at(op).l);
         logger::debug("Comparing {} and {}", op, o2);
         math::ops::evalBack(vs_, ops_);
         if (!ops_.empty()) {

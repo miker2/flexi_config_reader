@@ -71,6 +71,9 @@ auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::Confi
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key = "");
 
+auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
+                        const std::string& key = "unknown") -> std::shared_ptr<types::ConfigValue>;
+
 void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key = "");
 
 auto unflatten(const std::span<std::string> keys, const types::CfgMap& cfg) -> types::CfgMap;

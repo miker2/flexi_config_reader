@@ -332,6 +332,13 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
       for (auto& kvl : expression->value_lookups) {
         auto value = resolveVarRefs(root, src_key, kvl.second);
+        if (value->type == types::Type::kExpression) {
+          logger::debug("Found sub expression '{}' when trying to evaluate '{}'.", kvl.first,
+                        src_key);
+          // Follow the trail!
+          auto sub_expression = dynamic_pointer_cast<types::ConfigExpression>(value);
+          value = evaluateExpression(sub_expression, src_key);
+        }
         if (value->type != types::Type::kNumber) {
           THROW_EXCEPTION(InvalidTypeException,
                           "All key/value references in expressions must be of numeric type!\n"
@@ -346,6 +353,29 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
   }
 }
 
+auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
+                        const std::string& key) -> std::shared_ptr<types::ConfigValue> {
+  math::ActionData math;
+  // Fill in math.var_ref_map;
+  for (const auto& var_ref : expression->value_lookups) {
+    if (var_ref.second->type != types::Type::kNumber) {
+      logger::critical("{} is not a number (type={})!", var_ref.first, var_ref.second->type);
+      THROW_EXCEPTION(
+          InvalidTypeException,
+          "When trying to evaluate expression '{} = {}' at {}, found {} of type={}, but "
+          "expected {}",
+          key, expression, expression->loc(), var_ref.first, var_ref.second->type,
+          types::Type::kNumber);
+    }
+    math.var_ref_map[var_ref.first] =
+        std::stod(dynamic_pointer_cast<types::ConfigValue>(var_ref.second)->value);
+  }
+  peg::memory_input input(expression->value, key);
+  peg::parse<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input, math);
+  return std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
+                                              math.res);
+}
+
 void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {
   for (auto& kv : cfg) {
     const auto key = utils::makeName(parent_key, kv.first);
@@ -353,25 +383,7 @@ void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {
       // Evaluate expression
       logger::debug("Evaluating expression {} = {}", key, kv.second);
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
-      math::ActionData math;
-      // Fill in math.var_ref_map;
-      for (const auto& var_ref : expression->value_lookups) {
-        if (var_ref.second->type != types::Type::kNumber) {
-          logger::critical("{} is not a number (type={})!", var_ref.first, var_ref.second->type);
-          THROW_EXCEPTION(
-              InvalidTypeException,
-              "When trying to evaluate expression '{} = {}' at {}, found {} of type={}, but "
-              "expected {}",
-              key, kv.second, kv.second->loc(), var_ref.first, var_ref.second->type,
-              types::Type::kNumber);
-        }
-        math.var_ref_map[var_ref.first] =
-            std::stod(dynamic_pointer_cast<types::ConfigValue>(var_ref.second)->value);
-      }
-      peg::memory_input input(expression->value, kv.first);
-      peg::parse<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input, math);
-      cfg[kv.first] = std::make_shared<types::ConfigValue>(std::to_string(math.res),
-                                                           types::Type::kNumber, math.res);
+      cfg[kv.first] = evaluateExpression(expression);
     } else if (isStructLike(kv.second)) {
       evaluateExpressions(dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, key);
     }
