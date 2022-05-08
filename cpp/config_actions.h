@@ -250,6 +250,17 @@ struct action<VAR> {
 };
 
 template <>
+struct action<PARENTNAMEk> {
+  static void apply0(ActionData& out) {
+    // When this action is invoked, we create a ConfigValue (of type kString) whose value matches
+    // the name/key of the parent object. This allows us to easily reference the name of the parent
+    // object where required.
+    out.obj_res =
+        std::make_shared<types::ConfigValue>(out.objects.back()->name, types::Type::kString);
+  }
+};
+
+template <>
 struct action<filename::FILENAME> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
