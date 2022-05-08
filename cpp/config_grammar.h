@@ -98,6 +98,7 @@ struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
 struct REFk : TAO_PEGTL_KEYWORD("reference") {};
 struct ASk : TAO_PEGTL_KEYWORD("as") {};
+struct PARENTNAMEk : TAO_PEGTL_KEYWORD("$PARENT_NAME") {};
 
 struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk> {};
 
@@ -144,7 +145,7 @@ struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, 
 
 struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {
 };
-struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
+struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};

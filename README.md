@@ -121,6 +121,8 @@ The above example introduces the following concepts:
 3. `+extra_key` is an appended key. The `proto` "protos.foo" does not contain this key, but the resulting `struct fuzz`
    will contain this additional key.
 
+NOTE: There is a special variable `$PARENT_NAME` which can be used to assign the value of the containing parent key to a variable defined in a proto (e.g. we could write `$KEY3 = $PARENT_NAME` which would assign the value `"fuzz"` to `$KEY3`).
+
 The above `reference` could be defined as follows using the `struct` syntax:
 
 ```
