@@ -76,7 +76,7 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
 
 void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key = "");
 
-auto unflatten(const std::span<std::string> keys, const types::CfgMap& cfg) -> types::CfgMap;
+auto unflatten(std::span<std::string> keys, const types::CfgMap& cfg) -> types::CfgMap;
 
 /// \brief Turns a flat key/value pair into a nested structure
 /// \param[in] flat_key - The dot-separated key

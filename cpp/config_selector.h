@@ -7,7 +7,7 @@
 #include "logger.h"
 
 namespace config {
-// TODO: Strip trailing whitespace from comments!
+// TODO(michael.rose0): Strip trailing whitespace from comments!
 
 template <typename Rule>
 struct selector : peg::parse_tree::selector<
@@ -47,15 +47,14 @@ struct selector<INCLUDE> : std::true_type {
     // This is a bit of a hack. We need to use a 'string_input' here because if we don't, the
     // 'file_input' will go out of scope, and the generating the 'dot' output will fail. This would
     // likely be the case when trying to walk the parse tree later.
-    // TODO: Find a more elegant way of
-    // doing this.
+    // TODO(michael.rose0): Find a more elegant way of doing this.
     const auto file_contents = std::string(input_file.begin(), input_file.size());
     auto input = peg::string_input(file_contents, input_file.source());
 
-    // TODO: Convert this to a `parse_nested` call, which will likely fix the issues noted above of
-    // requiring a string input instead of a file input.
-    // See: https://github.com/taocpp/PEGTL/blob/main/doc/Inputs-and-Parsing.md#nested-parsing
-    // Problem is, the parse_tree doesn't have a parse_nested.
+    // TODO(michael.rose0): Convert this to a `parse_nested` call, which will likely fix the issues
+    // noted above of requiring a string input instead of a file input. See:
+    // https://github.com/taocpp/PEGTL/blob/main/doc/Inputs-and-Parsing.md#nested-parsing Problem
+    // is, the parse_tree doesn't have a parse_nested.
 
     if (auto new_tree = peg::parse_tree::parse<config::grammar, config::selector>(input)) {
 #if PRINT_DOT

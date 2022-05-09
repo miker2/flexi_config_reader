@@ -37,10 +37,10 @@ using OpsMap = std::map<std::string, op>;
 const OpsMap map = {
     // NOTE: The exact precedence values used here are not important, only the relative precendence
     // as it is used to determine order of operations.
-    {"+", {.p = 6, .l = true, .f = std::plus<double>()}},
-    {"-", {.p = 6, .l = true, .f = std::minus<double>()}},
-    {"*", {.p = 8, .l = true, .f = std::multiplies<double>()}},
-    {"/", {.p = 8, .l = true, .f = std::divides<double>()}},
+    {"+", {.p = 6, .l = true, .f = std::plus<>()}},
+    {"-", {.p = 6, .l = true, .f = std::minus<>()}},
+    {"*", {.p = 8, .l = true, .f = std::multiplies<>()}},
+    {"/", {.p = 8, .l = true, .f = std::divides<>()}},
     // Support both traditional '^' and pythonic '**' power operators
     {"^", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
     {"**", {.p = 9, .l = false, .f = [](double x, double e) -> double { return std::pow(x, e); }}},
@@ -55,6 +55,7 @@ const OpsMap map = {
 ///                       the result of the operation is pushed onto the stack.
 /// \param[in] ops - the stack of operators
 void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
+  // NOLINTNEXTLINE
   assert(vals.size() == ops.size() + 1);
   // Extract the operands
   const auto rhs = vals.back();
@@ -115,6 +116,7 @@ class stack {
     while (!ops_.empty()) {
       evalBack();
     }
+    // NOLINTNEXTLINE
     assert(vs_.size() == 1);
     const auto v = vs_.back();
     vs_.clear();
@@ -142,8 +144,9 @@ class stack {
 
   void evalBack() {
     logger::debug("In 'evalBack' - ops={}, vs={}", ops_.size(), vs_.size());
+    // NOLINTNEXTLINE
     assert(vs_.size() == ops_.size() + 1);
-    if (ops_.size() == 0 && vs_.size() == 1) {
+    if (ops_.empty() && vs_.size() == 1) {
       // Nothing to do here
       return;
     }
@@ -166,19 +169,22 @@ struct stacks {
 
   template <typename T>
   void push(const T& t) {
+    // NOLINTNEXTLINE
     assert(!s_.empty());
     s_.back().push(t);
   }
 
   void close() {
     logger::debug("Closing stack.");
+    // NOLINTNEXTLINE
     assert(s_.size() > 1);
     const auto r = s_.back().finish();
     s_.pop_back();
     s_.back().push(r);
   }
 
-  double finish() {
+  auto finish() -> double {
+    // NOLINTNEXTLINE
     assert(s_.size() == 1);
     return s_.back().finish();
   }
@@ -194,16 +200,16 @@ struct stacks {
 };
 
 struct ActionData {
-  math::stacks s;
+  math::stacks s{};
 
   // This could be a `config::types::CfgMap` object, but rather than introduce that dependency,
   // we'll make it a simple map from strings to values.
-  std::map<std::string, double> var_ref_map;
+  std::map<std::string, double> var_ref_map{};
 
   // Track open/close brackets to know when to finalize the result.
   size_t bracket_cnt{0};
 
-  double res;  // The final result of the computation.
+  double res{};  // The final result of the computation.
 };
 
 }  // namespace math

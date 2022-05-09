@@ -23,7 +23,7 @@ class Logger {
   }
 
   void setLevel(Severity level) { log_level_ = level; }
-  auto logLevel() const -> Severity { return log_level_; }
+  [[nodiscard]] auto logLevel() const -> Severity { return log_level_; }
 
   void setMaxHistory(std::size_t max_history) { max_history_ = max_history; }
   void clearHistory() { log_history_.clear(); }
@@ -65,7 +65,7 @@ class Logger {
        fmt::emphasis::bold | fmt::bg(fmt::color::red) | fmt::fg(fmt::color::white)}};
 
   // This container holds a history of messages to provide a type of "backtrace" functionality
-  std::size_t max_history_{15};
+  std::size_t max_history_{15};  // NOLINT
   std::deque<std::pair<Severity, std::string>> log_history_;
 };
 

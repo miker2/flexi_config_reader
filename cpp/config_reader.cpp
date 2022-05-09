@@ -28,8 +28,6 @@
 #include "utils.h"
 
 namespace {
-const std::string debug_sep(35, '=');
-
 constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
@@ -68,7 +66,7 @@ auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
     const auto p = e.positions().front();
     logger::critical("{}", e.what());
     logger::critical("{}", input.line_at(p));
-    logger::critical("{}^", std::string(' ', p.column - 1));
+    logger::critical("{}^", std::string(p.column - 1, ' '));
     std::stringstream ss;
     output.print(ss);
     logger::critical("Partial output: \n{}", ss.str());
@@ -78,6 +76,35 @@ auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
 
   return success;
 }
+
+auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types::CfgMap {
+  if (in.empty()) {
+    // TODO: Throw exception here? How to handle empty vector?
+    return {};
+  }
+
+  // This whole function is quite inefficient, but it works, which is a start:
+
+  // Start with the first element:
+  config::types::CfgMap squashed_cfg = in[0];
+
+  // Accumulate all of the other elements of the vector into the CfgMap.
+  for (const auto& cfg : ranges::views::tail(in)) {
+    logger::trace(
+        "======= Working on merging: =======\n{}\n"
+        "++++++++++++++ and ++++++++++++++++\n{}",
+        fmt::join(squashed_cfg, "\n"), fmt::join(cfg, "\n"));
+
+    squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
+
+    logger::trace(
+        "++++++++++++ result +++++++++++++++\n{}\n"
+        "============== END ================\n",
+        fmt::join(squashed_cfg, "\n"));
+  }
+  return squashed_cfg;
+}
+
 }  // namespace
 
 auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
@@ -100,7 +127,7 @@ auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -
 
 void ConfigReader::dump() const { std::cout << cfg_data_; }
 
-void ConfigReader::convert(const std::string& value_str, float& value) const {
+void ConfigReader::convert(const std::string& value_str, float& value) {
   std::size_t len{0};
   value = std::stof(value_str, &len);
   if (len != value_str.size()) {
@@ -110,7 +137,7 @@ void ConfigReader::convert(const std::string& value_str, float& value) const {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, double& value) const {
+void ConfigReader::convert(const std::string& value_str, double& value) {
   std::size_t len{0};
   value = std::stod(value_str, &len);
   if (len != value_str.size()) {
@@ -120,7 +147,7 @@ void ConfigReader::convert(const std::string& value_str, double& value) const {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, int& value) const {
+void ConfigReader::convert(const std::string& value_str, int& value) {
   std::size_t len{0};
   value = std::stoi(value_str, &len);
   if (len != value_str.size()) {
@@ -130,7 +157,7 @@ void ConfigReader::convert(const std::string& value_str, int& value) const {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, int64_t& value) const {
+void ConfigReader::convert(const std::string& value_str, int64_t& value) {
   std::size_t len{0};
   value = std::stoll(value_str, &len);
   if (len != value_str.size()) {
@@ -140,7 +167,7 @@ void ConfigReader::convert(const std::string& value_str, int64_t& value) const {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, bool& value) const {
+void ConfigReader::convert(const std::string& value_str, bool& value) {
   std::size_t len{0};
   value = static_cast<bool>(std::stoi(value_str, &len));
   if (len != value_str.size()) {
@@ -150,9 +177,7 @@ void ConfigReader::convert(const std::string& value_str, bool& value) const {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, std::string& value) const {
-  value = value_str;
-}
+void ConfigReader::convert(const std::string& value_str, std::string& value) { value = value_str; }
 
 void ConfigReader::resolveConfig() {
   config::types::CfgMap flat{};
@@ -163,6 +188,7 @@ void ConfigReader::resolveConfig() {
 
   logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
 
+  static const std::string debug_sep(35, '=');
   logger::debug("{0} Resolving References {0}", debug_sep);
   // Iterate over each map in the parse results and resolve any references. This is done here
   // because we don't support combining references & structs, so we need all references to be
@@ -218,35 +244,6 @@ auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
   return flattened;
 }
 
-auto ConfigReader::mergeNested(const std::vector<config::types::CfgMap>& in) const
-    -> config::types::CfgMap {
-  if (in.empty()) {
-    // TODO: Throw exception here? How to handle empty vector?
-    return {};
-  }
-
-  // This whole function is quite inefficient, but it works, which is a start:
-
-  // Start with the first element:
-  config::types::CfgMap squashed_cfg = in[0];
-
-  // Accumulate all of the other elements of the vector into the CfgMap.
-  for (auto& cfg : ranges::views::tail(in)) {
-    logger::trace(
-        "======= Working on merging: =======\n{}\n"
-        "++++++++++++++ and ++++++++++++++++\n{}",
-        fmt::join(squashed_cfg, "\n"), fmt::join(cfg, "\n"));
-
-    squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
-
-    logger::trace(
-        "++++++++++++ result +++++++++++++++\n{}\n"
-        "============== END ================\n",
-        fmt::join(squashed_cfg, "\n"));
-  }
-  return squashed_cfg;
-}
-
 /// \brief Remove the protos from merged dictionary
 /// \param[in/out] cfg_map - The top level (resolved) config map
 void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
@@ -256,7 +253,7 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
   const auto keys = protos_ | ranges::views::keys |
                     ranges::to<std::vector<decltype(protos_)::key_type>> | ranges::actions::sort |
                     ranges::actions::reverse;
-  for (auto& key : keys) {
+  for (const auto& key : keys) {
     logger::debug("Removing '{}' from config.", key);
     // Split the keys so we can use them to recurse into the map.
     const auto parts = utils::split(key, '.');
@@ -316,7 +313,7 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
       // Need to make a copy of the already referenced protos and add the new proto to it.
       auto updated_refd_protos = refd_protos;
       updated_refd_protos.emplace_back(v_ref->proto);  // This will be passed to recursive calls.
-      auto& p = protos_.at(v_ref->proto);
+      const auto& p = protos_.at(v_ref->proto);
       logger::trace(
           "Creating struct from reference:\n"
           "reference: \n{}\n"

@@ -334,7 +334,7 @@ TEST(config_helpers_test, structFromReference) {
     }
   }
   {
-    // TODO: Consider adding a more complex test with a proto that has nested values.
+    // TODO(michael.rose0): Consider adding a more complex test with a proto that has nested values.
   }
 }
 

@@ -5,9 +5,12 @@ Checks: '-*,
 				 clang-analyzer-*,
 				 google-*
 				 -google-runtime-references,
-				 bugprone-*
-				 hicpp-*
+				 bugprone-*,
+				 -bugprone-easily-swappable-parameters,
+				 cert-*,
+				 hicpp-*,
 				 modernize-*,
+				 performance-*,
 				 readability-*
 				 '
 

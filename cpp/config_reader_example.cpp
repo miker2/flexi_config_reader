@@ -16,7 +16,9 @@ auto main(int argc, char* argv[]) -> int {
   const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
   ConfigReader cfg;
-  const auto success = cfg.parse(cfg_file);
+  if (!cfg.parse(cfg_file)) {
+    logger::error("Failed to parse {}", cfg_file.string());
+  }
 
   logger::setLevel(logger::Severity::INFO);
 
@@ -65,6 +67,7 @@ auto main(int argc, char* argv[]) -> int {
     try {
       // There are only 3 values contained by the key, but we're looking for 4!
       auto arr_var = cfg.getValue<std::array<float, 4>>(vec_key);
+      logger::info("Value of {} is {}", vec_key, arr_var);
     } catch (std::exception& e) {
       logger::error("!!! getValue failure !!!\n{}", e.what());
     }

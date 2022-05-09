@@ -21,6 +21,11 @@ class ConfigReader {
   ConfigReader() = default;
   ~ConfigReader() = default;
 
+  ConfigReader(const ConfigReader&) = delete;
+  auto operator=(const ConfigReader&) -> ConfigReader& = delete;
+  ConfigReader(ConfigReader&&) = default;
+  auto operator=(ConfigReader&&) -> ConfigReader& = delete;
+
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
 
   auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> bool;
@@ -34,20 +39,20 @@ class ConfigReader {
   void getValue(const std::string& name, T& value) const;
 
  private:
-  void convert(const std::string& value_str, float& value) const;
-  void convert(const std::string& value_str, double& value) const;
-  void convert(const std::string& value_str, int& value) const;
-  void convert(const std::string& value_str, int64_t& value) const;
-  void convert(const std::string& value_str, bool& value) const;
-  void convert(const std::string& value_str, std::string& value) const;
+  static void convert(const std::string& value_str, float& value);
+  static void convert(const std::string& value_str, double& value);
+  static void convert(const std::string& value_str, int& value);
+  static void convert(const std::string& value_str, int64_t& value);
+  static void convert(const std::string& value_str, bool& value);
+  static void convert(const std::string& value_str, std::string& value);
 
-  // TODO: This needs to be modified. More info needs to be provided to this function, as it appears
-  // to work for single values that aren't read as a LIST type.
+  // TODO(michael.rose0): This needs to be modified. More info needs to be provided to this
+  // function, as it appears to work for single values that aren't read as a LIST type.
   template <typename T>
   void convert(const std::string& value_str, std::vector<T>& value) const;
 
-  // TODO: This needs to be modified. More info needs to be provided to this function, as it appears
-  // to work for single values that aren't read as a LIST type.
+  // TODO(michael.rose0): This needs to be modified. More info needs to be provided to this
+  // function, as it appears to work for single values that aren't read as a LIST type.
   template <typename T, size_t N>
   void convert(const std::string& value_str, std::array<T, N>& value) const;
 
@@ -55,8 +60,6 @@ class ConfigReader {
 
   auto flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
                             config::types::CfgMap flattened = {}) -> config::types::CfgMap;
-
-  auto mergeNested(const std::vector<config::types::CfgMap>& in) const -> config::types::CfgMap;
 
   /// \brief Remove the protos from merged dictionary
   /// \param[in/out] cfg_map - The top level (resolved) config map
@@ -103,7 +106,7 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
 
 template <typename T>
 auto ConfigReader::getValue(const std::string& name) const -> T {
-  T value;
+  T value{};
   getValue(name, value);
   return value;
 }
