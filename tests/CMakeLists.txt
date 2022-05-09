@@ -16,6 +16,7 @@ target_include_directories(utils_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(utils_test)
 gtest_discover_tests(utils_test)
 
 ################################################################################
@@ -37,6 +38,7 @@ target_include_directories(config_helpers_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(config_helpers_test)
 gtest_discover_tests(config_helpers_test)
 
 ################################################################################
@@ -59,6 +61,7 @@ target_include_directories(config_grammar_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(config_grammar_test)
 gtest_discover_tests(config_grammar_test)
 
 ################################################################################
@@ -81,6 +84,7 @@ target_include_directories(config_exception_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(config_exception_test)
 gtest_discover_tests(config_exception_test)
 
 ################################################################################
@@ -100,6 +104,7 @@ target_include_directories(config_parse_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(config_parse_test)
 gtest_discover_tests(config_parse_test)
 
 ################################################################################
@@ -120,4 +125,5 @@ target_include_directories(math_test PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
   )
 
+add_clang_format(math_test)
 gtest_discover_tests(math_test)

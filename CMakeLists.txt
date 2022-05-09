@@ -5,6 +5,9 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 
 project (FLEXI_CONFIG_READER)
 
+include(${CMAKE_SOURCE_DIR}/cmake/colours.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/add_clang_format.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 include(FetchContent)
 # Get taocpp::pegtl
@@ -49,6 +52,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(range-v3)
 
+option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
+if(ENABLE_CLANG_TIDY)
+  if(NOT CMAKE_CROSSCOMPILING) # adds invalid paths
+    find_package(ClangTools QUIET)
+    if(CLANG_TIDY_FOUND)
+      set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}")
+    else(CLANG_TIDY_FOUND)
+      message(STATUS "${Yellow}clang-tidy static analysis won't be done.${ColourReset}")
+    endif(CLANG_TIDY_FOUND)
+    if(NOT CLANG_FORMAT_FOUND)
+      message(STATUS "${Yellow}clang-format not found. Style checks won't be done.${ColourReset}")
+    endif(NOT CLANG_FORMAT_FOUND)
+  endif(NOT CMAKE_CROSSCOMPILING)
+else(ENABLE_CLANG_TIDY)
+  set(CMAKE_CXX_CLANG_TIDY "")
+endif(ENABLE_CLANG_TIDY)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
