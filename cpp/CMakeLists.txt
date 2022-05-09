@@ -32,6 +32,8 @@ target_include_directories(config_reader PRIVATE
   ${CMAKE_SOURCE_DIR}/cpp/
 )
 
+add_clang_format(config_reader)
+
 install(TARGETS config_reader
   LIBRARY DESTINATION lib
   PUBLIC_HEADER DESTINATION include)
@@ -41,6 +43,7 @@ target_link_libraries(config_build
   PRIVATE
   config_reader
 )
+add_clang_format(config_build)
 
 add_executable(config_reader_example config_reader_example.cpp)
 target_link_libraries(config_reader_example
@@ -48,7 +51,7 @@ target_link_libraries(config_reader_example
   config_reader
   fmt::fmt
 )
-
+add_clang_format(config_reader_example)
 
 add_executable(include_file_test include_file_test.cpp)
 target_link_libraries(include_file_test PRIVATE taocpp::pegtl)

@@ -1,0 +1,16 @@
+
+
+Checks: '-*,
+         cppcore*,
+				 clang-analyzer-*,
+				 google-*
+				 -google-runtime-references,
+				 bugprone-*
+				 hicpp-*
+				 modernize-*,
+				 readability-*
+				 '
+
+HeaderFilterRegex: 'cpp/.*'
+
+#WarningsAsErrors: '*'
