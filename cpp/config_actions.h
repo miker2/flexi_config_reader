@@ -12,6 +12,7 @@
 #include <memory>
 #include <range/v3/view/map.hpp>
 #include <string>
+#include <string_view>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <vector>
@@ -23,24 +24,26 @@
 #include "logger.h"
 #include "utils.h"
 
-#define VERBOSE_DEBUG 0
-#define CONFIG_UNFLATTEN_KEYS 1
+#define CONFIG_UNFLATTEN_KEYS 1  // NOLINT(cppcoreguidelines-macro-usage)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_DEBUG(MSG_F, ...) \
-  logger::debug("{}" MSG_F, std::string(out.depth * 2, ' '), __VA_ARGS__);
+  logger::debug("{}" MSG_F, std::string(out.depth * 2UL, ' '), __VA_ARGS__);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
-  logger::trace("{}" MSG_F, std::string(out.depth * 2, ' '), __VA_ARGS__);
+  logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), __VA_ARGS__);
 
 namespace config {
+constexpr bool VERBOSE_DEBUG_ACTIONS{false};
 
-const std::string DEFAULT_RES{"***"};
+constexpr std::string_view DEFAULT_RES{"***"};
 
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
   int depth{0};  // Nesting level
 
-  std::string result = DEFAULT_RES;
+  std::string result{DEFAULT_RES};
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
   bool in_proto{false};
@@ -113,9 +116,9 @@ template <>
 struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
+    }
     out.keys.emplace_back(in.string());
   }
 };
@@ -124,9 +127,9 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In VALUE action: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In VALUE action: {}", in.string());
+    }
     if (out.obj_res == nullptr) {
       // NOTE: This should never happen!
       const auto pre_post = std::string(10, '!');
@@ -143,9 +146,9 @@ struct action<HEX> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     const auto hex = std::stoull(in.string(), nullptr, 16);
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
+    }
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
   }
 };
@@ -154,9 +157,9 @@ template <>
 struct action<STRING> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
+    }
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
   }
 };
@@ -165,9 +168,9 @@ template <>
 struct action<FLOAT> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
+    }
     std::any any_val = std::stod(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -178,9 +181,9 @@ template <>
 struct action<INTEGER> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
+    }
     std::any any_val = std::stoi(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -196,11 +199,11 @@ struct action<LIST> {
     // Remove any leading/trailing whitespace from each list element.
     std::transform(entries.begin(), entries.end(), entries.begin(),
                    [](auto s) { return utils::trim(s); });
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In LIST action: {}", in.string());
-    CONFIG_ACTION_TRACE(" --- Has {} elements: {}", entries.size(), utils::join(entries, "; "));
-#endif
-    // TODO: Create a custom type for lists.
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In LIST action: {}", in.string());
+      CONFIG_ACTION_TRACE(" --- Has {} elements: {}", entries.size(), utils::join(entries, "; "));
+    }
+    // TODO(michael.rose0): Create a custom type for lists.
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kList, entries);
   }
 };
@@ -217,9 +220,9 @@ template <>
 struct action<EXPRESSION> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
+    }
     CONFIG_ACTION_TRACE("EXPRESSION contains the following VAR_REF objects: {}",
                         ranges::views::values(out.value_lookups));
     // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
@@ -235,9 +238,9 @@ template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("Found var: {}", in.string());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("Found var: {}", in.string());
+    }
     // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
@@ -306,10 +309,10 @@ struct action<FLAT_KEY> {
     // Walk through the keys, and pop them off of out.keys
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
-      assert(keys.back() == out.keys.back());
-#if VERBOSE_DEBUG
-      CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
-#endif
+      assert(keys.back() == out.keys.back());  // NOLINT
+      if (VERBOSE_DEBUG_ACTIONS) {
+        CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
+      }
       keys.pop_back();
       out.keys.pop_back();
     }
@@ -327,15 +330,15 @@ struct action<VAR_REF> {
     // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the VAR_REF
     // starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
+    }
     const auto parts = utils::split(var_ref, '.');
     for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
       if (!out.keys.empty() && out.keys.back() == *it) {
-#if VERBOSE_DEBUG
-        CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.keys.back());
-#endif
+        if (VERBOSE_DEBUG_ACTIONS) {
+          CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.keys.back());
+        }
         out.keys.pop_back();
       }
     }
@@ -412,10 +415,10 @@ struct action<FULLPAIR> {
 template <>
 struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
-#if VERBOSE_DEBUG
-    CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
-    CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
-#endif
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
+      CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
+    }
 
     // If we're here, then there must be an object and it must be a proto!
     if (out.objects.back()->type != types::Type::kProto &&
@@ -546,13 +549,13 @@ struct action<STRUCT> {
           "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
           out.keys.back(), location, data[out.keys.back()]->type, types::Type::kStruct);
     }
-    data[out.keys.back()] = std::move(this_obj);
+    data[out.keys.back()] = this_obj;
 
     // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
     // in case we have a duplicat struct later. We won't resolve that now, but later in another
     // pass.
     if (out.objects.empty()) {
-      out.cfg_res.push_back({});
+      out.cfg_res.emplace_back();
     }
 
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
@@ -577,13 +580,13 @@ struct action<PROTO> {
           "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
           out.keys.back(), location, data[out.keys.back()]->type, types::Type::kProto);
     }
-    data[out.keys.back()] = std::move(this_obj);
+    data[out.keys.back()] = this_obj;
 
     // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
     // in case we have a duplicate struct later. We won't resolve that now, but later in another
     // pass.
     if (out.objects.empty()) {
-      out.cfg_res.push_back({});
+      out.cfg_res.emplace_back();
     }
     // Nested protos are not allowed, so it's okay to set this to false always.
     const auto flat_key = utils::join(out.keys, ".");
@@ -610,13 +613,13 @@ struct action<REFERENCE> {
           "Duplicate key '{}' found in '{}' - Previously defined at {}, now defined as {}",
           out.keys.back(), location, data[out.keys.back()]->type, types::Type::kReference);
     }
-    data[out.keys.back()] = std::move(this_obj);
+    data[out.keys.back()] = this_obj;
 
     // NOTE: Nothing else left in the objects buffer? Create a new element in the `cfg_res` vector
     // in case we have a duplicate struct later. We won't resolve that now, but later in another
     // pass.
     if (out.objects.empty()) {
-      out.cfg_res.push_back({});
+      out.cfg_res.emplace_back();
     }
 
     out.keys.pop_back();

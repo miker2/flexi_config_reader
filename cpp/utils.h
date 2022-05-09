@@ -59,7 +59,7 @@ inline auto splitTail(const std::string& s, char delimiter = '.')
 
 inline auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
   if (keys.empty()) {
-    return std::string();
+    return {};
   }
 
   return std::accumulate(std::begin(keys), std::end(keys), std::string(),
@@ -77,7 +77,8 @@ inline auto makeName(const std::string& n1, const std::string& n2 = "") -> std::
 
   if (n1.empty()) {
     return n2;
-  } else if (n2.empty()) {
+  }
+  if (n2.empty()) {
     return n1;
   }
 
@@ -100,19 +101,19 @@ auto contains(const C& v, const T& x) -> decltype(end(v), true) {
 }  // namespace utils
 
 template <typename T>
-std::ostream& operator<<(std::ostream& o, const std::vector<T>& vec) {
+auto operator<<(std::ostream& o, const std::vector<T>& vec) -> std::ostream& {
   std::copy(std::begin(vec), std::end(vec), std::ostream_iterator<T>(o, " "));
   return o;
 }
 
 template <typename T, std::size_t N>
-std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr) {
+auto operator<<(std::ostream& o, const std::array<T, N>& arr) -> std::ostream& {
   std::copy(std::begin(arr), std::end(arr), std::ostream_iterator<T>(o, " "));
   return o;
 }
 
 template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-std::ostream& operator<<(std::ostream& o, const std::span<T>& spn) {
+auto operator<<(std::ostream& o, const std::span<T>& spn) -> std::ostream& {
   std::copy(std::begin(spn), std::end(spn), std::ostream_iterator<T>(o, " "));
   return o;
 }

@@ -140,13 +140,15 @@ auto runTest(size_t idx, const std::string &test_str, bool pdot = true) -> bool 
     // re-use the input here for convenience.
     in.restart();
     ret = peg::parse<GTYPE, json_ish::action>(in, out);
-    std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
+    std::cout << "  Parse " << (ret ? std::string("success") : "failure") << std::endl;
     std::cout << "out: " << out << std::endl;
   } catch (const peg::parse_error &e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n' << in.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n'
+              << in.line_at(p) << '\n'
+              << std::setw(static_cast<int>(p.column)) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -184,10 +186,10 @@ auto main() -> int {
     ret &= runTest<peg::must<json_ish::VALUE, peg::eolf>>(test_num++, content, pdot);
   }
 
-  std::vector map_strs = {"{\"ints\":[1, 2,  -3 ], \"more_ints\": [1, 2, -5]}",
-                          "{\"ints\"  :   \"test\"     }",
-                          "{\"id\":\"0001\",\"type\":0.55,\"thing\"  :[1, 2.2 ,5.  ], \n"
-                          "\"sci_notation_test\": [1.e3, 1.E-5, -4.3e+5] }",
+  std::vector map_strs = {R"({"ints":[1, 2,  -3 ], "more_ints": [1, 2, -5]})",
+                          R"({"ints"  :   "test"     })",
+                          R"({"id":"0001","type":0.55,"thing"  :[1, 2.2 ,5.  ],
+                              "sci_notation_test": [1.e3, 1.E-5, -4.3e+5] })",
                           "{\n\
   \"id\": \"0001\",\n\
   \"type\": \"donut\",\n\

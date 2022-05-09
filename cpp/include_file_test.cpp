@@ -53,12 +53,14 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
     // re-use the input here for convenience.
     src.restart();
     ret = peg::parse<GTYPE>(src);
-    std::cout << "  Parse " << (ret ? "success" : "failure") << std::endl;
+    std::cout << "  Parse " << (ret ? std::string("success") : "failure") << std::endl;
   } catch (const peg::parse_error& e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
     const auto p = e.positions().front();
-    std::cout << e.what() << '\n' << src.line_at(p) << '\n' << std::setw(p.column) << '^' << '\n';
+    std::cout << e.what() << '\n'
+              << src.line_at(p) << '\n'
+              << std::setw(static_cast<int>(p.column)) << '^' << '\n';
     std::cout << "!!!\n";
   }
 
@@ -90,7 +92,7 @@ auto main() -> int {
     ret &= runTest<filename::FILENAME>(test_num++, e);
   }
 
-  runTest<include_file::grammar>(999, "#include ../robot/default.cfg");
+  runTest<include_file::grammar>(0, "#include ../robot/default.cfg");
 
-  return (ret ? 0 : 10);
+  return (ret ? 0 : 1);
 }

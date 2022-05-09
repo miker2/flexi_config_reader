@@ -1,19 +1,21 @@
 #include <filesystem>
 #include <magic_enum.hpp>
+#include <span>
 
 #include "config_reader.h"
 #include "logger.h"
 
 auto main(int argc, char* argv[]) -> int {
+  std::span<char*> args(argv, argc);
   if (argc < 2) {
     std::cerr << "No file specified.\n";
-    std::cerr << "usage: " << std::filesystem::path(argv[0]).filename().string() << " CFG_FILE"
+    std::cerr << "usage: " << std::filesystem::path(args[0]).filename().string() << " CFG_FILE"
               << std::endl;
     return -1;
   }
   logger::Severity log_level = logger::Severity::INFO;
   if (argc == 3) {
-    auto out = magic_enum::enum_cast<logger::Severity>(argv[2]);
+    auto out = magic_enum::enum_cast<logger::Severity>(args[2]);
     if (out.has_value()) {
       log_level = out.value();
     }
@@ -21,9 +23,9 @@ auto main(int argc, char* argv[]) -> int {
   logger::setLevel(log_level);
 
   ConfigReader cfg;
-  const auto success = cfg.parse(std::filesystem::path(argv[1]));
+  const auto success = cfg.parse(std::filesystem::path(args[1]));
   if (success) {
-    std::cout << "\n" << std::string(35, '!') << " Result " << std::string(35, '!') << std::endl;
+    std::cout << std::endl;
     cfg.dump();
   }
 

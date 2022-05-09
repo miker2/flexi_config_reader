@@ -20,7 +20,9 @@
 #include "math_actions.h"
 #include "utils.h"
 
-#define CONFIG_HELPERS_DEBUG 0
+namespace {
+constexpr bool CONFIG_HELPERS_DEBUG{false};
+}
 
 namespace config::helpers {
 
@@ -36,12 +38,14 @@ auto isStructLike(const types::BasePtr& el) -> bool {
 //   - Only ones is a dictionary - Also bad. We can't handle this one
 auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const std::string& key)
     -> bool {
-  const auto dict_count = isStructLike(cfg1.at(key)) + isStructLike(cfg2.at(key));
+  const auto dict_count =
+      static_cast<int>(isStructLike(cfg1.at(key))) + static_cast<int>(isStructLike(cfg2.at(key)));
   if (dict_count == 0) {  // Neither is a dictionary. We don't support duplicate keys
     THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found at {} and {}!", key,
                     cfg1.at(key)->loc(), cfg2.at(key)->loc());
     // print(f"Found duplicate key: '{key}' with values '{dict1[key]}' and '{dict2[key]}'!!!")
-  } else if (dict_count == 1) {  // One dictionary, but not the other, can't merge these
+  }
+  if (dict_count == 1) {  // One dictionary, but not the other, can't merge these
     THROW_EXCEPTION(MismatchKeyException,
                     "Mismatch types for key '{}' found at {} and {}! Both keys must point to "
                     "structs, can't merge these.",
@@ -99,14 +103,16 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
 
   // First, create the new struct based on the reference data.
   auto struct_out = std::make_shared<types::ConfigStruct>(ref->name, ref->depth);
-#if CONFIG_HELPERS_DEBUG
-  logger::debug("New struct: \n{}", struct_out);
-#endif
+  if (CONFIG_HELPERS_DEBUG) {
+    logger::debug("New struct: \n{}", struct_out);
+  }
+
   // Next, move the data from the reference to the struct:
   struct_out->data.merge(ref->data);
-#if CONFIG_HELPERS_DEBUG
-  logger::debug("Data added: \n{}", struct_out);
-#endif
+  if (CONFIG_HELPERS_DEBUG) {
+    logger::debug("Data added: \n{}", struct_out);
+  }
+
   // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
   // the proto.
@@ -133,7 +139,7 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
 
   auto out = std::move(input);
   // Find instances of 'ref_vars' in 'input' and replace.
-  for (auto& rkv : ref_vars) {
+  for (const auto& rkv : ref_vars) {
     const auto& rk = rkv.first;
     auto rv = dynamic_pointer_cast<types::ConfigValue>(rkv.second);
     // Only continue if the k/v pair contains a value (i.e. not a kValueLookup or kVar)
@@ -148,10 +154,10 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     // value is not a string, this is a no-op.
     const auto replacement = utils::trim(rv->value, "\\\"");
     // Look for `rk` (escape leadding '$') in `out` and replace them with 'replacement'
-    out = std::regex_replace(out, std::regex("\\" + rk), replacement);
+    out = std::regex_replace(out, std::regex(std::string("\\").append(rk)), replacement);
     // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
     // in escape characters as this will be used in a regular expression.
-    const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), "\\$\\{$1\\}");
+    const auto bracket_var = std::regex_replace(rk, std::regex("\\$(.+)"), R"(\$\{$1\})");
     logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
     out = std::regex_replace(out, std::regex(bracket_var), replacement);
     logger::debug("out: {}", out);
@@ -174,9 +180,10 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
-#if CONFIG_HELPERS_DEBUG
-    logger::trace("At: {} = {} | type: {}", k, v, v->type);
-#endif
+    if (CONFIG_HELPERS_DEBUG) {
+      logger::trace("At: {} = {} | type: {}", k, v, v->type);
+    }
+
     if (v->type == types::Type::kVar) {
       auto v_var = dynamic_pointer_cast<types::ConfigVar>(v);
       // Pull the value from the reference vars and add it to the structure.
@@ -248,9 +255,9 @@ auto getNestedConfig(const types::CfgMap& cfg, const std::vector<std::string>& k
     -> std::shared_ptr<types::ConfigStructLike> {
   // Keep track of the re-joined keys (from the front to the back) as we recurse into the map in
   // order to make error messages more useful.
-  std::string rejoined = "";
+  std::string rejoined{};
   // Start with the base config tree and work our way down through the keys.
-  auto* content = &cfg;
+  const auto* content = &cfg;
   // Walk through each part of the flat key (except the last one, as it will be the one that
   // contains the data.
   std::shared_ptr<types::ConfigStructLike> struct_like;
