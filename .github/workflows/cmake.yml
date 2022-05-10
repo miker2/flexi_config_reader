@@ -56,12 +56,11 @@ jobs:
             wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
             sudo add-apt-repository --yes --update \
                 "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.version }} main"
-            #deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.version }} main
           fi
           sudo apt-get -y update
           # sudo apt-get -y upgrade
 
-          sudo apt-get install -y build-essential ninja-build g++ clang  #python-is-python3
+          sudo apt-get install -y build-essential ninja-build g++ #python-is-python3
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
@@ -69,6 +68,14 @@ jobs:
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
+            sudo apt-get install -y clang-format-${{ matrix.version }} clang-tidy-${{ matrix.version }}
+            which clang-format || sudo ln -s /usr/bin/clang-format-${{ matrix.version }} /usr/bin/clang-format
+            which clang-format
+            clang-format --version
+            sudo ln -s /usr/bin/clang-tidy-${{ matrix.version }} /usr/bin/clang-tidy
+            which clang-tidy
+
+            clang-tidy --version
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
