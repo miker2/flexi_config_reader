@@ -23,7 +23,7 @@ struct selector<INCLUDE> : std::true_type {
   template <typename... States>
   static void transform(std::unique_ptr<peg::parse_tree::node>& n, States&&... st) {
     logger::info("Successfully found a {} node in {}!", n->type, n->source);
-    std::string filename = "";
+    std::string filename{};
     for (const auto& c : n->children) {
       logger::debug("Has child of type {}.", c->type);
       if (c->has_content()) {

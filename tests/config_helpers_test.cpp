@@ -16,6 +16,7 @@ void testIsStructLike(Args&&... args) {
 }
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, isStructLike) {
   testIsStructLike<config::types::ConfigValue>("");
 
@@ -30,6 +31,7 @@ TEST(config_helpers_test, isStructLike) {
   testIsStructLike<config::types::ConfigReference>("reference", "proto", 0);
 }
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, checkForErrors) {
   {
     // This test should fail due to duplicate keys
@@ -39,6 +41,7 @@ TEST(config_helpers_test, checkForErrors) {
     config::types::CfgMap cfg2 = {{key, std::make_shared<config::types::ConfigValue>(
                                             "string", config::types::Type::kString)}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::checkForErrors(cfg1, cfg2, key), config::DuplicateKeyException);
   }
   {
@@ -49,6 +52,7 @@ TEST(config_helpers_test, checkForErrors) {
     config::types::CfgMap cfg2 = {
         {key, std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */)}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::checkForErrors(cfg1, cfg2, key), config::MismatchKeyException);
   }
   {
@@ -59,6 +63,7 @@ TEST(config_helpers_test, checkForErrors) {
     config::types::CfgMap cfg2 = {
         {key, std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */)}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::checkForErrors(cfg1, cfg2, key), config::MismatchTypeException);
   }
   {
@@ -69,6 +74,7 @@ TEST(config_helpers_test, checkForErrors) {
     config::types::CfgMap cfg2 = {
         {key, std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */)}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(config::helpers::checkForErrors(cfg1, cfg2, key));
   }
   {
@@ -81,13 +87,16 @@ TEST(config_helpers_test, checkForErrors) {
     config::types::CfgMap cfg2 = {
         {key2, std::make_shared<config::types::ConfigStruct>(key2, 0 /* depth doesn't matter */)}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::checkForErrors(cfg1, cfg2, key1), std::out_of_range)
         << "cfg1: " << cfg1 << ", cfg2: " << cfg2;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::checkForErrors(cfg1, cfg2, key2), std::out_of_range)
         << "cfg1: " << cfg1 << ", cfg2: " << cfg2;
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, mergeNestedMaps) {
   {
     // This test should succeed (no exceptions thrown)
@@ -126,6 +135,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key3 = ""
     //    key4 = ""
     config::types::CfgMap cfg_out{};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(cfg_out = config::helpers::mergeNestedMaps(cfg1, cfg2));
 
     // The resulting map contains the top level key.
@@ -168,6 +178,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
     config::types::CfgMap cfg_out{};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_THROW(cfg_out = config::helpers::mergeNestedMaps(cfg1, cfg2),
                  config::DuplicateKeyException);
   }
@@ -233,6 +244,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //      key3 = ""
     //      key4 = ""
     config::types::CfgMap cfg_out{};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(cfg_out = config::helpers::mergeNestedMaps(cfg1, cfg2));
 
     // The inner struct should contain all of the above keys and no more.
@@ -252,6 +264,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, structFromReference) {
   {
     // This test should succeed (no exceptions thrown)
@@ -268,9 +281,11 @@ TEST(config_helpers_test, structFromReference) {
     //    $KEY4 = "bar"
     auto reference = std::make_shared<config::types::ConfigReference>(ref_name, proto_name,
                                                                       4 /* depth doesn't matter */);
-    reference->data = {{keys[0], std::make_shared<config::types::ConfigValue>(
-                                     "0.14", config::types::Type::kNumber, 0.14)},
-                       {keys[1], std::make_shared<config::types::ConfigValue>("fizz_buzz")}};
+    constexpr double MAGIC_NUMBER{0.14};
+    reference->data = {
+        {keys[0], std::make_shared<config::types::ConfigValue>(
+                      std::to_string(MAGIC_NUMBER), config::types::Type::kNumber, MAGIC_NUMBER)},
+        {keys[1], std::make_shared<config::types::ConfigValue>("fizz_buzz")}};
     reference->ref_vars = {{"$KEY3", std::make_shared<config::types::ConfigValue>("foo")},
                            {"$KEY4", std::make_shared<config::types::ConfigValue>("bar")}};
 
@@ -288,6 +303,7 @@ TEST(config_helpers_test, structFromReference) {
         {keys[4], std::make_shared<config::types::ConfigValue>(expected_proto_values[keys[4]])}};
 
     std::shared_ptr<config::types::ConfigStruct> struct_out{};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(struct_out = config::helpers::structFromReference(reference, proto));
 
     // Ensure that the struct was created properly from the reference
@@ -338,6 +354,7 @@ TEST(config_helpers_test, structFromReference) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, replaceVarInStr) {
   {
     const std::string input = "this.is.a.$VAR";
@@ -423,6 +440,7 @@ TEST(config_helpers_test, replaceVarInStr) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_helpers_test, resolveVarRefs) {
   {
     const std::string expected_value = "10";
@@ -433,6 +451,7 @@ TEST(config_helpers_test, resolveVarRefs) {
         {"outer", std::make_shared<config::types::ConfigValueLookup>("inner.key1")},
         {struct_like->name, struct_like}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(config::helpers::resolveVarRefs(cfg, cfg));
 
     ASSERT_EQ(cfg["outer"]->type, config::types::Type::kValue);
@@ -449,6 +468,7 @@ TEST(config_helpers_test, resolveVarRefs) {
         {"bar", std::make_shared<config::types::ConfigValueLookup>("baz")},
         {"baz", std::make_shared<config::types::ConfigValueLookup>("foo")}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(config::helpers::resolveVarRefs(cfg, cfg), config::CyclicReferenceException);
   }
 }
