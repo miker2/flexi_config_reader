@@ -72,7 +72,7 @@ add_executable(
 
 target_link_libraries(
   config_exception_test
-	config_reader
+  config_reader
   #fmt::fmt
   #magic_enum::magic_enum
   #range-v3::range-v3
@@ -95,7 +95,7 @@ add_executable(
 
 target_link_libraries(
   config_parse_test
-	config_reader
+  config_reader
   taocpp::pegtl
   gtest_main
   )
@@ -115,6 +115,7 @@ add_executable(
 
 target_link_libraries(
   math_test
+  config_reader
   taocpp::pegtl
   fmt::fmt
   magic_enum::magic_enum

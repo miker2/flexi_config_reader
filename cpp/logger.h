@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <deque>
 #include <magic_enum.hpp>
+#include <map>
 #include <string_view>
 
 namespace logger {
