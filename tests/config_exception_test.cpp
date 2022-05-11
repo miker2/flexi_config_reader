@@ -23,13 +23,14 @@ auto parse(INPUT& input) {
 }
 
 template <>
-auto parse(std::filesystem::path& in_file) {
-  peg::file_input cfg_file(in_file);
+auto parse(std::filesystem::path& input) {
+  peg::file_input cfg_file(input);
   return parse(cfg_file);
 }
 
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, parse_error) {
   {
     const std::vector parse_error = {
@@ -46,11 +47,13 @@ TEST(config_exception_test, parse_error) {
          foo.bar = 1   # Can't mix flat keys with struct in same file."};
     for (const auto& input : parse_error) {
       peg::memory_input in_cfg(input, "From content");
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
       EXPECT_THROW(parse(in_cfg), peg::parse_error) << "Input file: " << in_cfg.source();
     }
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, mismatched_key) {
   {
     const std::string_view mismatched_key =
@@ -59,10 +62,12 @@ TEST(config_exception_test, mismatched_key) {
           key = \"value\" \n\
         }  # This end key should match the 'struct' key, and will produce an exception.";
     peg::memory_input in_cfg(mismatched_key, "No trailing newline");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), peg::parse_error) << "Input file: " << in_cfg.source();
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, DuplicateKeyException) {
   {
     const std::string_view duplicate_in_struct =
@@ -72,6 +77,7 @@ TEST(config_exception_test, DuplicateKeyException) {
            key1 = -4   #  Duplicate key. This should produce an exception. \n\
          }\n";
     peg::memory_input in_cfg(duplicate_in_struct, "key1 defined twice");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException) << "Input file: " << in_cfg.source();
   }
   {
@@ -86,6 +92,7 @@ TEST(config_exception_test, DuplicateKeyException) {
            +bar = 0                     \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"), config::DuplicateKeyException);
   }
 #if 0  // See FULLPAIR action
@@ -95,6 +102,7 @@ TEST(config_exception_test, DuplicateKeyException) {
          another.key = -1.2         \n\
          this.is.a.key = \"again\"  \n";
     peg::memory_input in_cfg(duplicate_full_pair, "this.is.a.key defined twice");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
   }
 #endif
@@ -111,6 +119,7 @@ TEST(config_exception_test, DuplicateKeyException) {
            +bar = 0                     \n\
          }\n";
     peg::memory_input in_cfg(var_add_duplicate, "test2.bar defined twice");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
   }
   {
@@ -121,26 +130,31 @@ TEST(config_exception_test, DuplicateKeyException) {
            baz = $(duplicate.key)       \n\
          }\n";
     peg::memory_input in_cfg(proto_pair_duplicate, "proto_foo.baz defined twice");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException);
   }
 }
 
 namespace {
-const std::vector<std::string_view> struct_likes = {
-    "struct fizz {                \n\
-       buzz = \"buzz\"            \n\
-     }",
-    "reference bar as fizz {      \n\
-       $BUZZ = \"buzz\"           \n\
-     }",
-    "proto fizz {                 \n\
-       buzz = $BUZZ               \n\
-     }"};
+auto structLikes() -> const std::vector<std::string_view>& {
+  static const std::vector<std::string_view> struct_likes = {
+      "struct fizz {                \n\
+         buzz = \"buzz\"            \n\
+       }",
+      "reference bar as fizz {      \n\
+         $BUZZ = \"buzz\"           \n\
+       }",
+      "proto fizz {                 \n\
+         buzz = $BUZZ               \n\
+       }"};
+  return struct_likes;
 }
+}  // namespace
 
 class DuplicateKeys
     : public testing::TestWithParam<std::tuple<std::string_view, std::string_view>> {};
 
+// NOLINTNEXTLINE
 TEST_P(DuplicateKeys, Exception) {
   const std::string_view cfg_base =
       "struct foo {{                    \n\
@@ -156,13 +170,16 @@ TEST_P(DuplicateKeys, Exception) {
       cfg_base, fmt::make_format_args(std::get<0>(GetParam()), std::get<1>(GetParam())));
   // std::cout << "Test config: \n" << cfg << std::endl;
   peg::memory_input in_cfg(cfg, "duplicate 'fizz'");
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_THROW(parse(in_cfg), config::DuplicateKeyException) << "Input config:\n" << cfg;
 }
 
+// NOLINTNEXTLINE
 INSTANTIATE_TEST_SUITE_P(config_exception_test, DuplicateKeys,
-                         testing::Combine(testing::ValuesIn(struct_likes),
-                                          testing::ValuesIn(struct_likes)));
+                         testing::Combine(testing::ValuesIn(structLikes()),
+                                          testing::ValuesIn(structLikes())));
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, InvalidKeyException) {
   {
     const std::string_view invalid_key_reference =
@@ -171,6 +188,7 @@ TEST(config_exception_test, InvalidKeyException) {
            key = $(test1.key2)  \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(invalid_key_reference, "invalid key reference"),
                  config::InvalidKeyException);
   }
@@ -182,10 +200,12 @@ TEST(config_exception_test, InvalidKeyException) {
            key = $(test1.key3.bar)  \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(not_a_struct, "not a struct"), config::InvalidKeyException);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, InvalidTypeException) {
   {
     // This can also occur if the key exists but is of the wrong type
@@ -196,6 +216,7 @@ TEST(config_exception_test, InvalidTypeException) {
            key3 = 0                 \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(key_wrong_type, "key wrong type"), config::InvalidTypeException);
   }
   {
@@ -205,11 +226,13 @@ TEST(config_exception_test, InvalidTypeException) {
            key2 = {{ 0.5 * $(foo.key1) }}  \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(non_numeric_in_expression, "non numeric in expression"),
                  config::InvalidTypeException);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, UndefinedReferenceVarException) {
   {
     const std::string_view proto_var_doesnt_exist =
@@ -223,6 +246,7 @@ TEST(config_exception_test, UndefinedReferenceVarException) {
            #$KEY2 undefined            \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(proto_var_doesnt_exist, "$KEY2 is undefined"),
                  config::UndefinedReferenceVarException);
   }
@@ -239,10 +263,12 @@ TEST(config_exception_test, UndefinedReferenceVarException) {
            $EXTRA_KEY = 0  # not useful, but not an error  \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(cfg.parse(extra_proto_var, "$EXTRA_KEY is unused"));
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_exception_test, UndefinedProtoException) {
   {
     const std::string_view undefined_proto =
@@ -256,6 +282,7 @@ TEST(config_exception_test, UndefinedProtoException) {
            $KEY2 = \"defined\"                             \n\
          }\n";
     ConfigReader cfg;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(undefined_proto, "bar_proto not defined"),
                  config::UndefinedProtoException);
   }
@@ -263,11 +290,14 @@ TEST(config_exception_test, UndefinedProtoException) {
 
 class CyclicReference : public testing::TestWithParam<std::string> {};
 
+// NOLINTNEXTLINE
 TEST_P(CyclicReference, Exception) {
   ConfigReader cfg;
   const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / GetParam();
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_THROW(cfg.parse(in_file), config::CyclicReferenceException) << "Input file: " << in_file;
 }
 
+// NOLINTNEXTLINE
 INSTANTIATE_TEST_SUITE_P(config_exception_test, CyclicReference,
                          testing::Values("config_cyclic1.cfg", "config_cyclic2.cfg"));

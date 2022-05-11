@@ -14,6 +14,7 @@ void compareVecEq(const std::vector<std::string>& expected, const std::vector<st
 };
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST(utils_test, trim) {
   std::string base = "This is a test";
 
@@ -32,13 +33,30 @@ TEST(utils_test, trim) {
     std::string test_str = "   \n  " + base + "   \n\t\t\t   ";
     EXPECT_EQ(utils::trim(test_str), base);
   }
+  {
+    // Leading non-whitespace
+    std::string test_str = "{{{" + base;
+    EXPECT_EQ(utils::trim(test_str, "{"), base);
+  }
+  {
+    // Trailing non-whitespace
+    std::string test_str = base + "}}}}}";
+    EXPECT_EQ(utils::trim(test_str, "}"), base);
+  }
+  {
+    // Enclosing non-whitespace
+    std::string test_str = "{{" + base + "}}}}";
+    EXPECT_EQ(utils::trim(test_str, "{}"), base);
+  }
 }
 
+// NOLINTNEXTLINE
 TEST(utils_test, split) {
   auto combine_str = [](const std::vector<std::string>& in, const std::string& sep) -> std::string {
     std::string combined = in[0];
     for (size_t i = 1; i < in.size(); ++i) {
-      combined += sep + in[i];
+      combined += sep;
+      combined += in[i];
     }
     return combined;
   };
@@ -61,6 +79,7 @@ TEST(utils_test, split) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(utils_test, join) {
   {
     const std::vector<std::string> input{"this", "is", "a", "test"};
@@ -79,13 +98,14 @@ TEST(utils_test, join) {
     EXPECT_EQ(expected, output);
   }
   {
-    const std::string expected = "";
+    const std::string expected{};
     const auto output = utils::join({}, ";");
 
     EXPECT_EQ(expected, output);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(utils_test, splitAndJoin) {
   {
     const std::vector<std::string> input = {"This", "should", "always", "pass"};
@@ -112,6 +132,7 @@ TEST(utils_test, splitAndJoin) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(utils_test, makeName) {
   {
     // Single value first
@@ -132,5 +153,9 @@ TEST(utils_test, makeName) {
     const std::string expected = part1 + "." + part2;
     const auto result = utils::makeName(part1, part2);
     EXPECT_EQ(expected, result);
+  }
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(utils::makeName("", ""), std::runtime_error);
   }
 }

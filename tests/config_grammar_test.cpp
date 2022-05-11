@@ -28,6 +28,7 @@ template <typename GRAMMAR, typename T>
 void checkResult(const std::string& input, config::types::Type expected_type,
                  std::optional<config::ActionData>& out) {
   std::optional<RetType> ret;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input)));
   ASSERT_TRUE(ret.has_value());
   ASSERT_TRUE(ret.value().first);
@@ -41,14 +42,17 @@ void checkResult(const std::string& input, config::types::Type expected_type,
 }
 }  // namespace
 
+// NOLINTNEXTLINE
 TEST(config_grammar, analyze) { ASSERT_EQ(peg::analyze<config::grammar>(), 0); }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, INTEGER) {
   auto checkInt = [](const std::string& input) {
     std::optional<config::ActionData> out;
     checkResult<peg::must<config::INTEGER, peg::eolf>, config::types::ConfigValue>(
         input, config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<config::types::ConfigValue>(out->obj_res);
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(std::any_cast<int>(value->value_any));
     EXPECT_EQ(std::any_cast<int>(value->value_any), std::stoi(input));
   };
@@ -76,6 +80,7 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to the leading zero.
     const std::string content = "0123";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
@@ -83,6 +88,7 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to being a float.
     const std::string content = "12.3";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
@@ -90,17 +96,20 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to being a float.
     const std::string content = "0.";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, FLOAT) {
   auto checkFloat = [](const std::string& input) {
     std::optional<config::ActionData> out;
     checkResult<peg::must<config::FLOAT, peg::eolf>, config::types::ConfigValue>(
         input, config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<config::types::ConfigValue>(out->obj_res);
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(std::any_cast<double>(value->value_any));
     EXPECT_EQ(std::any_cast<double>(value->value_any), std::stod(input));
   };
@@ -160,6 +169,7 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the leading zero.
     std::string content = "01.23";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -167,6 +177,7 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to being an integer
     std::string content = "123";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -174,6 +185,7 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the decimal valued exponent
     std::string content = "1.23e1.2";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -181,11 +193,13 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the exponent value missing.
     std::string content = "1.23e";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, NUMBER) {
   auto checkNumber = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -220,6 +234,7 @@ TEST(config_grammar, NUMBER) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, HEX) {
   auto checkHex = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -250,22 +265,26 @@ TEST(config_grammar, HEX) {
     // This will fail due to an extra leading 0
     std::string content = "00x00";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
   }
   {
     // This will fail due to an alpha character not within the hexadecimal range
     std::string content = "0xG";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
   }
   {
     // This will fail due to a leading negative sign
     std::string content = "-0xd0D";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, STRING) {
   auto checkString = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -300,6 +319,7 @@ TEST(config_grammar, STRING) {
     // This will fail due to a lack of trailing quote
     const std::string content = "\"test";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
@@ -307,22 +327,26 @@ TEST(config_grammar, STRING) {
     // This will fail due to a lack of leading quote
     const std::string content = "test\"";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
   {
     // This will fail due to an extra internal quote
-    const std::string content = "\"te\"st\"";
+    const std::string content = R"("te"st")";
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, VALUE) {
   // NOTE: Can't use the `checkResult` helper here due to the need to check multiple types.
   auto checkValue = [](const std::string& input) {
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(ret.emplace(runTest<peg::must<config::VALUE, peg::eolf>>(input)));
     ASSERT_TRUE(ret.has_value());
     ASSERT_TRUE(ret.value().first);
@@ -352,9 +376,11 @@ TEST(config_grammar, VALUE) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, KEY) {
   auto checkKey = [](const std::string& input) {
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)));
     ASSERT_TRUE(ret.has_value());
     ASSERT_TRUE(ret.value().first);
@@ -365,6 +391,7 @@ TEST(config_grammar, KEY) {
 
   auto failKey = [](const std::string& input) {
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::KEY, peg::eolf>>(input)), std::exception)
         << "Input key: " << input;
   };
@@ -420,6 +447,7 @@ TEST(config_grammar, KEY) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, VAR) {
   auto checkVar = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -430,6 +458,7 @@ TEST(config_grammar, VAR) {
   };
   auto failVar = [](const std::string& input) {
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::VAR, peg::eolf>>(input)), std::exception);
   };
 
@@ -451,6 +480,7 @@ TEST(config_grammar, VAR) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, FULLPAIR) {
   const std::string flat_key = "float.my.value";
   std::string content = flat_key + "   =  5.37e+6";
@@ -459,8 +489,10 @@ TEST(config_grammar, FULLPAIR) {
   EXPECT_TRUE(ret.first);
   // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
   // keys are resolved into structs.
-  ret.second.cfg_res.erase(std::remove_if(ret.second.cfg_res.begin(), ret.second.cfg_res.end(),
-                                          [](const auto& m) { return m.empty(); }));
+  ret.second.cfg_res.erase(
+      std::remove_if(std::begin(ret.second.cfg_res), std::end(ret.second.cfg_res),
+                     [](const auto& m) { return m.empty(); }),
+      std::end(ret.second.cfg_res));
   ASSERT_EQ(ret.second.cfg_res.size(), 1);
   config::types::CfgMap* cfg_map = &ret.second.cfg_res.front();
   const auto keys = utils::split(flat_key, '.');
@@ -474,6 +506,7 @@ TEST(config_grammar, FULLPAIR) {
   EXPECT_EQ(cfg_map->at(keys.back())->type, config::types::Type::kNumber);
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, FLAT_KEY) {
   std::string content = "this.is.a.var.ref";
   auto ret = runTest<peg::must<config::FLAT_KEY, peg::eolf>>(content);
@@ -482,6 +515,7 @@ TEST(config_grammar, FLAT_KEY) {
   ASSERT_EQ(ret.second.flat_keys[0], content);
 }
 
+// NOLINTNEXTLINE
 TEST(config_grammar, VAR_REF) {
   auto checkVarRef = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -492,6 +526,7 @@ TEST(config_grammar, VAR_REF) {
   };
   auto failVarRef = [](const std::string& input) {
     std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::VAR, peg::eolf>>(input)), std::exception);
   };
   // These are all valid vars

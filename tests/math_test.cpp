@@ -17,32 +17,37 @@
 namespace peg = TAO_PEGTL_NAMESPACE;
 
 namespace {
-const std::vector<std::pair<std::string, double>> test_strings = {
-    // Inject some whitespace to test robustness to it.
-    {" 3.14159 * 1e3", 3141.5899999999997},
-    {"0.5 *  (0.7 + 1.2 ) ", 0.95},
-    {"0.5 + 0.7 * 1.2     ", 1.3399999999999999},
-    {"3*0.27 - 2.3**0.5 - 5 * 4", -20.70657508881031},
-    {"  3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", 174.79264401590646},
-    {"-4.7 * -(3.72 + -pi  ) ", 2.7185145281279732},
-    {"  1/3 * -( 5 + 4 )  ", -3.0},
-    {"\t3.4 * -(1.9**2 * (1/3.1 - 6) * (2.54- 17.0)\t)", -1007.6399690322581}};
-
 using RefMap = std::map<std::string, double>;
+}
 
-const std::vector<std::tuple<std::string, double, RefMap>> test_w_var_ref = {
-    {"0.5 * ($(test1.key) - 0.234)", 0.503, {{"test1.key", 1.24}}},
-    {"3*$(var_ref1) - 2.3**$(exponent) - 5 * 4",
-     -20.70657508881031,
-     {{"var_ref1", 0.27}, {"exponent", 0.5}}},
-    {"  $(its.a.three) ^ 2.4 * $(another.var) + $(one.more.value) + 4.3 ",
-     174.79264401590646,
-     {{"its.a.three", 3}, {"another.var", 12.2}, {"one.more.value", 0.1}}}};
-}  // namespace
+class MathExpressionTest : public ::testing::Test {
+ protected:
+  const std::vector<std::pair<std::string, double>> test_strings = {
+      // Inject some whitespace to test robustness to it.
+      {" 3.14159 * 1e3", 3141.5899999999997},
+      {"0.5 *  (0.7 + 1.2 ) ", 0.95},
+      {"0.5 + 0.7 * 1.2     ", 1.3399999999999999},
+      {"3*0.27 - 2.3**0.5 - 5 * 4", -20.70657508881031},
+      {"  3 ^ 2.4 * 12.2 + 0.1 + 4.3 ", 174.79264401590646},
+      {"-4.7 * -(3.72 + -pi  ) ", 2.7185145281279732},
+      {"  1/3 * -( 5 + 4 )  ", -3.0},
+      {"\t3.4 * -(1.9**2 * (1/3.1 - 6) * (2.54- 17.0)\t)", -1007.6399690322581}};
 
-TEST(math_expression, analyze) { ASSERT_EQ(peg::analyze<math::expression>(), 0); }
+  const std::vector<std::tuple<std::string, double, RefMap>> test_w_var_ref = {
+      {"0.5 * ($(test1.key) - 0.234)", 0.503, {{"test1.key", 1.24}}},
+      {"3*$(var_ref1) - 2.3**$(exponent) - 5 * 4",
+       -20.70657508881031,
+       {{"var_ref1", 0.27}, {"exponent", 0.5}}},
+      {"  $(its.a.three) ^ 2.4 * $(another.var) + $(one.more.value) + 4.3 ",
+       174.79264401590646,
+       {{"its.a.three", 3}, {"another.var", 12.2}, {"one.more.value", 0.1}}}};
+};
 
-TEST(math_expression, evaluate) {
+// NOLINTNEXTLINE
+TEST(MathExpressionGrammar, analyze) { ASSERT_EQ(peg::analyze<math::expression>(), 0); }
+
+// NOLINTNEXTLINE
+TEST_F(MathExpressionTest, evaluate) {
   auto test_input = [](const std::string& input) -> double {
     peg::memory_input in(input, "from content");
     math::ActionData out;
@@ -53,6 +58,7 @@ TEST(math_expression, evaluate) {
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
     double result{0};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(input.first));
     EXPECT_FLOAT_EQ(result, input.second);
   }
@@ -60,11 +66,13 @@ TEST(math_expression, evaluate) {
   // We'll intentionally omit the var_ref_map here to ensure a failure occurs
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(test_input(std::get<0>(input)), std::runtime_error);
   }
 }
 
-TEST(math_expression, evaluate_var_ref) {
+// NOLINTNEXTLINE
+TEST_F(MathExpressionTest, evaluate_var_ref) {
   auto test_input = [](const std::string& input, const RefMap& ref_map) -> double {
     peg::memory_input in(input, "from content");
     math::ActionData out;
@@ -76,17 +84,20 @@ TEST(math_expression, evaluate_var_ref) {
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
     double result{0};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(std::get<0>(input), std::get<2>(input)));
     EXPECT_FLOAT_EQ(result, std::get<1>(input));
   }
 }
 
-TEST(grammar2_expression, analyze) {
+// NOLINTNEXTLINE
+TEST(MathExpressionGrammar, g2_analyze) {
   namespace math = grammar2;
   ASSERT_EQ(peg::analyze<math::expression>(), 0);
 }
 
-TEST(grammar2_expression, evaluate) {
+// NOLINTNEXTLINE
+TEST_F(MathExpressionTest, g2_evaluate) {
   namespace math = grammar2;
 
   auto test_input = [](const std::string& input) -> double {
@@ -99,6 +110,7 @@ TEST(grammar2_expression, evaluate) {
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
     double result{0};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(input.first));
     EXPECT_FLOAT_EQ(result, input.second);
   }
@@ -106,11 +118,13 @@ TEST(grammar2_expression, evaluate) {
   // We'll intentionally omit the var_ref_map here to ensure a failure occurs
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(test_input(std::get<0>(input)), std::runtime_error);
   }
 }
 
-TEST(grammar2_expression, evaluate_var_ref) {
+// NOLINTNEXTLINE
+TEST_F(MathExpressionTest, g2_evaluate_var_ref) {
   namespace math = grammar2;
 
   auto test_input = [](const std::string& input, const RefMap& ref_map) -> double {
@@ -124,6 +138,7 @@ TEST(grammar2_expression, evaluate_var_ref) {
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
     double result{0};
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(std::get<0>(input), std::get<2>(input)));
     EXPECT_FLOAT_EQ(result, std::get<1>(input));
   }

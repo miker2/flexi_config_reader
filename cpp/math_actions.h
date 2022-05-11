@@ -39,10 +39,7 @@ struct ActionData {
   double res{};  // The final result of the computation.
 };
 
-}  // namespace math
-
-namespace math {
-
+/* Actions */
 template <typename Rule>
 struct action : peg::nothing<Rule> {};
 
@@ -64,7 +61,7 @@ struct action<Um> {
   static void apply0(ActionData& out) {
     // Cheeky trick to support unary minus operator. Sneaky but simple!
     out.s.push(-1);  // This value doesn't matter. It is ignored by the unary-minus operator
-    out.s.push("m");
+    out.s.push(std::string("m"));
   }
 };
 
