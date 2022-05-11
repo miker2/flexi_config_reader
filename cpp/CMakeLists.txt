@@ -16,6 +16,10 @@ add_library(config_reader
   config_selector.h
   config_helpers.cpp
   config_reader.cpp
+  math_actions.h
+  math_grammar.h
+  math_helpers.h
+  math_helpers.cpp
 )
 
 target_link_libraries(config_reader
