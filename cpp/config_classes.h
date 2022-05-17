@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 
 #include <any>
 #include <iostream>
@@ -164,6 +165,31 @@ class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
  protected:
   ConfigValue(const ConfigValue&) = default;
   ConfigValue(ConfigValue&&) = default;
+};
+
+class ConfigList : public ConfigBaseClonable<ConfigBase, ConfigList> {
+ public:
+  ConfigList() : ConfigBaseClonable(Type::kList){};
+
+  void stream(std::ostream& os) const override {
+    os << "[";
+    for (size_t i = 0; i < data.size() - 1; ++i) {
+      os << data[i] << ", ";
+    }
+    os << data.back() << "]";
+  }
+
+  std::vector<std::shared_ptr<ConfigBase>> data;
+
+  Type list_element_type{Type::kUnknown};
+
+  ~ConfigList() noexcept override = default;
+  auto operator=(const ConfigList&) -> ConfigList& = delete;
+  auto operator=(ConfigList&&) -> ConfigList& = delete;
+
+ protected:
+  ConfigList(const ConfigList&) = default;
+  ConfigList(ConfigList&&) = default;
 };
 
 class ConfigValueLookup : public ConfigBaseClonable<ConfigBase, ConfigValueLookup> {

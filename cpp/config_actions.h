@@ -28,11 +28,11 @@
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_DEBUG(MSG_F, ...) \
-  logger::debug("{}" MSG_F, std::string(out.depth * 2UL, ' '), __VA_ARGS__);
+  logger::debug("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
-  logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), __VA_ARGS__);
+  logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
 namespace config {
 constexpr bool VERBOSE_DEBUG_ACTIONS{false};
@@ -68,6 +68,7 @@ struct ActionData {
   // duplicate structs, etc. We'll join these all up later.
   std::vector<types::CfgMap> cfg_res{1};
   std::shared_ptr<types::ConfigBase> obj_res;
+  std::vector<std::shared_ptr<types::ConfigList>> lists;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
   void print(std::ostream& os) const {
@@ -127,14 +128,14 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In VALUE action: {}", in.string());
-    }
     if (out.obj_res == nullptr) {
       // NOTE: This should never happen!
       const auto pre_post = std::string(10, '!');
       logger::error("{0} Creating default ConfigValue object {0}", pre_post);
       out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+    }
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
     }
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
@@ -191,20 +192,37 @@ struct action<INTEGER> {
 };
 
 template <>
-struct action<LIST> {
-  template <typename ActionInput>
-  static void apply(const ActionInput& in, ActionData& out) {
-    // Split the list into elements
-    auto entries = utils::split(utils::trim(in.string(), "[] \t\n\r"), ',');
-    // Remove any leading/trailing whitespace from each list element.
-    std::transform(entries.begin(), entries.end(), entries.begin(),
-                   [](auto s) { return utils::trim(s); });
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In LIST action: {}", in.string());
-      CONFIG_ACTION_TRACE(" --- Has {} elements: {}", entries.size(), utils::join(entries, "; "));
+struct action<LIST::begin> {
+  static void apply0(ActionData& out) {
+    CONFIG_ACTION_TRACE("In LIST::begin action - creating {}", types::Type::kList);
+    out.lists.push_back(std::make_shared<types::ConfigList>());
+  }
+};
+
+template <>
+struct action<LIST::element> {
+  static void apply0(ActionData& out) {
+    CONFIG_ACTION_TRACE("In LIST::element action - adding {}", out.obj_res);
+    // Add (or check) the type of the elements in the list
+    if (out.lists.back()->list_element_type == types::Type::kUnknown) {
+      out.lists.back()->list_element_type = out.obj_res->type;
+    } else if (out.lists.back()->list_element_type != out.obj_res->type) {
+      THROW_EXCEPTION(InvalidTypeException,
+                      "While processing '{}' at {}, found {}, but expected {}. All elements in {} "
+                      "must be of the same type.",
+                      out.keys.back(), out.obj_res->loc(), out.obj_res->type,
+                      out.lists.back()->list_element_type, out.lists.back()->type);
     }
-    // TODO(michael.rose0): Create a custom type for lists.
-    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kList, entries);
+    out.lists.back()->data.push_back(std::move(out.obj_res));
+  }
+};
+
+template <>
+struct action<LIST::end> {
+  static void apply0(ActionData& out) {
+    CONFIG_ACTION_TRACE("In LIST::end action - completing LIST");
+    out.obj_res = std::move(out.lists.back());
+    out.lists.pop_back();
   }
 };
 
