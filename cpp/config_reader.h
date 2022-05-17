@@ -38,6 +38,12 @@ class ConfigReader {
   template <typename T>
   void getValue(const std::string& name, T& value) const;
 
+  template <typename T>
+  void getValue(const std::string& name, std::vector<T>& value) const;
+
+  template <typename T, size_t N>
+  void getValue(const std::string& name, std::array<T, N>& value) const;
+
  private:
   static void convert(const std::string& value_str, float& value);
   static void convert(const std::string& value_str, double& value);
@@ -45,16 +51,6 @@ class ConfigReader {
   static void convert(const std::string& value_str, int64_t& value);
   static void convert(const std::string& value_str, bool& value);
   static void convert(const std::string& value_str, std::string& value);
-
-  // TODO(michael.rose0): This needs to be modified. More info needs to be provided to this
-  // function, as it appears to work for single values that aren't read as a LIST type.
-  template <typename T>
-  void convert(const std::string& value_str, std::vector<T>& value) const;
-
-  // TODO(michael.rose0): This needs to be modified. More info needs to be provided to this
-  // function, as it appears to work for single values that aren't read as a LIST type.
-  template <typename T, size_t N>
-  void convert(const std::string& value_str, std::array<T, N>& value) const;
 
   void resolveConfig();
 
@@ -92,16 +88,63 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
   const auto cfg_val =
       (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
 
-  // I'm not sure this really belongs here, but unless we pass more info to `convert` we can't check
-  // there.
-  if (config::accepts_list_v<T> && cfg_val->type != config::types::Type::kList) {
+  const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
+  convert(value_str, value);
+  logger::debug(" -- Type is {}", typeid(T).name());
+}
+
+template <typename T>
+void ConfigReader::getValue(const std::string& name, std::vector<T>& value) const {
+  // Split the key into parts
+  const auto keys = utils::split(name, '.');
+
+  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
+
+  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
+  const auto cfg_val =
+      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+
+  // Ensure this is a list if the user is asking for a list.
+  if (cfg_val->type != config::types::Type::kList) {
     throw config::InvalidTypeException(
         fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
   }
 
-  const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
-  convert(value_str, value);
-  logger::debug(" -- Type is {}", typeid(T).name());
+  const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
+  for (const auto& e : list) {
+    const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(e)->value;
+    T v{};
+    convert(value_str, v);
+    value.emplace_back(v);
+  }
+}
+
+template <typename T, size_t N>
+void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) const {
+  // Split the key into parts
+  const auto keys = utils::split(name, '.');
+
+  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
+
+  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
+  const auto cfg_val =
+      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+
+  // Ensure this is a list if the user is asking for a list.
+  if (cfg_val->type != config::types::Type::kList) {
+    throw config::InvalidTypeException(
+        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+  }
+
+  const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
+  if (list.size() != N) {
+    throw std::runtime_error(
+        fmt::format("Expected {} entries in '{}', but found {}!", N, cfg_val, list.size()));
+  }
+  for (size_t i = 0; i < N; ++i) {
+    const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(list[i])->value;
+    convert(value_str, value[i]);
+  }
 }
 
 template <typename T>
@@ -109,36 +152,4 @@ auto ConfigReader::getValue(const std::string& name) const -> T {
   T value{};
   getValue(name, value);
   return value;
-}
-
-template <typename T>
-void ConfigReader::convert(const std::string& value_str, std::vector<T>& value) const {
-  auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
-  // Clear the vector before inserting new elements. We only want to return the elements in the
-  // provided list, not append new ones.
-  value.clear();
-  std::transform(entries.begin(), entries.end(), std::back_inserter(value), [this](auto s) {
-    T out{};
-    // Remove any leading/trailing whitespace from each list element.
-    convert(utils::trim(s), out);
-    return out;
-  });
-}
-
-template <typename T, std::size_t N>
-void ConfigReader::convert(const std::string& value_str, std::array<T, N>& value) const {
-  auto entries = utils::split(utils::trim(value_str, "[] \t\n\r"), ',');
-  // Try to do the right thing, even if there aren't the right number of elements. This will allow
-  // the use to catch the exception and use the results if desired.
-  auto end_it = entries.size() <= N ? std::end(entries) : std::next(std::begin(entries), N);
-  std::transform(entries.begin(), end_it, value.begin(), [this](auto s) {
-    T out{};
-    // Remove any leading/trailing whitespace from each list element.
-    convert(utils::trim(s), out);
-    return out;
-  });
-  if (entries.size() != N) {
-    throw std::runtime_error(fmt::format("Expected {} entries in '{}', but found {}!", N,
-                                         utils::trim(value_str), entries.size()));
-  }
 }
