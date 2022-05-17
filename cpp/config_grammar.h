@@ -123,11 +123,16 @@ struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
-struct VAL_ : peg::sor<HEX, NUMBER, STRING> {};
+struct LIST;
+struct VALUE : peg::sor<HEX, NUMBER, STRING, LIST> {};
+// 'seq' is used here o that the 'VALUE' action will collect the location information.
+struct LIST_ELEMENT : peg::seq<VALUE> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct LIST : peg::seq<SBo, peg::list<VAL_, COMMA, peg::space>, SBc> {};
-
-struct VALUE : peg::sor<VAL_, LIST> {};
+struct LIST : peg::seq<SBo, peg::list<LIST_ELEMENT, COMMA, peg::space>, SBc> {
+  using begin = SBo;
+  using end = SBc;
+  using element = LIST_ELEMENT;
+};
 
 struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
 
