@@ -69,9 +69,13 @@ else(ENABLE_CLANG_TIDY)
   set(CMAKE_CXX_CLANG_TIDY "")
 endif(ENABLE_CLANG_TIDY)
 
+option(CFG_ENABLE_TEST "Enable unit tests." ON)
+
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
 add_subdirectory(cpp)
 
-enable_testing()
-add_subdirectory(tests)
+if (CFG_ENABLE_TEST)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

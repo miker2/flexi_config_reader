@@ -29,8 +29,8 @@ target_link_libraries(config_reader
   range-v3::range-v3
 )
 
-target_include_directories(config_reader PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+target_include_directories(config_reader PUBLIC
+  ${PROJECT_SOURCE_DIR}/cpp/
 )
 
 add_clang_format(config_reader)
