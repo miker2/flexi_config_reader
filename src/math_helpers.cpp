@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "common/logger.h"
-#include "math/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/math/helpers.h"
 
 namespace ops {
 

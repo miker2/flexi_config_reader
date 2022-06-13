@@ -3,7 +3,7 @@
 #include <memory>
 #include <span>
 
-#include "config_classes.h"
+#include "flexi_cfg/config/classes.h"
 
 namespace config {
 // Create a set of traits for acceptable containers for holding elements of type `kList`. We define

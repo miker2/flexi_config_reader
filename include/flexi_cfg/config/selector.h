@@ -3,8 +3,8 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
-#include "config_grammar.h"
-#include "common/logger.h"
+#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/logger.h"
 
 namespace config {
 // TODO(michael.rose0): Strip trailing whitespace from comments!

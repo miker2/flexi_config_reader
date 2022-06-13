@@ -1,11 +1,11 @@
-#include "config/config_reader.h"
-
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+#include "flexi_cfg/config/reader.h"
 //#include <range/v3/all.hpp>  // get everything
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
@@ -19,13 +19,13 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
 
-#include "common/logger.h"
-#include "common/utils.h"
-#include "config/config_actions.h"
-#include "config/config_classes.h"
-#include "config/config_exceptions.h"
-#include "config/config_grammar.h"
-#include "config/config_helpers.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/exceptions.h"
+#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/utils.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};

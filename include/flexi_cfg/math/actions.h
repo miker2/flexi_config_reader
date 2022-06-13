@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "common/logger.h"
-#include "common/utils.h"
-#include "math/grammar.h"
-#include "math/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/math/grammar.h"
+#include "flexi_cfg/math/helpers.h"
+#include "flexi_cfg/utils.h"
 
 // NOTE: A large portion of this code was derived from:
 //   https://github.com/taocpp/PEGTL/blob/main/src/example/pegtl/calculator.cpp

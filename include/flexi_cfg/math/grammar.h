@@ -2,7 +2,7 @@
 
 #include <tao/pegtl.hpp>
 
-#include "config/config_grammar.h"
+#include "flexi_cfg/config/grammar.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
