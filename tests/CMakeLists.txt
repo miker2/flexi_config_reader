@@ -9,7 +9,7 @@ add_executable(
 
 target_link_libraries(
   utils_test
-  config_reader
+  flexi_cfg
   gtest_main
   )
 
@@ -28,7 +28,7 @@ add_executable(
 
 target_link_libraries(
   config_helpers_test
-  config_reader
+  flexi_cfg
   fmt::fmt
   magic_enum::magic_enum
   range-v3::range-v3
@@ -50,7 +50,7 @@ add_executable(
 
 target_link_libraries(
   config_grammar_test
-  config_reader
+  flexi_cfg
   fmt::fmt
   magic_enum::magic_enum
   range-v3::range-v3
@@ -73,7 +73,7 @@ add_executable(
 
 target_link_libraries(
   config_exception_test
-  config_reader
+  flexi_cfg
   taocpp::pegtl
   gtest_main
   )
@@ -93,7 +93,7 @@ add_executable(
 
 target_link_libraries(
   config_parse_test
-  config_reader
+  flexi_cfg
   taocpp::pegtl
   gtest_main
   )
@@ -113,7 +113,7 @@ add_executable(
 
 target_link_libraries(
   math_test
-  config_reader
+  flexi_cfg
   taocpp::pegtl
   fmt::fmt
   magic_enum::magic_enum
