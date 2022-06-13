@@ -106,6 +106,7 @@ TEST_P(FileInput, Parse) {
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
     config::ActionData out;
+    out.base_dir = baseDir();
     return peg::parse<config::grammar, config::action>(in, out);
   };
   bool ret{false};

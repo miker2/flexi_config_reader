@@ -108,6 +108,7 @@ auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types:
 }  // namespace
 
 auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+  out_.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
   auto success = parseCommon(cfg_file, out_);
 

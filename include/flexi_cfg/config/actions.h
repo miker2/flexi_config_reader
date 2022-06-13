@@ -43,6 +43,7 @@ constexpr std::string_view DEFAULT_RES{"***"};
 struct ActionData {
   int depth{0};  // Nesting level
 
+  std::string base_dir{};
   std::string result{DEFAULT_RES};
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
@@ -296,9 +297,7 @@ struct action<INCLUDE> {
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("Found include file: {}", out.result);
     try {
-      // NOTE: All include files are relative to `EXAMPLE_DIR` for now. This will eventually be an
-      // input.
-      const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / out.result;
+      const auto cfg_file = std::filesystem::path(out.base_dir) / out.result;
       peg::file_input include_file(cfg_file);
       logger::info("nested parse: {}", include_file.source());
       peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
