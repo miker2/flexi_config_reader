@@ -9,11 +9,12 @@ add_executable(
 
 target_link_libraries(
   utils_test
+  config_reader
   gtest_main
   )
 
 target_include_directories(utils_test PRIVATE
-  ${PROJECT_SOURCE_DIR}/include/
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   )
 
 add_clang_format(utils_test)
