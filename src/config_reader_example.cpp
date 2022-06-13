@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "cfg_reader/config_reader.h"
-#include "cfg_reader/logger.h"
+#include "common/logger.h"
+#include "config/config_reader.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {

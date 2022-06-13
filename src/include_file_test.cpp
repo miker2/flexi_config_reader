@@ -10,7 +10,7 @@
 #include <tao/pegtl/contrib/trace.hpp>
 #include <vector>
 
-#include "cfg_reader/config_grammar.h"
+#include "config/config_grammar.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 

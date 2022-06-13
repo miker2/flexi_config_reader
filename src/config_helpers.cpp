@@ -1,4 +1,4 @@
-#include "cfg_reader/config_helpers.h"
+#include "config/config_helpers.h"
 
 #include <fmt/format.h>
 
@@ -13,12 +13,12 @@
 #include <regex>
 #include <span>
 
-#include "cfg_reader/config_actions.h"
-#include "cfg_reader/config_classes.h"
-#include "cfg_reader/config_exceptions.h"
-#include "cfg_reader/logger.h"
-#include "cfg_reader/math_actions.h"
-#include "cfg_reader/utils.h"
+#include "common/logger.h"
+#include "common/utils.h"
+#include "config/config_actions.h"
+#include "config/config_classes.h"
+#include "config/config_exceptions.h"
+#include "math/actions.h"
 
 namespace {
 constexpr bool CONFIG_HELPERS_DEBUG{false};

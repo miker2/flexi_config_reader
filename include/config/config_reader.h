@@ -8,13 +8,13 @@
 #include <string_view>
 #include <vector>
 
+#include "common/logger.h"
+#include "common/utils.h"
 #include "config_actions.h"
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
-#include "logger.h"
-#include "utils.h"
 
 class ConfigReader {
  public:

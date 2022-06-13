@@ -4,7 +4,7 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
 #include "config_grammar.h"
-#include "logger.h"
+#include "common/logger.h"
 
 namespace config {
 // TODO(michael.rose0): Strip trailing whitespace from comments!

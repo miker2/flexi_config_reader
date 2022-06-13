@@ -17,12 +17,12 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <vector>
 
+#include "common/logger.h"
+#include "common/utils.h"
 #include "config_classes.h"
 #include "config_exceptions.h"
 #include "config_grammar.h"
 #include "config_helpers.h"
-#include "logger.h"
-#include "utils.h"
 
 #define CONFIG_UNFLATTEN_KEYS 1  // NOLINT(cppcoreguidelines-macro-usage)
 

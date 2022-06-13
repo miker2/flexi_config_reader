@@ -1,11 +1,11 @@
-#include "cfg_reader/config_helpers.h"
+#include "config/config_helpers.h"
 
 #include <gtest/gtest.h>
 
 #include <magic_enum.hpp>
 
-#include "cfg_reader/config_classes.h"
-#include "cfg_reader/config_exceptions.h"
+#include "config/config_classes.h"
+#include "config/config_exceptions.h"
 
 namespace {
 template <typename T, typename... Args>

@@ -7,11 +7,11 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
-#include "cfg_reader/config_actions.h"
-#include "cfg_reader/config_exceptions.h"
-#include "cfg_reader/config_grammar.h"
-#include "cfg_reader/config_reader.h"
-#include "cfg_reader/logger.h"
+#include "common/logger.h"
+#include "config/config_actions.h"
+#include "config/config_exceptions.h"
+#include "config/config_grammar.h"
+#include "config/config_reader.h"
 
 namespace {
 

@@ -1,6 +1,4 @@
 
-#include "cfg_reader/math_helpers.h"
-
 #include <cmath>
 #include <functional>
 #include <map>
@@ -8,7 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "cfg_reader/logger.h"
+#include "common/logger.h"
+#include "math/helpers.h"
 
 namespace ops {
 
