@@ -1,5 +1,5 @@
 
-#include "math_helpers.h"
+#include "cfg_reader/math_helpers.h"
 
 #include <cmath>
 #include <functional>
@@ -8,13 +8,13 @@
 #include <string>
 #include <vector>
 
-#include "logger.h"
+#include "cfg_reader/logger.h"
 
 namespace ops {
 
 struct Operator {
-  int p;   // precedence
-  bool l;  // left-associative=true, right-associative=false
+  int p{-1};     // precedence
+  bool l{true};  // left-associative=true, right-associative=false
   std::function<double(double, double)> f;
 };
 

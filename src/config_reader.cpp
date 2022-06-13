@@ -1,4 +1,4 @@
-#include "config_reader.h"
+#include "cfg_reader/config_reader.h"
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -19,13 +19,13 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
 
-#include "config_actions.h"
-#include "config_classes.h"
-#include "config_exceptions.h"
-#include "config_grammar.h"
-#include "config_helpers.h"
-#include "logger.h"
-#include "utils.h"
+#include "cfg_reader/config_actions.h"
+#include "cfg_reader/config_classes.h"
+#include "cfg_reader/config_exceptions.h"
+#include "cfg_reader/config_grammar.h"
+#include "cfg_reader/config_helpers.h"
+#include "cfg_reader/logger.h"
+#include "cfg_reader/utils.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};

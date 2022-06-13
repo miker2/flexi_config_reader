@@ -11,8 +11,8 @@
 #include <utility>
 #include <vector>
 
-#include "math_actions.h"
-#include "math_grammar.h"
+#include "cfg_reader/math_actions.h"
+#include "cfg_reader/math_grammar.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 

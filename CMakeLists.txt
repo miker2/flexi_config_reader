@@ -73,7 +73,9 @@ option(CFG_ENABLE_TEST "Enable unit tests." ON)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
-add_subdirectory(cpp)
+file(GLOB CFG_HEADERS include/*.h)
+
+add_subdirectory(src)
 
 if (CFG_ENABLE_TEST)
   enable_testing()

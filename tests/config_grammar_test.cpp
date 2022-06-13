@@ -1,4 +1,4 @@
-#include "config_grammar.h"
+#include "cfg_reader/config_grammar.h"
 
 #include <gtest/gtest.h>
 
@@ -6,8 +6,8 @@
 #include <optional>
 #include <tao/pegtl/contrib/analyze.hpp>
 
-#include "config_actions.h"
-#include "config_classes.h"
+#include "cfg_reader/config_actions.h"
+#include "cfg_reader/config_classes.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 

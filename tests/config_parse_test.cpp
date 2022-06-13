@@ -6,11 +6,11 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
-#include "config_actions.h"
-#include "config_grammar.h"
-#include "config_reader.h"
-#include "config_selector.h"
-#include "logger.h"
+#include "cfg_reader/config_actions.h"
+#include "cfg_reader/config_grammar.h"
+#include "cfg_reader/config_reader.h"
+#include "cfg_reader/config_selector.h"
+#include "cfg_reader/logger.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
