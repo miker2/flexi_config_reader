@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <range/v3/view/map.hpp>
+#include <span>
 #include <string>
 #include <string_view>
 #include <tao/pegtl.hpp>
