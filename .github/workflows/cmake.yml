@@ -18,22 +18,23 @@ jobs:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
+      CLANG_DEFAULT: 13
     strategy:
       fail-fast: false
       matrix:
 
         name: [
-          ubuntu-18.04-gcc-10,
+          ubuntu-18.04-gcc-11,
           ubuntu-20.04-clang-13,
           mac-os-latest
         ]
 
         build_type: [Debug, Release]
         include:
-          - name: ubuntu-18.04-gcc-10
+          - name: ubuntu-18.04-gcc-11
             os: ubuntu-18.04
             compiler: gcc
-            version: "10"
+            version: "11"
 
           - name: ubuntu-20.04-clang-13
             os: ubuntu-20.04
@@ -52,33 +53,47 @@ jobs:
     - name: Install dependencies
       run: |
         if [ "${{ runner.os }}" = "Linux" ]; then
-          if [ "${{ matrix.compiler }}" = "clang" ]; then
-            wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-            sudo add-apt-repository --yes --update \
-                "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-${{ matrix.version }} main"
-          fi
-          sudo apt-get -y update
-          # sudo apt-get -y upgrade
+          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
 
-          sudo apt-get install -y build-essential ninja-build g++ #python-is-python3
+          # Figure out which version of ubuntu is actually running
+          export $(cat /etc/os-release | grep UBUNTU_CODENAME)
+          # If clang is being used to compile, use the specified version, otherwise, use the default version
+          export CLANG_VERSION=$([ "${{ matrix.compiler }}" = "clang" ] && echo "${{ matrix.version }}" || echo $CLANG_DEFAULT )
+
+          sudo add-apt-repository --yes --update \
+                "deb http://apt.llvm.org/$UBUNTU_CODENAME/ llvm-toolchain-$UBUNTU_CODENAME-$CLANG_VERSION main"
+
+          sudo add-apt-repository --yes --update ppa:ubuntu-toolchain-r/test
+          sudo apt-get -y update
+
+          sudo apt-get install -y build-essential ninja-build #g++ #python-is-python3
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            #sudo update-alternatives --remove-all gcc
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.version }} ${{ matrix.version }}0 \
+                --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.version }} \
+                --slave /usr/bin/gcov gcov /usr/bin/gcov-${{ matrix.version }}
+            gcc --version
+            g++ --version
+
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
-            sudo apt-get install -y clang-format-${{ matrix.version }} clang-tidy-${{ matrix.version }}
-            which clang-format || sudo ln -s /usr/bin/clang-format-${{ matrix.version }} /usr/bin/clang-format
-            which clang-format
-            clang-format --version
-            sudo ln -s /usr/bin/clang-tidy-${{ matrix.version }} /usr/bin/clang-tidy
-            which clang-tidy
-
-            clang-tidy --version
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
+
+          # Always install and link clang-tidy as they will be used during the build
+          sudo apt-get install -y clang-format-$CLANG_VERSION clang-tidy-$CLANG_VERSION
+          sudo ln -fs /usr/bin/clang-format-$CLANG_VERSION /usr/bin/clang-format
+          ls -alh `which clang-format`
+          clang-format --version
+          sudo ln -fs /usr/bin/clang-tidy-$CLANG_VERSION /usr/bin/clang-tidy
+          ls -alh `which clang-tidy`
+          clang-tidy --version
+
         elif [ "${{ runner.os }}" = "macOS" ]; then
           brew install ninja
           echo "CC=clang" >> $GITHUB_ENV
@@ -129,8 +144,8 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         ctest -C ${{env.BUILD_TYPE}}
-        ${{github.workspace}}/build/cpp/jsonish_test
-        ${{github.workspace}}/build/cpp/include_file_test
+        ${{github.workspace}}/build/src/jsonish_test
+        ${{github.workspace}}/build/src/include_file_test
         for i in `seq 1 8`; do
-          ${{github.workspace}}/build/cpp/config_build ${{github.workspace}}/examples/config_example$i.cfg
+          ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
