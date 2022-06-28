@@ -1,11 +1,10 @@
-#include "config_helpers.h"
-
 #include <gtest/gtest.h>
 
 #include <magic_enum.hpp>
 
-#include "config_classes.h"
-#include "config_exceptions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/exceptions.h"
+#include "flexi_cfg/config/helpers.h"
 
 namespace {
 template <typename T, typename... Args>

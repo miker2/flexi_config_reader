@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "logger.h"
-#include "math_grammar.h"
-#include "math_helpers.h"
-#include "utils.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/math/grammar.h"
+#include "flexi_cfg/math/helpers.h"
+#include "flexi_cfg/utils.h"
 
 // NOTE: A large portion of this code was derived from:
 //   https://github.com/taocpp/PEGTL/blob/main/src/example/pegtl/calculator.cpp
@@ -18,7 +18,7 @@
 // This article was also extremely useful during development:
 //   https://www.engr.mun.ca/~theo/Misc/exp_parsing.htm
 
-// Also usefule info:
+// Also useful info:
 // See: https://godbolt.org/z/7vdE6aYdh
 //      https://godbolt.org/z/9aeh7hvjv
 //      https://godbolt.org/z/35c19neYG

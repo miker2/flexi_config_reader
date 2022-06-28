@@ -1,6 +1,4 @@
 
-#include "math_helpers.h"
-
 #include <cmath>
 #include <functional>
 #include <map>
@@ -8,13 +6,14 @@
 #include <string>
 #include <vector>
 
-#include "logger.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/math/helpers.h"
 
 namespace ops {
 
 struct Operator {
-  int p;   // precedence
-  bool l;  // left-associative=true, right-associative=false
+  int p{-1};     // precedence
+  bool l{true};  // left-associative=true, right-associative=false
   std::function<double(double, double)> f;
 };
 

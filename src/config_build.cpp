@@ -6,8 +6,8 @@
 #include <magic_enum.hpp>
 #include <span>
 
-#include "config_reader.h"
-#include "logger.h"
+#include "flexi_cfg/config/reader.h"
+#include "flexi_cfg/logger.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {

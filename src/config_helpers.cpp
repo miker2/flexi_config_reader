@@ -1,5 +1,3 @@
-#include "config_helpers.h"
-
 #include <fmt/format.h>
 
 #include <algorithm>
@@ -13,12 +11,13 @@
 #include <regex>
 #include <span>
 
-#include "config_actions.h"
-#include "config_classes.h"
-#include "config_exceptions.h"
-#include "logger.h"
-#include "math_actions.h"
-#include "utils.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/exceptions.h"
+#include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/math/actions.h"
+#include "flexi_cfg/utils.h"
 
 namespace {
 constexpr bool CONFIG_HELPERS_DEBUG{false};

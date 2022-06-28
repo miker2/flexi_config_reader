@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "flexi_cfg/utils.h"
 
 #include <gtest/gtest.h>
 

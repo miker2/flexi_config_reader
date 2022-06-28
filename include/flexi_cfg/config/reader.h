@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fmt/format.h>
 
 #include <array>
@@ -8,13 +10,13 @@
 #include <string_view>
 #include <vector>
 
-#include "config_actions.h"
-#include "config_classes.h"
-#include "config_exceptions.h"
-#include "config_grammar.h"
-#include "config_helpers.h"
-#include "logger.h"
-#include "utils.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/exceptions.h"
+#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/utils.h"
 
 class ConfigReader {
  public:

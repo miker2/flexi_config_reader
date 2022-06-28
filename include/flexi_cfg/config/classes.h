@@ -11,7 +11,7 @@
 #include <sstream>
 #include <string>
 
-#include "utils.h"
+#include "flexi_cfg/utils.h"
 
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
@@ -271,6 +271,10 @@ class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike>
 
   CfgMap data;
 
+  auto operator[](const std::string& key) const -> const BasePtr& { return data.at(key); }
+
+  auto operator[](const std::string& key) -> BasePtr& { return data[key]; }
+
   ~ConfigStructLike() noexcept override = default;
   auto operator=(const ConfigStructLike&) -> ConfigStructLike& = delete;
   auto operator=(ConfigStructLike&&) -> ConfigStructLike& = delete;
@@ -296,14 +300,14 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
     os << ws << "}";
   }
 
-  [[nodiscard]] auto clone() const -> std::shared_ptr<ConfigBase> final {
+  [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
     struct make_shared_enabler : public ConfigStruct {};
     auto cloned =
         std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
     for (const auto& kv : data) {
-      cloned->data[kv.first] = kv.second->clone();
+      (*cloned)[kv.first] = kv.second->clone();
     }
     return cloned;
   }
@@ -332,14 +336,14 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
     os << ws << "}";
   }
 
-  [[nodiscard]] auto clone() const -> std::shared_ptr<ConfigBase> final {
+  [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
     struct make_shared_enabler : public ConfigProto {};
     auto cloned =
         std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
     for (const auto& kv : data) {
-      cloned->data[kv.first] = kv.second->clone();
+      (*cloned)[kv.first] = kv.second->clone();
     }
     return cloned;
   }

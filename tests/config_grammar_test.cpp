@@ -1,13 +1,12 @@
-#include "config_grammar.h"
-
 #include <gtest/gtest.h>
 
 #include <algorithm>
 #include <optional>
 #include <tao/pegtl/contrib/analyze.hpp>
 
-#include "config_actions.h"
-#include "config_classes.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/grammar.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 

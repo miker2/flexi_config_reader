@@ -9,11 +9,12 @@ add_executable(
 
 target_link_libraries(
   utils_test
+  flexi_cfg
   gtest_main
   )
 
 target_include_directories(utils_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   )
 
 add_clang_format(utils_test)
@@ -27,7 +28,7 @@ add_executable(
 
 target_link_libraries(
   config_helpers_test
-  config_reader
+  flexi_cfg
   fmt::fmt
   magic_enum::magic_enum
   range-v3::range-v3
@@ -35,7 +36,7 @@ target_link_libraries(
   )
 
 target_include_directories(config_helpers_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  ${PROJECT_SOURCE_DIR}/include/
   )
 
 add_clang_format(config_helpers_test)
@@ -49,7 +50,7 @@ add_executable(
 
 target_link_libraries(
   config_grammar_test
-  config_reader
+  flexi_cfg
   fmt::fmt
   magic_enum::magic_enum
   range-v3::range-v3
@@ -58,7 +59,7 @@ target_link_libraries(
   )
 
 target_include_directories(config_grammar_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  ${PROJECT_SOURCE_DIR}/include/
   )
 
 add_clang_format(config_grammar_test)
@@ -72,16 +73,13 @@ add_executable(
 
 target_link_libraries(
   config_exception_test
-  config_reader
-  #fmt::fmt
-  #magic_enum::magic_enum
-  #range-v3::range-v3
+  flexi_cfg
   taocpp::pegtl
   gtest_main
   )
 
 target_include_directories(config_exception_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  ${PROJECT_SOURCE_DIR}/include/
   )
 
 add_clang_format(config_exception_test)
@@ -95,13 +93,13 @@ add_executable(
 
 target_link_libraries(
   config_parse_test
-  config_reader
+  flexi_cfg
   taocpp::pegtl
   gtest_main
   )
 
 target_include_directories(config_parse_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  ${PROJECT_SOURCE_DIR}/include/
   )
 
 add_clang_format(config_parse_test)
@@ -115,7 +113,7 @@ add_executable(
 
 target_link_libraries(
   math_test
-  config_reader
+  flexi_cfg
   taocpp::pegtl
   fmt::fmt
   magic_enum::magic_enum
@@ -123,7 +121,7 @@ target_link_libraries(
   )
 
 target_include_directories(math_test PRIVATE
-  ${CMAKE_SOURCE_DIR}/cpp/
+  ${PROJECT_SOURCE_DIR}/include/
   )
 
 add_clang_format(math_test)

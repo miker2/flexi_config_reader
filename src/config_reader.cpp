@@ -1,11 +1,11 @@
-#include "config_reader.h"
-
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+#include "flexi_cfg/config/reader.h"
 //#include <range/v3/all.hpp>  // get everything
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
@@ -19,13 +19,13 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
 
-#include "config_actions.h"
-#include "config_classes.h"
-#include "config_exceptions.h"
-#include "config_grammar.h"
-#include "config_helpers.h"
-#include "logger.h"
-#include "utils.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/config/exceptions.h"
+#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
+#include "flexi_cfg/utils.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};
@@ -108,6 +108,7 @@ auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types:
 }  // namespace
 
 auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+  out_.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
   auto success = parseCommon(cfg_file, out_);
 

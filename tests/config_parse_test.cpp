@@ -6,11 +6,11 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
-#include "config_actions.h"
-#include "config_grammar.h"
-#include "config_reader.h"
-#include "config_selector.h"
-#include "logger.h"
+#include "flexi_cfg/config/actions.h"
+#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/reader.h"
+#include "flexi_cfg/config/selector.h"
+#include "flexi_cfg/logger.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -106,6 +106,7 @@ TEST_P(FileInput, Parse) {
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
     config::ActionData out;
+    out.base_dir = baseDir();
     return peg::parse<config::grammar, config::action>(in, out);
   };
   bool ret{false};
