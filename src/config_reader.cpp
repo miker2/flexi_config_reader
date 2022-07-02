@@ -126,7 +126,33 @@ auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -
   return success;
 }
 
+auto ConfigReader::exists(const std::string& key) const -> bool {
+  try {
+    const auto [final_key, data] = getNestedConfig(key);
+    return data.find(final_key) != std::end(data);
+  } catch (const config::InvalidKeyException&) {
+    // The penultimate key exists, but it doesn't contain the last key.
+    return false;
+  } catch (const config::InvalidTypeException&) {
+    // The penultimate key exists, but it isn't a struct, so trying to traverse further fails.
+    return false;
+  }
+}
+
 void ConfigReader::dump() const { std::cout << cfg_data_; }
+
+auto ConfigReader::getNestedConfig(const std::string& key) const
+    -> std::pair<std::string, const config::types::CfgMap&> {
+  // Split the key into parts
+  const auto keys = utils::split(key, '.');
+
+  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
+
+  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
+  const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
+
+  return {keys.back(), data};
+}
 
 void ConfigReader::convert(const std::string& value_str, float& value) {
   std::size_t len{0};
@@ -178,7 +204,10 @@ void ConfigReader::convert(const std::string& value_str, bool& value) {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, std::string& value) { value = value_str; }
+void ConfigReader::convert(const std::string& value_str, std::string& value) {
+  value = value_str;
+  value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
+}
 
 void ConfigReader::resolveConfig() {
   config::types::CfgMap flat{};
