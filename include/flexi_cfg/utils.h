@@ -39,6 +39,12 @@ inline auto split(const std::string& s, char delimiter = '.') -> std::vector<std
   return tokens;
 }
 
+/// \brief Splits the string on the first instance of a delimiter
+///
+/// \param[in] s - The input string
+/// \param[in] delimiter - String on which to split [default="."]
+///
+/// \return A tuple with the two parts of the string
 inline auto splitHead(const std::string& s, char delimiter = '.')
     -> std::pair<std::string, std::string> {
   const auto split_pos = s.find(delimiter);
@@ -57,6 +63,11 @@ inline auto splitTail(const std::string& s, char delimiter = '.')
   return std::make_pair(head, tail);
 }
 
+inline auto getParent(const std::string& s, char delimiter = '.') -> std::string {
+  const auto pos = s.rfind(delimiter);
+  return pos == std::string::npos ? s : s.substr(0, pos);
+}
+
 inline auto join(const std::vector<std::string>& keys, const std::string& delim) -> std::string {
   if (keys.empty()) {
     return {};
@@ -68,6 +79,7 @@ inline auto join(const std::vector<std::string>& keys, const std::string& delim)
                          });
 }
 
+/// \brief Concatenates two names/labels with the appropriate delimiter
 inline auto makeName(const std::string& n1, const std::string& n2 = "") -> std::string {
   // Check that at least one argument is valid. We could just return an empty string, but that seems
   // silly.

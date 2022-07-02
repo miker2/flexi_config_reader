@@ -34,6 +34,8 @@ class ConfigReader {
 
   void dump() const;
 
+  auto exists(const std::string& key) const -> bool;
+
   template <typename T>
   auto getValue(const std::string& name) const -> T;
 
@@ -45,6 +47,10 @@ class ConfigReader {
 
   template <typename T, size_t N>
   void getValue(const std::string& name, std::array<T, N>& value) const;
+
+ protected:
+  auto getNestedConfig(const std::string& key) const
+      -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
   static void convert(const std::string& value_str, float& value);

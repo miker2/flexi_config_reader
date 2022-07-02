@@ -48,6 +48,18 @@ TEST_P(InputString, ConfigReaderParse) {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(success = cfg.parse(GetParam(), "From String"));
   EXPECT_TRUE(success);
+  EXPECT_TRUE(cfg.exists("test1.key1"));
+  EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");
+  EXPECT_TRUE(cfg.exists("test1.key2"));
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("test1.key2"), 1.342F);
+  EXPECT_TRUE(cfg.exists("test1.key3"));
+  EXPECT_EQ(cfg.getValue<int>("test1.key3"), 10);
+  EXPECT_TRUE(cfg.exists("test1.f"));
+  EXPECT_EQ(cfg.getValue<std::string>("test1.f"), "none");
+  EXPECT_TRUE(cfg.exists("test2.my_key"));
+  EXPECT_EQ(cfg.getValue<std::string>("test2.my_key"), "foo");
+  EXPECT_TRUE(cfg.exists("test2.n_key"));
+  EXPECT_EQ(cfg.getValue<int>("test2.n_key"), 1);
 }
 
 // NOLINTNEXTLINE
