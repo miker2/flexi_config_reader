@@ -46,18 +46,18 @@ is not significant it is convenient in order to better view the structure of the
 The `struct` keyword is used to define a structure of data, e.g.
 
 ```
-struct foo
+struct foo {
 
   key1 = 0
   key2 = 1.4
   key3 = "string"
 
-  struct bar
+  struct bar {
     nested_key = 0
     baz = 3.14
-  end bar
+  }
 
-end foo
+}
 ```
 
 As mentioned above, a `struct` may contain key/value pairs as well as other `struct`, `proto`, or `reference` blocks.
@@ -77,20 +77,20 @@ foo.bar.baz = 3.14
 The `proto` keyword is used to define a templated definition of a `struct`, e.g.
 
 ```
-struct protos
+struct protos {
 
-  proto foo
+  proto foo {
     key1 = 0
     key2 = 1.4
     key3 = $KEY3
 
-    struct bar
+    struct bar {
       key_a = 0x1A2B
       key_b = $KEY_B
-    end bar
-  end foo
+    }
+  }
 
-end protos
+}
 ```
 
 The above example defines a `proto` called "foo" with two concrete keys and a variable key `key3`. There is
@@ -104,11 +104,11 @@ turn it into a concrete `struct` of data.
 The `reference` keyword is used to turn a `proto` into a `struct`. Following on from the example above:
 
 ```
-reference protos.foo as fuzz
+reference protos.foo as fuzz {
   $KEY3 = "apple"
   $KEY_B = 3.14159
   +extra_key = 0x7FF
-end fuzz
+}
 ```
 
 The above example introduces the following concepts:
@@ -126,17 +126,17 @@ NOTE: There is a special variable `$PARENT_NAME` which can be used to assign the
 The above `reference` could be defined as follows using the `struct` syntax:
 
 ```
-struct fuzz
+struct fuzz {
   key1 = 0
   key2 = 1.4
   key3 = "apple"
   extra_key = 0x7FF
 
-  struct bar
+  struct bar {
     key_a = 0x1A2B
     key_b = 3.14159
-  end bar
-end fuzz
+  }
+}
 ```
 
 ### Key-value references
@@ -144,20 +144,46 @@ end fuzz
 As mentioned above, existing values may be referenced by their key in order to define a different key/value pair. E.g.
 
 ```
-struct foo
+struct foo {
   key1 = 0
   key2 = 1.4
-end foo
+}
 
-struct bar
+struct bar {
   key1 = 1
   key2 = $(foo.key2)
-end bar
+}
 ```
 
 In this case, the key `bar.key2` is given the value of `foo.key2`, or in this case `1.4`. This construct can be
 used within the `struct`, `proto` or `reference` constructs. The syntax is `$(path.to.key)`. As mentioned in the
 [`reference` section](#reference-keyword), a key-value reference may include variables internally (e.g. `$(path.to.$KEY)`.
+
+### Mathematical expressions
+
+The config syntax also supports the ability to express mathematical expressions using numbers and key-value references. When using key-value references within a mathematical expression, the value must evaluate to a numeric value (chained references are allowed as long as the end of the chain is numeric). Mathematical expressions are enclosed within a set of opening and closing curly braces (i.e. `{{` and `}}`). The keyword `pi` may also be used to represent the value of pi more precisely. E.g.
+
+```
+struct foo {
+  key1 = 1.25
+  key2 = -2
+  val = {{ $(foo.key1) * $(foo.key2) }}
+}
+
+struct bar {
+  key1 = 1e-2
+  key2 = {{ $(foo.val) * $(bar.key1) ^ 0.5 + 10 }}
+}
+```
+
+The following operators are supported:
+*  `+` - plus (both binary and unary)
+*  `-` - minus (both binary and unary)
+*  `*` - multiply
+*  `/` - divide
+*  `^` or `**` - power
+*  `pi` - the value of pi
+*  `(` and `)` - Parentheses grouping operations
 
 ### Value types
 
@@ -236,6 +262,5 @@ directory. See the googletest documentation for options.
 
 In addition to the tests, there are a number of simple applications that provide example code for the library usage.
 
- *  [`config_test`](cpp/config_test.cpp) - In the process of being converted to an actual unittest, this application executes a parsing run on a variety of [example config files](examples).
- *  [`config_build`](cpp/config_build.cpp) - This application can be used to parse a config file and build the resulting config tree. Usage: `./cpp/config_reader ../example/config_example5.cfg`.
- *  [`config_reader_example`](cpp/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
+ *  [`config_build`](src/config_build.cpp) - This application can be used to parse a config file and build the resulting config tree. Usage: `./src/config_reader ../example/config_example5.cfg`.
+ *  [`config_reader_example`](src/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
