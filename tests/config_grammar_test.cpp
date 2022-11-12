@@ -303,6 +303,31 @@ TEST(config_grammar, BOOLEAN) {
     const std::string content = "false";
     checkBoolean(content, false);
   }
+
+  {
+    // This should fail due to the boolean being quoted (it is a string)
+    const std::string content = R"("true")";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
+  {
+    // This should fail due to incorrect case
+    const std::string content = "True";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
+  {
+    // This should fail due to incorrect case
+    const std::string content = "False";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
 }
 
 // NOLINTNEXTLINE

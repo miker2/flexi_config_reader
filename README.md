@@ -161,7 +161,7 @@ used within the `struct`, `proto` or `reference` constructs. The syntax is `$(pa
 
 ### Supported value types
 
-1.  Integers
+1.  Integers (signed or unsigned)
 2.  Floating point
 3.  Hexadecimal
 4.  String

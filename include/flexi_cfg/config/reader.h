@@ -53,12 +53,12 @@ class ConfigReader {
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
-  static void convert(const std::string& value_str, float& value);
-  static void convert(const std::string& value_str, double& value);
-  static void convert(const std::string& value_str, int& value);
-  static void convert(const std::string& value_str, int64_t& value);
-  static void convert(const std::string& value_str, bool& value);
-  static void convert(const std::string& value_str, std::string& value);
+  static void convert(const std::string& value_str, config::types::Type type, float& value);
+  static void convert(const std::string& value_str, config::types::Type type, double& value);
+  static void convert(const std::string& value_str, config::types::Type type, int& value);
+  static void convert(const std::string& value_str, config::types::Type type, int64_t& value);
+  static void convert(const std::string& value_str, config::types::Type type, bool& value);
+  static void convert(const std::string& value_str, config::types::Type type, std::string& value);
 
   void resolveConfig();
 
@@ -96,8 +96,9 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
   const auto cfg_val =
       (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
 
-  const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val)->value;
-  convert(value_str, value);
+  const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+  const auto value_str = value_ptr->value;
+  convert(value_str, value_ptr->type, value);
   logger::debug(" -- Type is {}", typeid(T).name());
 }
 
@@ -120,9 +121,10 @@ void ConfigReader::getValue(const std::string& name, std::vector<T>& value) cons
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
   for (const auto& e : list) {
-    const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(e)->value;
+    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
+    const auto value_str = value_ptr->value;
     T v{};
-    convert(value_str, v);
+    convert(value_str, value_ptr->type, v);
     value.emplace_back(v);
   }
 }
@@ -150,8 +152,9 @@ void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) co
         fmt::format("Expected {} entries in '{}', but found {}!", N, cfg_val, list.size()));
   }
   for (size_t i = 0; i < N; ++i) {
-    const auto value_str = dynamic_pointer_cast<config::types::ConfigValue>(list[i])->value;
-    convert(value_str, value[i]);
+    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);
+    const auto value_str = value_ptr->value;
+    convert(value_str, value_ptr->type, value[i]);
   }
 }
 

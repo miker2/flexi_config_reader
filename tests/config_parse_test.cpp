@@ -59,7 +59,7 @@ TEST_P(InputString, ConfigReaderParse) {
   EXPECT_TRUE(cfg.exists("test2.my_key"));
   EXPECT_EQ(cfg.getValue<std::string>("test2.my_key"), "foo");
   EXPECT_TRUE(cfg.exists("test2.n_key"));
-  EXPECT_EQ(cfg.getValue<int>("test2.n_key"), 1);
+  EXPECT_EQ(cfg.getValue<bool>("test2.n_key"), true);
 }
 
 // NOLINTNEXTLINE
@@ -73,7 +73,7 @@ struct test1 {\n\
 \n\
 struct test2 {\n\
     my_key = \"foo\"  \n\
-    n_key = 1\n\
+    n_key = true\n\
 }\n\
 ")));
 

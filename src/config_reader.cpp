@@ -154,7 +154,11 @@ auto ConfigReader::getNestedConfig(const std::string& key) const
   return {keys.back(), data};
 }
 
-void ConfigReader::convert(const std::string& value_str, float& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, float& value) {
+  if (type != config::types::Type::kNumber) {
+    THROW_EXCEPTION(config::MismatchTypeException,
+		    "Expected numeric type, but have '{}' type.", type);
+  }
   std::size_t len{0};
   value = std::stof(value_str, &len);
   if (len != value_str.size()) {
@@ -164,7 +168,11 @@ void ConfigReader::convert(const std::string& value_str, float& value) {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, double& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, double& value) {
+  if (type != config::types::Type::kNumber) {
+    THROW_EXCEPTION(config::MismatchTypeException,
+		    "Expected numeric type, but have '{}' type.", type);
+  }
   std::size_t len{0};
   value = std::stod(value_str, &len);
   if (len != value_str.size()) {
@@ -174,7 +182,11 @@ void ConfigReader::convert(const std::string& value_str, double& value) {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, int& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, int& value) {
+  if (type != config::types::Type::kNumber) {
+    THROW_EXCEPTION(config::MismatchTypeException,
+		    "Expected numeric type, but have '{}' type.", type);
+  }
   std::size_t len{0};
   value = std::stoi(value_str, &len);
   if (len != value_str.size()) {
@@ -184,7 +196,11 @@ void ConfigReader::convert(const std::string& value_str, int& value) {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, int64_t& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
+  if (type != config::types::Type::kNumber) {
+    THROW_EXCEPTION(config::MismatchTypeException,
+		    "Expected numeric type, but have '{}' type.", type);
+  }
   std::size_t len{0};
   value = std::stoll(value_str, &len);
   if (len != value_str.size()) {
@@ -194,17 +210,19 @@ void ConfigReader::convert(const std::string& value_str, int64_t& value) {
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, bool& value) {
-  std::size_t len{0};
-  value = static_cast<bool>(std::stoi(value_str, &len));
-  if (len != value_str.size()) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, bool& value) {
+  if (type != config::types::Type::kBoolean) {
     THROW_EXCEPTION(config::MismatchTypeException,
-                    "Error while converting '{}' to type bool. Processed {} of {} characters",
-                    value_str, len, value_str.size());
+		    "Expected boolean type, but have '{}' type.", type);
   }
+  value = value_str == "true";
 }
 
-void ConfigReader::convert(const std::string& value_str, std::string& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type, std::string& value) {
+  if (type != config::types::Type::kString) {
+    THROW_EXCEPTION(config::MismatchTypeException,
+		    "Expected string type, but have '{}' type.", type);
+  }
   value = value_str;
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
 }
