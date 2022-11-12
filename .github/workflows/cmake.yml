@@ -26,6 +26,7 @@ jobs:
         name: [
           ubuntu-18.04-gcc-11,
           ubuntu-20.04-clang-13,
+          ubuntu-22.04-clang-14,
           mac-os-latest
         ]
 
@@ -40,6 +41,11 @@ jobs:
             os: ubuntu-20.04
             compiler: clang
             version: "13"
+
+          - name: ubuntu-22.04-clang-14
+            os: ubuntu-22.04
+            compiler: clang
+            version: "14"
 
           - name: mac-os-latest
             os: macos-latest
@@ -96,6 +102,8 @@ jobs:
 
         elif [ "${{ runner.os }}" = "macOS" ]; then
           brew install ninja
+          clang --version
+          clang++ --version
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
         fi
@@ -124,7 +132,7 @@ jobs:
 
     - uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.10'
         cache: 'pip'
     - run: pip install -r requirements.txt
     - name: Run python tests
