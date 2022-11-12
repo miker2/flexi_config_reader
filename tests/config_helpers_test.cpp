@@ -17,7 +17,12 @@ void testIsStructLike(Args&&... args) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, isStructLike) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
   using config::types::Type::kValue;
+#endif
+
   testIsStructLike<config::types::ConfigValue>("", kValue);
 
   testIsStructLike<config::types::ConfigValueLookup>("");
@@ -98,7 +103,12 @@ TEST(config_helpers_test, checkForErrors) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, mergeNestedMaps) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
   using config::types::Type::kValue;
+#endif
+
   {
     // This test should succeed (no exceptions thrown)
     const std::string key = "key";
@@ -271,7 +281,12 @@ TEST(config_helpers_test, mergeNestedMaps) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, structFromReference) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
   using config::types::Type::kValue;
+#endif
+
   {
     // This test should succeed (no exceptions thrown)
     const std::string ref_name = "hx";
@@ -363,7 +378,12 @@ TEST(config_helpers_test, structFromReference) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, replaceVarInStr) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
   using config::types::Type::kValue;
+#endif
+
   {
     const std::string input = "this.is.a.$VAR";
     const std::string expected = "this.is.a.var";
