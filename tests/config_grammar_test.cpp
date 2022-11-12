@@ -33,7 +33,7 @@ void checkResult(const std::string& input, config::types::Type expected_type,
   ASSERT_TRUE(ret.value().first);
   EXPECT_EQ(ret.value().second.obj_res->type, expected_type);
   const auto value = dynamic_pointer_cast<T>(ret.value().second.obj_res);
-  EXPECT_NE(value, nullptr);
+  ASSERT_NE(value, nullptr);
 
   if (ret.has_value()) {
     out = ret.value().second;
