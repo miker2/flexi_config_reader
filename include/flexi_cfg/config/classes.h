@@ -31,6 +31,7 @@ enum class Type {
   kValue,
   kString,
   kNumber,
+  kBoolean,
   kList,
   kExpression,
   kValueLookup,

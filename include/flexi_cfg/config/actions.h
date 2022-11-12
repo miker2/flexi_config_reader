@@ -194,6 +194,42 @@ struct action<INTEGER> {
 };
 
 template <>
+struct action<BOOLEAN> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In BOOLEAN action: {}", in.string());
+    }
+  }
+};
+
+template <>
+struct action<TRUE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
+    }
+    std::any any_val = true;
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
+  }
+};
+
+template <>
+struct action<FALSE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
+    }
+    std::any any_val = false;
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
+  }
+};
+
+template <>
 struct action<LIST::begin> {
   static void apply0(ActionData& out) {
     CONFIG_ACTION_TRACE("In LIST::begin action - creating {}", types::Type::kList);

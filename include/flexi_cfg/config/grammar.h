@@ -121,11 +121,15 @@ struct FLOAT
                peg::sor<peg::seq<peg::one<'.'>, peg::star<peg::digit>, peg::opt<exp>>, exp>> {};
 struct NUMBER : peg::sor<FLOAT, INTEGER> {};
 
+struct TRUE : TAO_PEGTL_KEYWORD("true") {};
+struct FALSE : TAO_PEGTL_KEYWORD("false") {};
+struct BOOLEAN : peg::sor<TRUE, FALSE> {};
+
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct LIST;
-struct VALUE : peg::sor<HEX, NUMBER, STRING, LIST> {};
-// 'seq' is used here o that the 'VALUE' action will collect the location information.
+struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, LIST> {};
+// 'seq' is used here so that the 'VALUE' action will collect the location information.
 struct LIST_ELEMENT : peg::seq<VALUE> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
 struct LIST : peg::seq<SBo, peg::list<LIST_ELEMENT, COMMA, peg::space>, SBc> {

@@ -36,7 +36,7 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    of the tree-like structure found in json along with fully qualified key value pairs.
    These can not be mixed within the same file however.
 
-While whitespace (except for following the `struct`, `proto`, `reference`, `as`  and `end` keywords)
+While whitespace (except for following the `struct`, `proto`, `reference`, and `as` keywords)
 is not significant it is convenient in order to better view the structure of the configuration parameters.
 
 ## Syntax details
@@ -158,6 +158,15 @@ struct bar {
 In this case, the key `bar.key2` is given the value of `foo.key2`, or in this case `1.4`. This construct can be
 used within the `struct`, `proto` or `reference` constructs. The syntax is `$(path.to.key)`. As mentioned in the
 [`reference` section](#reference-keyword), a key-value reference may include variables internally (e.g. `$(path.to.$KEY)`.
+
+### Supported value types
+
+1.  Integers
+2.  Floating point
+3.  Hexadecimal
+4.  String
+5.  Boolean (`true` or `false`)
+5.  List/Array - These _must_ be homogeneous
 
 ### Mathematical expressions
 
