@@ -33,7 +33,7 @@ void checkResult(const std::string& input, config::types::Type expected_type,
   ASSERT_TRUE(ret.value().first);
   EXPECT_EQ(ret.value().second.obj_res->type, expected_type);
   const auto value = dynamic_pointer_cast<T>(ret.value().second.obj_res);
-  EXPECT_NE(value, nullptr);
+  ASSERT_NE(value, nullptr);
 
   if (ret.has_value()) {
     out = ret.value().second;
@@ -284,6 +284,53 @@ TEST(config_grammar, HEX) {
 }
 
 // NOLINTNEXTLINE
+TEST(config_grammar, BOOLEAN) {
+  auto checkBoolean = [](const std::string& input, bool expected) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::BOOLEAN, peg::eolf>, config::types::ConfigValue>(
+	input, config::types::Type::kBoolean, out);
+    const auto value = dynamic_pointer_cast<config::types::ConfigValue>(out->obj_res);
+    ASSERT_NE(value, nullptr);
+    ASSERT_NO_THROW(std::any_cast<bool>(value->value_any));
+    EXPECT_EQ(std::any_cast<bool>(value->value_any), expected);
+  };
+
+  {
+    const std::string content = "true";
+    checkBoolean(content, true);
+  }
+  {
+    const std::string content = "false";
+    checkBoolean(content, false);
+  }
+
+  {
+    // This should fail due to the boolean being quoted (it is a string)
+    const std::string content = R"("true")";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
+  {
+    // This should fail due to incorrect case
+    const std::string content = "True";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
+  {
+    // This should fail due to incorrect case
+    const std::string content = "False";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::BOOLEAN, peg::eolf>>(content)),
+                 std::exception);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST(config_grammar, STRING) {
   auto checkString = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -295,15 +342,15 @@ TEST(config_grammar, STRING) {
   // A STRING can contain almost anything (except double quotes). Hard to test all possibilities so
   // pick some likely strings along with some expected failures.
   {
-    const std::string content = "\"test\"";
+    const std::string content = R"("test")";
     checkString(content);
   }
   {
-    const std::string content = "\"test with spaces\"";
+    const std::string content = R"("test with spaces")";
     checkString(content);
   }
   {
-    const std::string content = "\"test.with.dots\"";
+    const std::string content = R"("test.with.dots")";
     checkString(content);
   }
   {

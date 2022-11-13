@@ -17,7 +17,13 @@ void testIsStructLike(Args&&... args) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, isStructLike) {
-  testIsStructLike<config::types::ConfigValue>("");
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
+  using config::types::Type::kValue;
+#endif
+
+  testIsStructLike<config::types::ConfigValue>("", kValue);
 
   testIsStructLike<config::types::ConfigValueLookup>("");
 
@@ -97,6 +103,12 @@ TEST(config_helpers_test, checkForErrors) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, mergeNestedMaps) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
+  using config::types::Type::kValue;
+#endif
+
   {
     // This test should succeed (no exceptions thrown)
     const std::string key = "key";
@@ -108,8 +120,8 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key1 = ""
     //    key2 = ""
     config::types::CfgMap cfg1_inner = {
-        {inner_keys[0], std::make_shared<config::types::ConfigValue>("")},
-        {inner_keys[1], std::make_shared<config::types::ConfigValue>("")}};
+        {inner_keys[0], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {inner_keys[1], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg1_struct =
         std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
     cfg1_struct->data = std::move(cfg1_inner);
@@ -120,8 +132,8 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key3 = ""
     //    key4 = ""
     config::types::CfgMap cfg2_inner = {
-        {inner_keys[2], std::make_shared<config::types::ConfigValue>("")},
-        {inner_keys[3], std::make_shared<config::types::ConfigValue>("")}};
+        {inner_keys[2], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {inner_keys[3], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg2_struct =
         std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
     cfg2_struct->data = std::move(cfg2_inner);
@@ -156,8 +168,8 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key1 = ""
     //    key2 = ""
     config::types::CfgMap cfg1_inner = {
-        {inner_keys[0], std::make_shared<config::types::ConfigValue>("")},
-        {inner_keys[1], std::make_shared<config::types::ConfigValue>("")}};
+        {inner_keys[0], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {inner_keys[1], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg1_struct =
         std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
     cfg1_struct->data = std::move(cfg1_inner);
@@ -168,9 +180,9 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key3 = ""
     //    key2 = ""  <-- Duplicate key here, will fail.
     config::types::CfgMap cfg2_inner = {
-        {inner_keys[2], std::make_shared<config::types::ConfigValue>("")},
+        {inner_keys[2], std::make_shared<config::types::ConfigValue>("", kValue)},
         // This key is duplicated in the struct above (cfg1_inner), which will cause a failure.
-        {inner_keys[1], std::make_shared<config::types::ConfigValue>("")}};
+        {inner_keys[1], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg2_struct =
         std::make_shared<config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
     cfg2_struct->data = std::move(cfg2_inner);
@@ -196,14 +208,16 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    struct inner
     //      key1 = ""
     //      key2 = ""
-    config::types::CfgMap cfg1_lvl2 = {{keys[0], std::make_shared<config::types::ConfigValue>("")},
-                                       {keys[1], std::make_shared<config::types::ConfigValue>("")}};
+    config::types::CfgMap cfg1_lvl2 = {
+        {keys[0], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {keys[1], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg1_inner =
         std::make_shared<config::types::ConfigStruct>(key_lvl1, 1 /* depth doesn't matter */);
     cfg1_inner->data = std::move(cfg1_lvl2);
-    config::types::CfgMap cfg1_lvl1 = {{cfg1_inner->name, std::move(cfg1_inner)},
-                                       {keys[0], std::make_shared<config::types::ConfigValue>("")},
-                                       {keys[1], std::make_shared<config::types::ConfigValue>("")}};
+    config::types::CfgMap cfg1_lvl1 = {
+        {cfg1_inner->name, std::move(cfg1_inner)},
+        {keys[0], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {keys[1], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg1_outer =
         std::make_shared<config::types::ConfigStruct>(key_lvl0, 0 /* depth doesn't matter */);
     cfg1_outer->data = std::move(cfg1_lvl1);
@@ -217,14 +231,16 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    struct inner
     //      key3 = ""
     //      key4 = ""
-    config::types::CfgMap cfg2_lvl2 = {{keys[2], std::make_shared<config::types::ConfigValue>("")},
-                                       {keys[3], std::make_shared<config::types::ConfigValue>("")}};
+    config::types::CfgMap cfg2_lvl2 = {
+        {keys[2], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {keys[3], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg2_inner =
         std::make_shared<config::types::ConfigStruct>(key_lvl1, 1 /* depth doesn't matter */);
     cfg2_inner->data = std::move(cfg2_lvl2);
-    config::types::CfgMap cfg2_lvl1 = {{cfg2_inner->name, std::move(cfg2_inner)},
-                                       {keys[2], std::make_shared<config::types::ConfigValue>("")},
-                                       {keys[3], std::make_shared<config::types::ConfigValue>("")}};
+    config::types::CfgMap cfg2_lvl1 = {
+        {cfg2_inner->name, std::move(cfg2_inner)},
+        {keys[2], std::make_shared<config::types::ConfigValue>("", kValue)},
+        {keys[3], std::make_shared<config::types::ConfigValue>("", kValue)}};
     auto cfg2_outer =
         std::make_shared<config::types::ConfigStruct>(key_lvl0, 0 /* depth doesn't matter */);
     cfg2_outer->data = std::move(cfg2_lvl1);
@@ -265,6 +281,12 @@ TEST(config_helpers_test, mergeNestedMaps) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, structFromReference) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
+  using config::types::Type::kValue;
+#endif
+
   {
     // This test should succeed (no exceptions thrown)
     const std::string ref_name = "hx";
@@ -284,9 +306,9 @@ TEST(config_helpers_test, structFromReference) {
     reference->data = {
         {keys[0], std::make_shared<config::types::ConfigValue>(
                       std::to_string(MAGIC_NUMBER), config::types::Type::kNumber, MAGIC_NUMBER)},
-        {keys[1], std::make_shared<config::types::ConfigValue>("fizz_buzz")}};
-    reference->ref_vars = {{"$KEY3", std::make_shared<config::types::ConfigValue>("foo")},
-                           {"$KEY4", std::make_shared<config::types::ConfigValue>("bar")}};
+        {keys[1], std::make_shared<config::types::ConfigValue>("fizz_buzz", kValue)}};
+    reference->ref_vars = {{"$KEY3", std::make_shared<config::types::ConfigValue>("foo", kValue)},
+                           {"$KEY4", std::make_shared<config::types::ConfigValue>("bar", kValue)}};
 
     // Set up proto as such:
     //  proto key
@@ -299,7 +321,8 @@ TEST(config_helpers_test, structFromReference) {
     proto->data = {
         {keys[2], std::make_shared<config::types::ConfigVar>(expected_proto_values[keys[2]])},
         {keys[3], std::make_shared<config::types::ConfigVar>(expected_proto_values[keys[3]])},
-        {keys[4], std::make_shared<config::types::ConfigValue>(expected_proto_values[keys[4]])}};
+        {keys[4],
+         std::make_shared<config::types::ConfigValue>(expected_proto_values[keys[4]], kValue)}};
 
     std::shared_ptr<config::types::ConfigStruct> struct_out{};
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -355,12 +378,18 @@ TEST(config_helpers_test, structFromReference) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, replaceVarInStr) {
+#if defined(__APPLE__) && __clang_major__ < 14
+  constexpr auto kValue = config::types::Type::kValue;
+#else
+  using config::types::Type::kValue;
+#endif
+
   {
     const std::string input = "this.is.a.$VAR";
     const std::string expected = "this.is.a.var";
 
     const config::types::RefMap ref_vars = {
-        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")")}};
+        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -373,7 +402,7 @@ TEST(config_helpers_test, replaceVarInStr) {
     const std::string expected = "this.is.a.var";
 
     const config::types::RefMap ref_vars = {
-        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")")}};
+        {"$VAR", std::make_shared<config::types::ConfigValue>(R"("var")", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -386,9 +415,10 @@ TEST(config_helpers_test, replaceVarInStr) {
     const std::string expected = "this contains_two_vars";
 
     const config::types::RefMap ref_vars = {
-        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("vars")")},
-        {"$EXTRA", std::make_shared<config::types::ConfigValue>("extra unused")},  // extra, unused
-        {"$CONTAINS", std::make_shared<config::types::ConfigValue>(R"("contains")")}};
+        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("vars")", kValue)},
+        {"$EXTRA",
+         std::make_shared<config::types::ConfigValue>("extra unused", kValue)},  // extra, unused
+        {"$CONTAINS", std::make_shared<config::types::ConfigValue>(R"("contains")", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -401,12 +431,12 @@ TEST(config_helpers_test, replaceVarInStr) {
     const std::string expected = "$(a.value.lookup)";
 
     const config::types::RefMap ref_vars = {
-        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("lookup")")},
-        {"$LOTS", std::make_shared<config::types::ConfigValue>(R"("a")")},
-        {"$OF", std::make_shared<config::types::ConfigValue>(R"("value")")},
+        {"$VARS", std::make_shared<config::types::ConfigValue>(R"("lookup")", kValue)},
+        {"$LOTS", std::make_shared<config::types::ConfigValue>(R"("a")", kValue)},
+        {"$OF", std::make_shared<config::types::ConfigValue>(R"("value")", kValue)},
         // A a few extra vars here. They won't be used, and shouldn't affect the output.
-        {"$EXTRA", std::make_shared<config::types::ConfigValue>("Extra")},
-        {"$KEYS", std::make_shared<config::types::ConfigValue>(" keys ")}};
+        {"$EXTRA", std::make_shared<config::types::ConfigValue>("Extra", kValue)},
+        {"$KEYS", std::make_shared<config::types::ConfigValue>(" keys ", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -418,7 +448,7 @@ TEST(config_helpers_test, replaceVarInStr) {
     const std::string expected = "this.should_PASS.the.test";
 
     const config::types::RefMap ref_vars = {
-        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")")}};
+        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -431,7 +461,7 @@ TEST(config_helpers_test, replaceVarInStr) {
     ;
 
     const config::types::RefMap ref_vars = {
-        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")")}};
+        {"$SHOULD", std::make_shared<config::types::ConfigValue>(R"("should")", kValue)}};
 
     const auto output = config::helpers::replaceVarInStr(input, ref_vars);
 
@@ -444,7 +474,8 @@ TEST(config_helpers_test, resolveVarRefs) {
   {
     const std::string expected_value = "10";
     auto struct_like = std::make_shared<config::types::ConfigStruct>("inner", 0);
-    struct_like->data = {{"key1", std::make_shared<config::types::ConfigValue>(expected_value)},
+    struct_like->data = {{"key1", std::make_shared<config::types::ConfigValue>(
+                                      expected_value, config::types::Type::kValue)},
                          {"key2", std::make_shared<config::types::ConfigValueLookup>("outer")}};
     config::types::CfgMap cfg = {
         {"outer", std::make_shared<config::types::ConfigValueLookup>("inner.key1")},

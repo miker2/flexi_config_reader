@@ -130,11 +130,27 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (out.obj_res == nullptr) {
-      // NOTE: This should never happen!
+    if (out.obj_res == nullptr || out.obj_res->type == types::Type::kValue) {
+      // NOTE: This should never happen! This probably means that an action corresponding to a token
+      // is missing.
       const auto pre_post = std::string(10, '!');
-      logger::error("{0} Creating default ConfigValue object {0}", pre_post);
-      out.obj_res = std::make_shared<types::ConfigValue>(in.string());
+      logger::error("{0} Action for token (corresponding to {} - {}:{}) appears to be missing {0}",
+                    pre_post, in.string(), in.position().source, in.position().line);
+      throw std::logic_error(
+          "The 'VALUE' action should never be executed on a nullptr! This is likely the result of "
+          "a new token being added to the grammar without a corresponding action being created.");
+    } else if (out.obj_res->type == types::Type::kValue) {
+      // NOTE: The `kValue` type exists only for testing purposes. An object should never be created
+      // of this type when parsing a file. This is likely the result of an ill-formed action.
+      const auto pre_post = std::string(10, '!');
+      logger::error(
+          "{0} Action for token at {}:{} resulted in {} type. This is the result of a "
+          "misconfigured action that is a child of the `VALUE` token. {0}",
+          pre_post, in.position().source, in.position().line, out.obj_res->type);
+      throw std::logic_error(
+          fmt::format("The 'VALUE' action should never be called on an object of type '{}'. This "
+                      "is the result of a misconfigured action.",
+                      config::types::Type::kValue));
     }
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
@@ -149,6 +165,7 @@ struct action<HEX> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     const auto hex = std::stoull(in.string(), nullptr, 16);
+
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
     }
@@ -190,6 +207,43 @@ struct action<INTEGER> {
     std::any any_val = std::stoi(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
+  }
+};
+
+// This action isn't necessary as it does nothing, but it is useful for debugging the parsing of a
+// config file.
+template <>
+struct action<BOOLEAN> {
+  static void apply0(ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In BOOLEAN action...");
+    }
+  }
+};
+
+template <>
+struct action<TRUE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
+    }
+    std::any any_val = true;
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
+  }
+};
+
+template <>
+struct action<FALSE> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
+    }
+    std::any any_val = false;
+
+    out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
   }
 };
 

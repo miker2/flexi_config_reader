@@ -31,6 +31,7 @@ enum class Type {
   kValue,
   kString,
   kNumber,
+  kBoolean,
   kList,
   kExpression,
   kValueLookup,
@@ -149,7 +150,7 @@ inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size
 
 class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
  public:
-  explicit ConfigValue(std::string value_in, Type type = Type::kValue, std::any val = {})
+  explicit ConfigValue(std::string value_in, Type type, std::any val = {})
       : ConfigBaseClonable(type), value{std::move(value_in)}, value_any{std::move(val)} {};
 
   void stream(std::ostream& os) const override { os << value; }
