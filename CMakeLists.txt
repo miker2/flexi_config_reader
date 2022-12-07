@@ -88,7 +88,6 @@ set(CFG_HEADERS
   include/flexi_cfg/utils.h)
 
 add_library(flexi_cfg
-  ${CFG_HEADERS}
   src/config_helpers.cpp
   src/config_reader.cpp
   src/math_helpers.cpp
