@@ -2,18 +2,19 @@
 
 Checks: '-*,
          cppcore*,
-				 clang-analyzer-*,
-				 google-*
-				 -google-runtime-references,
-				 bugprone-*,
-				 -bugprone-easily-swappable-parameters,
-				 cert-*,
-				 hicpp-*,
-				 -hicpp-avoid-goto,
-				 modernize-*,
-				 performance-*,
-				 readability-*
-				 '
+         clang-analyzer-*,
+         google-*
+         -google-runtime-references,
+         bugprone-*,
+         -bugprone-easily-swappable-parameters,
+         cert-*,
+         hicpp-*,
+         -hicpp-avoid-goto,
+         modernize-*,
+         performance-*,
+         readability-*,
+         -readability-identifier-length
+         '
 
 HeaderFilterRegex: 'cpp/.*'
 
