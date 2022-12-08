@@ -91,7 +91,7 @@ TEST(utils_test, join) {
   }
   {
     const std::vector<std::string> input{"just_one"};
-    const std::string expected = input[0];
+    const std::string& expected = input[0];
 
     const auto output = utils::join(input, ".");
 
