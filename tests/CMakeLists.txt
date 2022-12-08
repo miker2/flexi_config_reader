@@ -30,13 +30,13 @@ target_link_libraries(
   config_helpers_test
   flexi_cfg
   fmt::fmt
-  magic_enum::magic_enum
   range-v3::range-v3
   gtest_main
   )
 
 target_include_directories(config_helpers_test PRIVATE
   ${PROJECT_SOURCE_DIR}/include/
+  ${magic_enum_INCLUDE_DIR}
   )
 
 add_clang_format(config_helpers_test)
@@ -52,7 +52,6 @@ target_link_libraries(
   config_grammar_test
   flexi_cfg
   fmt::fmt
-  magic_enum::magic_enum
   range-v3::range-v3
   taocpp::pegtl
   gtest_main
@@ -116,7 +115,6 @@ target_link_libraries(
   flexi_cfg
   taocpp::pegtl
   fmt::fmt
-  magic_enum::magic_enum
   gtest_main
   )
 

@@ -8,7 +8,6 @@ endif()
 project (flexi_cfg LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(${CMAKE_SOURCE_DIR}/cmake/colours.cmake)
@@ -16,6 +15,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/add_clang_format.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 include(FetchContent)
+include(FindPackageHandleStandardArgs)
+
 # Get taocpp::pegtl
 FetchContent_Declare(
   taocpp_pegtl
@@ -24,13 +25,23 @@ FetchContent_Declare(
   )
 FetchContent_MakeAvailable(taocpp_pegtl)
 
-# magic_enum tag v0.7.3
-FetchContent_Declare(
-  magic_enum
-  GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-  GIT_TAG        v0.8.1
-  )
-FetchContent_MakeAvailable(magic_enum)
+# magic_enum tag v0.8.1
+option(CFG_MAGIC_ENUM_DIR "Specify the location of magic_enum headers" "")
+find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum.hpp HINTS ${CFG_MAGIC_ENUM_DIR})
+find_package_handle_standard_args(magic_enum DEFAULT_MSG MAGIC_ENUM_INCLUDE_DIR)
+if(magic_enum_FOUND)
+  message(STATUS "Found magic_enum.hpp at ${MAGIC_ENUM_INCLUDE_DIR}")
+  set(magic_enum_INCLUDE_DIR ${MAGIC_ENUM_INCLUDE_DIR})
+  MARK_AS_ADVANCED(MAGIC_ENUM_INCLUDE_DIR)
+else(magic_enum_FOUND)
+  FetchContent_Declare(
+    magic_enum
+    GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+    GIT_TAG        v0.8.1
+    )
+  FetchContent_MakeAvailable(magic_enum)
+  set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
+endif(magic_enum_FOUND)
 
 # FMT tag 8.1.1
 set(FMT_VERSION_REQUIRED 8.1.1)
@@ -95,22 +106,24 @@ add_library(flexi_cfg
 add_library(flexi_cfg::flexi_cfg ALIAS flexi_cfg)
 target_include_directories(flexi_cfg PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>)
+  $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>
+  ${magic_enum_INCLUDE_DIR})
 target_compile_features(flexi_cfg INTERFACE cxx_std_20)
-set_target_properties(flexi_cfg PROPERTIES PUBLIC_HEADER "${PUBLIC_CFG_HEADERS}")
 
 target_link_libraries(flexi_cfg
   taocpp::pegtl
-  magic_enum::magic_enum
+  #magic_enum::magic_enum
   fmt::fmt
   range-v3::range-v3
 )
 add_clang_format(flexi_cfg)
 
 install(TARGETS flexi_cfg
-  LIBRARY DESTINATION lib
-  PUBLIC_HEADER DESTINATION include/flexi_cfg)
-
+  LIBRARY DESTINATION lib)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/"
+  DESTINATION include
+  FILES_MATCHING
+  PATTERN "*.h")
 
 add_subdirectory(src)
 

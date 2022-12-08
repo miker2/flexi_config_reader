@@ -7,7 +7,6 @@
 #include <exception>
 #include <filesystem>
 #include <iostream>
-#include <magic_enum.hpp>
 #include <map>
 #include <memory>
 #include <range/v3/view/map.hpp>
