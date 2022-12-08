@@ -28,7 +28,7 @@ FetchContent_MakeAvailable(taocpp_pegtl)
 # magic_enum tag v0.8.1
 option(CFG_MAGIC_ENUM_DIR "Specify the location of magic_enum headers" "")
 find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum.hpp HINTS ${CFG_MAGIC_ENUM_DIR})
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(magic_enum DEFAULT_MSG MAGIC_ENUM_INCLUDE_DIR)
+find_package_handle_standard_args(magic_enum DEFAULT_MSG MAGIC_ENUM_INCLUDE_DIR)
 if(magic_enum_FOUND)
   message(STATUS "Found magic_enum.hpp at ${MAGIC_ENUM_INCLUDE_DIR}")
   set(magic_enum_INCLUDE_DIR ${MAGIC_ENUM_INCLUDE_DIR})
@@ -40,7 +40,7 @@ else(magic_enum_FOUND)
     GIT_TAG        v0.8.1
     )
   FetchContent_MakeAvailable(magic_enum)
-  set(magic_enum_INCLUDE_DIR magic_enum_SOURCE_DIR)
+  set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
 endif(magic_enum_FOUND)
 
 # FMT tag 8.1.1
