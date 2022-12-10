@@ -15,14 +15,16 @@ void testIsStructLike(Args&&... args) {
 }
 }  // namespace
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, isStructLike) {
 #if defined(__APPLE__) && __clang_major__ < 14
-  constexpr auto kValue = config::types::Type::kValue;
+namespace {
+constexpr auto kValue = config::types::Type::kValue;
+}
 #else
-  using config::types::Type::kValue;
+using config::types::Type::kValue;
 #endif
 
+// NOLINTNEXTLINE
+TEST(config_helpers_test, isStructLike) {
   testIsStructLike<config::types::ConfigValue>("", kValue);
 
   testIsStructLike<config::types::ConfigValueLookup>("");
@@ -103,12 +105,6 @@ TEST(config_helpers_test, checkForErrors) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, mergeNestedMaps) {
-#if defined(__APPLE__) && __clang_major__ < 14
-  constexpr auto kValue = config::types::Type::kValue;
-#else
-  using config::types::Type::kValue;
-#endif
-
   {
     // This test should succeed (no exceptions thrown)
     const std::string key = "key";
@@ -281,12 +277,6 @@ TEST(config_helpers_test, mergeNestedMaps) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, structFromReference) {
-#if defined(__APPLE__) && __clang_major__ < 14
-  constexpr auto kValue = config::types::Type::kValue;
-#else
-  using config::types::Type::kValue;
-#endif
-
   {
     // This test should succeed (no exceptions thrown)
     const std::string ref_name = "hx";
@@ -378,12 +368,6 @@ TEST(config_helpers_test, structFromReference) {
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, replaceVarInStr) {
-#if defined(__APPLE__) && __clang_major__ < 14
-  constexpr auto kValue = config::types::Type::kValue;
-#else
-  using config::types::Type::kValue;
-#endif
-
   {
     const std::string input = "this.is.a.$VAR";
     const std::string expected = "this.is.a.var";
@@ -468,6 +452,87 @@ TEST(config_helpers_test, replaceVarInStr) {
     EXPECT_NE(output, expected);
   }
 }
+
+// TODO: Test for replaceProtoVar
+
+// NOLINTNEXTLINE
+TEST(config_helpers_test, getNestedConfig) {
+  /* Build up an example config structure
+
+     top_level = 10
+     struct outer {
+       struct inner {
+         key1 = "key1"
+         key2 = 0x1234
+       }
+       a_key = -9.87
+     }
+   */
+  auto inner = std::make_shared<config::types::ConfigStruct>("inner", 0);
+  inner->data = {{"key1", std::make_shared<config::types::ConfigValue>("key1", kValue)},
+                 {"key2", std::make_shared<config::types::ConfigValue>("0x1234", kValue)}};
+  auto outer = std::make_shared<config::types::ConfigStruct>("outer", 0);
+  outer->data = {{inner->name, inner},
+                 {"a_key", std::make_shared<config::types::ConfigValue>("-9.87", kValue)}};
+
+  config::types::CfgMap cfg = {
+      {"top_level", std::make_shared<config::types::ConfigValue>("10", kValue)},
+      {outer->name, outer}};
+
+  // NOTE: getNestedConfig always returns the "parent" of the last key
+  {
+    const auto out = config::helpers::getNestedConfig(cfg, "outer.inner.key1");
+    ASSERT_NE(out, nullptr);
+    EXPECT_EQ(out->name, "inner");
+  }
+  {
+    const auto out = config::helpers::getNestedConfig(cfg, {"outer", "inner", "key2"});
+    ASSERT_NE(out, nullptr);
+    EXPECT_EQ(out->name, "inner");
+  }
+  {
+    // "outer.inner.key1" is a key, not a struct, so this will fail.
+    EXPECT_THROW(
+        std::ignore = config::helpers::getNestedConfig(cfg, "outer.inner.key1.doesnt_exist"),
+        config::InvalidTypeException);
+  }
+  {
+    // This is an odd one! Since 'getNestedConfig' only checks for the parent, it doesn't matter if
+    // the last key doesn't exist, which in this case, 'does_not_exist' doesn't exist.
+    const auto out = config::helpers::getNestedConfig(cfg, "outer.inner.does_not_exist");
+    ASSERT_NE(out, nullptr);
+    EXPECT_EQ(out->name, "inner");
+  }
+  {
+    // This still works (the first argument doesn't need to be a top level entry)
+    const auto out = config::helpers::getNestedConfig(outer->data, "inner.key1");
+    ASSERT_NE(out, nullptr);
+    EXPECT_EQ(out->name, "inner");
+  }
+  {
+    const auto out = config::helpers::getNestedConfig(cfg, "outer.a_key");
+    ASSERT_NE(out, nullptr);
+    EXPECT_EQ(out->name, "outer");
+  }
+  {
+    // "does_not_exist" is not a valid key within "outer". This would work if 'foo' wasn't at the end of this.
+    EXPECT_THROW(std::ignore = config::helpers::getNestedConfig(cfg, "outer.does_not_exist.foo"),
+                 config::InvalidKeyException);
+  }
+  {
+    // It really doesn't matter what we pass in as the second argument as long as it results in a single key when split!
+    ASSERT_EQ(config::helpers::getNestedConfig(cfg, "top_level"), nullptr);
+    ASSERT_EQ(config::helpers::getNestedConfig(cfg, "outer"), nullptr);
+    ASSERT_EQ(config::helpers::getNestedConfig(cfg, ""), nullptr);
+    std::vector<std::string> keys = {"outer"};
+    ASSERT_EQ(config::helpers::getNestedConfig(cfg, keys), nullptr);
+    keys = {"top_level"};
+    ASSERT_EQ(config::helpers::getNestedConfig(cfg, keys), nullptr);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(config_helpers_test, getConfigValue) { ASSERT_TRUE(false); }
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, resolveVarRefs) {

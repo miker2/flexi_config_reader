@@ -266,10 +266,10 @@ auto getNestedConfig(const types::CfgMap& cfg, const std::vector<std::string>& k
     }
 
     rejoined = utils::makeName(rejoined, key);
-    // This may be uneccessary error checking (if this is a part of a flat key, then it must be
-    // a nested structure), but we check here that this object is a `StructLike` object,
-    // otherwise we can't access the `data` member.
+
     struct_like = dynamic_pointer_cast<types::ConfigStructLike>(content->at(key));
+    // If the dynamic_pointer_cast fails, then we can't continue with the loop and whatever is
+    // returned by 'content->at(key)' doesn't have any content of it's own.
     if (struct_like == nullptr) {
       THROW_EXCEPTION(InvalidTypeException,
                       "Expected value at '{}' to be a struct-like object, but got {} type instead.",
