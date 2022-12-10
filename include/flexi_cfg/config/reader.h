@@ -92,6 +92,14 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
 
   const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
+  // If this is a nested key, we need to make sure the final key exists in the result struct_like
+  // object:
+  if (struct_like != nullptr && !struct_like->data.contains(keys.back())) {
+    const auto head_tail = utils::splitTail(name);
+    THROW_EXCEPTION(
+        config::InvalidKeyException,
+        "Subtree '{}' does not contain key '{}'!", head_tail.first, head_tail.second);
+  }
   // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
   const auto cfg_val =
       (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
@@ -115,8 +123,8 @@ void ConfigReader::getValue(const std::string& name, std::vector<T>& value) cons
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
-    throw config::InvalidTypeException(
-        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+    THROW_EXCEPTION(config::InvalidTypeException,
+        "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
@@ -142,14 +150,14 @@ void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) co
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
-    throw config::InvalidTypeException(
-        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+    THROW_EXCEPTION(config::InvalidTypeException,
+        "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
   if (list.size() != N) {
-    throw std::runtime_error(
-        fmt::format("Expected {} entries in '{}', but found {}!", N, cfg_val, list.size()));
+    THROW_EXCEPTION(std::runtime_error,
+        "Expected {} entries in '{}', but found {}!", N, cfg_val, list.size());
   }
   for (size_t i = 0; i < N; ++i) {
     const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);

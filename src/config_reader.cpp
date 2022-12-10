@@ -156,8 +156,8 @@ auto ConfigReader::getNestedConfig(const std::string& key) const
 
 void ConfigReader::convert(const std::string& value_str, config::types::Type type, float& value) {
   if (type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected numeric type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
+                    type);
   }
   std::size_t len{0};
   value = std::stof(value_str, &len);
@@ -170,8 +170,8 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
 
 void ConfigReader::convert(const std::string& value_str, config::types::Type type, double& value) {
   if (type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected numeric type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
+                    type);
   }
   std::size_t len{0};
   value = std::stod(value_str, &len);
@@ -184,8 +184,8 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
 
 void ConfigReader::convert(const std::string& value_str, config::types::Type type, int& value) {
   if (type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected numeric type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
+                    type);
   }
   std::size_t len{0};
   value = std::stoi(value_str, &len);
@@ -198,8 +198,8 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
 
 void ConfigReader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
   if (type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected numeric type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
+                    type);
   }
   std::size_t len{0};
   value = std::stoll(value_str, &len);
@@ -212,16 +212,17 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
 
 void ConfigReader::convert(const std::string& value_str, config::types::Type type, bool& value) {
   if (type != config::types::Type::kBoolean) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected boolean type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected boolean type, but have '{}' type.",
+                    type);
   }
   value = value_str == "true";
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, std::string& value) {
+void ConfigReader::convert(const std::string& value_str, config::types::Type type,
+                           std::string& value) {
   if (type != config::types::Type::kString) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-		    "Expected string type, but have '{}' type.", type);
+    THROW_EXCEPTION(config::MismatchTypeException, "Expected string type, but have '{}' type.",
+                    type);
   }
   value = value_str;
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
