@@ -455,30 +455,37 @@ TEST(config_helpers_test, replaceVarInStr) {
 
 // TODO: Test for replaceProtoVar
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, getNestedConfig) {
+auto generateConfig() -> config::types::CfgMap {
   /* Build up an example config structure
 
+     ref = $(outer.inner.key1)
      top_level = 10
      struct outer {
        struct inner {
          key1 = "key1"
-         key2 = 0x1234
+         key2 = $(ref)
        }
        a_key = -9.87
      }
    */
   auto inner = std::make_shared<config::types::ConfigStruct>("inner", 0);
-  inner->data = {{"key1", std::make_shared<config::types::ConfigValue>("key1", kValue)},
-                 {"key2", std::make_shared<config::types::ConfigValue>("0x1234", kValue)}};
+  inner->data = {{"key1", std::make_shared<config::types::ConfigValue>("10", kValue)},
+                 {"key2", std::make_shared<config::types::ConfigValueLookup>("ref")}};
   auto outer = std::make_shared<config::types::ConfigStruct>("outer", 0);
   outer->data = {{inner->name, inner},
                  {"a_key", std::make_shared<config::types::ConfigValue>("-9.87", kValue)}};
 
   config::types::CfgMap cfg = {
+      {"ref", std::make_shared<config::types::ConfigValueLookup>("outer.inner.key1")},
       {"top_level", std::make_shared<config::types::ConfigValue>("10", kValue)},
       {outer->name, outer}};
 
+  return cfg;
+}
+
+// NOLINTNEXTLINE
+TEST(config_helpers_test, getNestedConfig) {
+  auto cfg = generateConfig();
   // NOTE: getNestedConfig always returns the "parent" of the last key
   {
     const auto out = config::helpers::getNestedConfig(cfg, "outer.inner.key1");
@@ -505,7 +512,8 @@ TEST(config_helpers_test, getNestedConfig) {
   }
   {
     // This still works (the first argument doesn't need to be a top level entry)
-    const auto out = config::helpers::getNestedConfig(outer->data, "inner.key1");
+    const auto out = config::helpers::getNestedConfig(
+        dynamic_pointer_cast<config::types::ConfigStructLike>(cfg["outer"])->data, "inner.key1");
     ASSERT_NE(out, nullptr);
     EXPECT_EQ(out->name, "inner");
   }
@@ -515,12 +523,14 @@ TEST(config_helpers_test, getNestedConfig) {
     EXPECT_EQ(out->name, "outer");
   }
   {
-    // "does_not_exist" is not a valid key within "outer". This would work if 'foo' wasn't at the end of this.
+    // "does_not_exist" is not a valid key within "outer". This would work if 'foo' wasn't at the
+    // end of this.
     EXPECT_THROW(std::ignore = config::helpers::getNestedConfig(cfg, "outer.does_not_exist.foo"),
                  config::InvalidKeyException);
   }
   {
-    // It really doesn't matter what we pass in as the second argument as long as it results in a single key when split!
+    // It really doesn't matter what we pass in as the second argument as long as it results in a
+    // single key when split!
     ASSERT_EQ(config::helpers::getNestedConfig(cfg, "top_level"), nullptr);
     ASSERT_EQ(config::helpers::getNestedConfig(cfg, "outer"), nullptr);
     ASSERT_EQ(config::helpers::getNestedConfig(cfg, ""), nullptr);
@@ -532,30 +542,59 @@ TEST(config_helpers_test, getNestedConfig) {
 }
 
 // NOLINTNEXTLINE
-TEST(config_helpers_test, getConfigValue) { ASSERT_TRUE(false); }
+TEST(config_helpers_test, getConfigValue) {
+  auto cfg = generateConfig();
+
+  {
+    const auto val = config::helpers::getConfigValue(cfg, {"top_level"});
+    EXPECT_EQ(val->type, config::types::Type::kValue);
+  }
+  {
+    // It doesn't matter what type the value is, we just want whatever is at the key below
+    auto val = config::helpers::getConfigValue(cfg, {"ref"});
+    ASSERT_EQ(val->type, config::types::Type::kValueLookup);
+    auto val_lookup = dynamic_pointer_cast<config::types::ConfigValueLookup>(val);
+    ASSERT_NE(val_lookup, nullptr);
+    EXPECT_NO_THROW(config::helpers::getConfigValue(cfg, val_lookup));
+  }
+  {
+    const auto val = config::helpers::getConfigValue(cfg, {"outer"});
+    EXPECT_EQ(val->type, config::types::Type::kStruct);
+  }
+  {
+    const auto val = config::helpers::getConfigValue(cfg, {"outer", "inner"});
+    EXPECT_EQ(val->type, config::types::Type::kStruct);
+  }
+  {
+    EXPECT_NO_THROW(std::ignore = config::helpers::getConfigValue(cfg, {"outer", "inner", "key1"}));
+    EXPECT_NO_THROW(std::ignore = config::helpers::getConfigValue(cfg, {"outer", "inner", "key2"}));
+    EXPECT_THROW(
+        std::ignore = config::helpers::getConfigValue(cfg, {"outer", "inner", "doesnt_exist"}),
+        config::InvalidKeyException);
+    EXPECT_THROW(std::ignore = config::helpers::getConfigValue(cfg, {"outer", "doesnt_exist"}),
+                 config::InvalidKeyException);
+  }
+}
 
 // NOLINTNEXTLINE
 TEST(config_helpers_test, resolveVarRefs) {
   {
-    const std::string expected_value = "10";
-    auto struct_like = std::make_shared<config::types::ConfigStruct>("inner", 0);
-    struct_like->data = {{"key1", std::make_shared<config::types::ConfigValue>(
-                                      expected_value, config::types::Type::kValue)},
-                         {"key2", std::make_shared<config::types::ConfigValueLookup>("outer")}};
-    config::types::CfgMap cfg = {
-        {"outer", std::make_shared<config::types::ConfigValueLookup>("inner.key1")},
-        {struct_like->name, struct_like}};
+    auto cfg = generateConfig();
+    auto key1 = config::helpers::getConfigValue(cfg, {"outer", "inner", "key1"});
+    ASSERT_EQ(key1->type, config::types::Type::kValue);
+    const std::string expected_value =
+        dynamic_pointer_cast<config::types::ConfigValue>(key1)->value;
 
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(config::helpers::resolveVarRefs(cfg, cfg));
 
-    ASSERT_EQ(cfg["outer"]->type, config::types::Type::kValue);
-    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(cfg["outer"])->value,
-              expected_value);
+    ASSERT_EQ(cfg["ref"]->type, config::types::Type::kValue);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(cfg["ref"])->value, expected_value);
 
-    ASSERT_EQ(struct_like->data["key2"]->type, config::types::Type::kValue);
-    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(struct_like->data["key2"])->value,
-              expected_value);
+    auto key2 = config::helpers::getConfigValue(cfg, {"outer", "inner", "key2"});
+    ASSERT_EQ(key2->type, config::types::Type::kValue);
+    ASSERT_NE(dynamic_pointer_cast<config::types::ConfigValue>(key2), nullptr);
+    EXPECT_EQ(dynamic_pointer_cast<config::types::ConfigValue>(key2)->value, expected_value);
   }
   {
     config::types::CfgMap cfg = {
