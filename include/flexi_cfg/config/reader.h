@@ -90,20 +90,7 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e. is not a flat key):
-  const auto& cfg_map = (struct_like != nullptr) ? struct_like->data : cfg_data_;
-
-  // If this is a nested key, we need to make sure the final key exists in the result struct_like
-  // object:
-  if (!cfg_map.contains(keys.back())) {
-    const auto head_tail = utils::splitTail(name);
-    THROW_EXCEPTION(config::InvalidKeyException, "Key '{}' not contained in '{}'!",
-                    head_tail.second, head_tail.first);
-  }
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val = cfg_map.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
   const auto value_str = value_ptr->value;
@@ -116,11 +103,7 @@ void ConfigReader::getValue(const std::string& name, std::vector<T>& value) cons
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val =
-      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
@@ -143,11 +126,7 @@ void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) co
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val =
-      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
