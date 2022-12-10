@@ -90,11 +90,7 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val =
-      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
   const auto value_str = value_ptr->value;
@@ -107,16 +103,12 @@ void ConfigReader::getValue(const std::string& name, std::vector<T>& value) cons
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val =
-      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
-    throw config::InvalidTypeException(
-        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+    THROW_EXCEPTION(config::InvalidTypeException,
+                    "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
@@ -134,22 +126,18 @@ void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) co
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
-
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
-  const auto cfg_val =
-      (struct_like != nullptr) ? struct_like->data.at(keys.back()) : cfg_data_.at(keys.back());
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
-    throw config::InvalidTypeException(
-        fmt::format("Expected '{}' to contain a list, but is of type {}", name, cfg_val->type));
+    THROW_EXCEPTION(config::InvalidTypeException,
+                    "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
   if (list.size() != N) {
-    throw std::runtime_error(
-        fmt::format("Expected {} entries in '{}', but found {}!", N, cfg_val, list.size()));
+    THROW_EXCEPTION(std::runtime_error, "Expected {} entries in '{}', but found {}!", N, cfg_val,
+                    list.size());
   }
   for (size_t i = 0; i < N; ++i) {
     const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);

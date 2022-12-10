@@ -288,7 +288,7 @@ TEST(config_grammar, BOOLEAN) {
   auto checkBoolean = [](const std::string& input, bool expected) {
     std::optional<config::ActionData> out;
     checkResult<peg::must<config::BOOLEAN, peg::eolf>, config::types::ConfigValue>(
-	input, config::types::Type::kBoolean, out);
+        input, config::types::Type::kBoolean, out);
     const auto value = dynamic_pointer_cast<config::types::ConfigValue>(out->obj_res);
     ASSERT_NE(value, nullptr);
     ASSERT_NO_THROW(std::any_cast<bool>(value->value_any));

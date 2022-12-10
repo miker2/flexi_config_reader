@@ -266,10 +266,10 @@ auto getNestedConfig(const types::CfgMap& cfg, const std::vector<std::string>& k
     }
 
     rejoined = utils::makeName(rejoined, key);
-    // This may be uneccessary error checking (if this is a part of a flat key, then it must be
-    // a nested structure), but we check here that this object is a `StructLike` object,
-    // otherwise we can't access the `data` member.
+
     struct_like = dynamic_pointer_cast<types::ConfigStructLike>(content->at(key));
+    // If the dynamic_pointer_cast fails, then we can't continue with the loop and whatever is
+    // returned by 'content->at(key)' doesn't have any content of it's own.
     if (struct_like == nullptr) {
       THROW_EXCEPTION(InvalidTypeException,
                       "Expected value at '{}' to be a struct-like object, but got {} type instead.",
@@ -292,19 +292,19 @@ auto getConfigValue(const types::CfgMap& cfg, const std::vector<std::string>& ke
     -> types::BasePtr {
   // Get the struct-like object containing the last key of the ConfigValueLookup:
   const auto struct_like = getNestedConfig(cfg, keys);
-  // Extract the value from the struct-like object by accessing the internal data and locating the
-  // requested key.
-  if (struct_like != nullptr) {
-    if (!struct_like->data.contains(keys.back())) {
-      auto keys_minus_tail = keys;
-      keys_minus_tail.pop_back();
-      THROW_EXCEPTION(InvalidKeyException, "Unable to find '{}' in '{}'!", keys.back(),
-                      utils::join(keys_minus_tail, "."));
-    }
-    return struct_like->data.at(keys.back());
+
+  // Special handling for the case where 'keys' only has one entry:
+  const auto& cfg_tail = (struct_like != nullptr) ? struct_like->data : cfg;
+
+  if (!cfg_tail.contains(keys.back())) {
+    auto keys_minus_tail = keys;
+    keys_minus_tail.pop_back();
+    THROW_EXCEPTION(InvalidKeyException, "Unable to find '{}' in '{}'!", keys.back(),
+                    utils::join(keys_minus_tail, "."));
   }
 
-  return cfg.at(keys.back());
+  // Extract the value from the final CfgMap object using the final key.
+  return cfg_tail.at(keys.back());
 }
 
 auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::ConfigValueLookup>& var)
