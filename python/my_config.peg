@@ -7,10 +7,10 @@
   REFs       <-  "reference" SP
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto / COMMENT)+
-  REFc       <-  (REF_VARSUB / REF_VARADD)+
+  REFc       <-  (REF_VARDEF / REF_VARADD)+
   PAIR       <-  KEY KVs (value / VALUE_LOOKUP / VAR) TAIL
   FULLPAIR   <-  FLAT_KEY KVs (value / VAR) TAIL
-  REF_VARSUB <-  VAR KVs value TAIL
+  REF_VARDEF <-  VAR KVs value TAIL
   REF_VARADD <-  "+" KEY KVs value TAIL
   FLAT_KEY   <-  KEY ("." KEY)+
   KEY        <-  [a-z] [a-zA-Z0-9_]*

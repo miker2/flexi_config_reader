@@ -48,7 +48,7 @@ grammar my_config
   STRUCTc    <-  (struct / PAIR / reference / proto)+
   REFc       <-  (VARREF / VARADD)+
   PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL %make_pair
-  REF_VARSUB <-  VAR KVs value TAIL %ref_sub_var
+  REF_VARDEF <-  VAR KVs value TAIL %ref_sub_var
   REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
   FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
   KEY        <-  [a-z] [a-zA-Z0-9_]*  %found_key
@@ -148,6 +148,7 @@ struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
 
+// A 'VAR' can only be found within a proto (and it's children)
 struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
 // Allow for VAR to be expessed as: $VAR or ${VAR}
 struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
@@ -158,7 +159,7 @@ struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, V
 
 struct REF_VARADD
     : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
-struct REF_VARSUB
+struct REF_VARDEF
     : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
@@ -168,7 +169,7 @@ struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION,
 struct END : CBc {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
-struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
+struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_VARADD>> {};
 struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
 
 struct PROTOc;

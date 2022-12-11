@@ -314,7 +314,7 @@ struct action<VAR> {
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("Found var: {}", in.string());
     }
-    // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
+    // Store string here in `result` because for the case of a `REF_VARDEF` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
     out.result = in.string();
@@ -553,7 +553,7 @@ struct action<REF_VARADD> {
 };
 
 template <>
-struct action<REF_VARSUB> {
+struct action<REF_VARDEF> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
@@ -562,7 +562,7 @@ struct action<REF_VARSUB> {
                       "Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.result, out.obj_res, out.objects.back()->name, out.objects.back()->type);
     }
-    CONFIG_ACTION_TRACE("In REF_VARSUB action: '{} = {}'", out.result, out.obj_res);
+    CONFIG_ACTION_TRACE("In REF_VARDEF action: '{} = {}'", out.result, out.obj_res);
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     ref->ref_vars[out.result] = std::move(out.obj_res);

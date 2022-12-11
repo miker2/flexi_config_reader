@@ -112,7 +112,7 @@ def make_var(elements):
     return ProtoVar(elements[1:])
 
 @debugmethod
-def ref_sub_var(*elements, **kwargs):
+def ref_def_var(*elements, **kwargs):
     return ReferenceVar(elements[0].name, elements[1])
 
 @debugmethod
@@ -185,7 +185,7 @@ class ConfigReader:
                                            'proto' : make_proto,
                                            'reference' : make_reference,
                                            'PAIR' : make_pair,
-                                           'REF_VARSUB' : ref_sub_var,
+                                           'REF_VARDEF' : ref_def_var,
                                            'REF_VARADD' : ref_add_var,
                                            'VALUE_LOOKUP': pe.actions.Capture(value_lookup),
                                            'VAR' : pe.actions.Capture(make_var),
