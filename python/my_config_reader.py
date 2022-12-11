@@ -116,7 +116,7 @@ def ref_def_var(*elements, **kwargs):
     return ReferenceVar(elements[0].name, elements[1])
 
 @debugmethod
-def ref_add_var(*elements, **kwargs):
+def ref_add_kvp(*elements, **kwargs):
     return {elements[0] : elements[1]}
 
 @debugmethod
@@ -186,7 +186,7 @@ class ConfigReader:
                                            'reference' : make_reference,
                                            'PAIR' : make_pair,
                                            'REF_VARDEF' : ref_def_var,
-                                           'REF_VARADD' : ref_add_var,
+                                           'REF_ADDKVP' : ref_add_kvp,
                                            'VALUE_LOOKUP': pe.actions.Capture(value_lookup),
                                            'VAR' : pe.actions.Capture(make_var),
                                            'KEY' : pe.actions.Capture(found_key),

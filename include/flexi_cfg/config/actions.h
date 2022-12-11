@@ -524,7 +524,7 @@ struct action<PROTO_PAIR> {
 };
 
 template <>
-struct action<REF_VARADD> {
+struct action<REF_ADDKVP> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
@@ -544,7 +544,7 @@ struct action<REF_VARADD> {
                       out.objects.back()->data[out.keys.back()]->type, out.obj_res->loc(),
                       out.obj_res->type);
     }
-    CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
+    CONFIG_ACTION_TRACE("In REF_ADDKVP action: '+{} = {}'", out.keys.back(), out.obj_res);
 
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
 

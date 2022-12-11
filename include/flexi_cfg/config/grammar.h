@@ -46,10 +46,10 @@ grammar my_config
   REFs       <-  "reference" SP
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto)+
-  REFc       <-  (VARREF / VARADD)+
+  REFc       <-  (REF_VARDEF / REF_ADDKVP)+
   PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL %make_pair
   REF_VARDEF <-  VAR KVs value TAIL %ref_sub_var
-  REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
+  REF_ADDKVP <-  "+" KEY KVs value TAIL %ref_add_var
   FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
   KEY        <-  [a-z] [a-zA-Z0-9_]*  %found_key
   value      <-  list / HEX / number / string
@@ -157,7 +157,7 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                                peg::one<')'>> {};
 
-struct REF_VARADD
+struct REF_ADDKVP
     : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
 struct REF_VARDEF
     : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
@@ -169,7 +169,7 @@ struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION,
 struct END : CBc {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
-struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_VARADD>> {};
+struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
 struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
 
 struct PROTOc;
