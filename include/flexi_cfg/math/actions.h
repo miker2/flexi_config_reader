@@ -98,10 +98,10 @@ struct action<expression> {
 };
 
 template <>
-struct action<config::VAR_REF> {
+struct action<config::VALUE_LOOKUP> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    // Remove the VAR_REF enclosing delimiters from the VAR_REF
+    // Remove the VALUE_LOOKUP enclosing delimiters from the VALUE_LOOKUP
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
 
     // Look up the corresponding value from the map.

@@ -34,7 +34,7 @@ struct pi : TAO_PEGTL_STRING("pi") {};
 struct ignored : peg::space {};
 
 // v includes numbers, variables & var refs
-struct v : peg::sor<config::NUMBER, config::VAR, config::VAR_REF> {};
+struct v : peg::sor<config::NUMBER, config::VAR, config::VALUE_LOOKUP> {};
 
 struct expression;
 struct BRACKET : peg::seq<Po, expression, Pc> {};

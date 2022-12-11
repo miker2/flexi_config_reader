@@ -562,10 +562,10 @@ TEST(config_grammar, FLAT_KEY) {
 }
 
 // NOLINTNEXTLINE
-TEST(config_grammar, VAR_REF) {
+TEST(config_grammar, VALUE_LOOKUP) {
   auto checkVarRef = [](const std::string& input) {
     std::optional<config::ActionData> out;
-    checkResult<peg::must<config::VAR_REF, peg::eolf>, config::types::ConfigValueLookup>(
+    checkResult<peg::must<config::VALUE_LOOKUP, peg::eolf>, config::types::ConfigValueLookup>(
         input, config::types::Type::kValueLookup, out);
     const auto value = dynamic_pointer_cast<config::types::ConfigValueLookup>(out->obj_res);
     EXPECT_EQ("$(" + value->var() + ")", input);

@@ -296,7 +296,7 @@ struct action<EXPRESSION> {
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
     }
-    CONFIG_ACTION_TRACE("EXPRESSION contains the following VAR_REF objects: {}",
+    CONFIG_ACTION_TRACE("EXPRESSION contains the following VALUE_LOOKUP objects: {}",
                         ranges::views::values(out.value_lookups));
     // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
 
@@ -392,23 +392,23 @@ struct action<FLAT_KEY> {
 };
 
 template <>
-struct action<VAR_REF> {
+struct action<VALUE_LOOKUP> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
     // the existing key list.
 
-    // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the VAR_REF
-    // starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
+    // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the
+    // VALUE_LOOKUP starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
     if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
+      CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
     }
     const auto parts = utils::split(var_ref, '.');
     for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
       if (!out.keys.empty() && out.keys.back() == *it) {
         if (VERBOSE_DEBUG_ACTIONS) {
-          CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.keys.back());
+          CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
         }
         out.keys.pop_back();
       }

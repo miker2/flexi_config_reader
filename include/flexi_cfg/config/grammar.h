@@ -33,6 +33,7 @@ struct expression;
 
 namespace config {
 
+// TODO: Update this
 // clang-format off
 /*
 grammar my_config
@@ -46,7 +47,7 @@ grammar my_config
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto)+
   REFc       <-  (VARREF / VARADD)+
-  PAIR       <-  KEY KVs (value / VAR_REF) TAIL %make_pair
+  PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL %make_pair
   REF_VARSUB <-  VAR KVs value TAIL %ref_sub_var
   REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
   FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
@@ -57,7 +58,7 @@ grammar my_config
   number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
   VARc       <-  [A-Z] [A-Z0-9_]*
   VAR        <-  "$" ("{" VARc "}" / VARc)  %make_var
-  VAR_REF    <-  "$(" FLAT_KEY ")" %var_ref
+  VALUE_LOOKUP    <-  "$(" FLAT_KEY ")" %var_ref
   HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
   KVs        <-  oSP "=" oSP
   CBo        <-  "{" oSP
@@ -85,15 +86,18 @@ template <typename Rule>
 struct pd : peg::pad<Rule, peg::blank> {};
 
 struct COMMA : pd<peg::one<','>> {};
+// Square brackets
 struct SBo : pd<peg::one<'['>> {};
 struct SBc : pd<peg::one<']'>> {};
+// Curly braces
 struct CBo : pd<peg::one<'{'>> {};
 struct CBc : pd<peg::one<'}'>> {};
-struct KVs : pd<peg::one<'='>> {};
+struct KVs : pd<peg::one<'='>> {};  // Key/value separator
 // These two rules define the enclosing delimiters for a math expression (i.e. "{{" and "}}")
 struct Eo : pd<peg::two<'{'>> {};
 struct Ec : pd<peg::two<'}'>> {};
 
+// These are reserved keywords that can't be used elsewhere
 struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
 struct REFk : TAO_PEGTL_KEYWORD("reference") {};
@@ -149,16 +153,17 @@ struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'
 struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
 };
 
-struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
-                          peg::one<')'>> {};
+struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
+                               peg::one<')'>> {};
 
-struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {
-};
-struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, PARENTNAMEk>, TAIL> {};
+struct REF_VARADD
+    : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
+struct REF_VARSUB
+    : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
-struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, VAR>, TAIL> {};
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR>, TAIL> {};
 
 struct END : CBc {};
 
