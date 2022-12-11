@@ -156,15 +156,17 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                                peg::one<')'>> {};
 
-struct REF_ADDKVP
-    : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
+struct KV_NOMINAL : peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION> {};
+
+struct REF_ADDKVP : peg::seq<peg::one<'+'>, KEY, KVs, KV_NOMINAL, TAIL> {};
 struct REF_VARDEF
     : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
-  // A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
-// NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain one or more 'VAR' elements
+// A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, KV_NOMINAL, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, KV_NOMINAL, TAIL> {};
+// NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
+// one or more 'VAR' elements
 struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR>, TAIL> {};
 
 struct END : CBc {};
