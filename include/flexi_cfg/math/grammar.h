@@ -44,27 +44,3 @@ struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};  // <-- recursive 
 struct expression : peg::list<P, Bo, ignored> {};              // <-- Terminal
 
 }  // namespace math
-
-namespace grammar2 {
-/*
- expression --> T {( "+" | "-" ) T}
- T --> F {( "*" | "/" ) F}
- F --> P ["^" F]
- P --> v | "(" expression ")" | "-" T
-*/
-
-struct PM : peg::sor<math::Bplus, math::Bminus> {};
-struct MD : peg::sor<math::Bmult, math::Bdiv> {};
-
-struct expression;
-struct BRACKET : peg::seq<math::Po, expression, math::Pc> {};
-struct N;
-struct P : config::pd<peg::sor<math::v, math::pi, BRACKET, N>> {};
-struct F;
-struct EXP : peg::seq<math::Bpow, F> {};
-struct F : peg::seq<P, peg::opt<EXP>> {};
-struct T : peg::seq<F, peg::star<config::pd<MD>, F>> {};
-struct N : peg::seq<math::Um, T> {};
-struct expression : peg::seq<T, peg::star<config::pd<PM>, T>> {};  // <-- Terminal
-
-}  // namespace grammar2
