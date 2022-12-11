@@ -76,9 +76,7 @@ grammar my_config
 // clang-format on
 
 struct WS_ : peg::star<peg::space> {};
-struct NL : peg::plus<peg::eol> {};
 struct SP : peg::plus<peg::blank> {};
-struct oSP : peg::star<peg::blank> {};
 struct COMMENT : peg::seq<peg::one<'#'>, peg::until<peg::eol>, WS_> {};
 struct TAIL : peg::seq<WS_, peg::star<COMMENT>> {};
 // A rule for padding another rule with blanks on either side
@@ -92,7 +90,8 @@ struct SBc : pd<peg::one<']'>> {};
 // Curly braces
 struct CBo : pd<peg::one<'{'>> {};
 struct CBc : pd<peg::one<'}'>> {};
-struct KVs : pd<peg::one<'='>> {};  // Key/value separator
+// Key/value separator
+struct KVs : pd<peg::one<'='>> {};
 // These two rules define the enclosing delimiters for a math expression (i.e. "{{" and "}}")
 struct Eo : pd<peg::two<'{'>> {};
 struct Ec : pd<peg::two<'}'>> {};
@@ -162,27 +161,32 @@ struct REF_ADDKVP
 struct REF_VARDEF
     : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
+  // A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
 struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION>, TAIL> {};
+// NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain one or more 'VAR' elements
 struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR>, TAIL> {};
 
 struct END : CBc {};
 
+// A rule for defining struct-like objects
+template <typename Start, typename Content>
+struct STRUCT_LIKE : peg::seq<Start, Content, END, TAIL> {};
+
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
 struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
-struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
+struct REFERENCE : STRUCT_LIKE<REFs, REFc> {};
 
 struct PROTOc;
 struct PROTOs : peg::seq<PROTOk, SP, KEY, CBo, TAIL> {};
-struct PROTO : peg::seq<PROTOs, PROTOc, END, TAIL> {};
+struct PROTO : STRUCT_LIKE<PROTOs, PROTOc> {};
 
 struct STRUCTc;
 struct STRUCTs : peg::seq<STRUCTk, SP, KEY, CBo, TAIL> {};
-struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, TAIL> {};
+struct STRUCT : STRUCT_LIKE<STRUCTs, STRUCTc> {};
 
 // Special definition of a struct contained in a proto
-struct STRUCT_IN_PROTOc;
-struct STRUCT_IN_PROTO : peg::seq<STRUCTs, PROTOc, END, TAIL> {};
+struct STRUCT_IN_PROTO : STRUCT_LIKE<STRUCTs, PROTOc> {};
 
 struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT_IN_PROTO, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
