@@ -37,29 +37,29 @@ namespace config {
 // clang-format off
 /*
 grammar my_config
-  map        <-  _ (struct / proto / reference)+ _ %make_map
-  struct     <-  STRUCTs KEY TAIL STRUCTc END _ %make_struct
-  proto      <-  PROTOs KEY TAIL STRUCTc END _ %make_proto
-  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _ %make_reference
+  map        <-  _ (struct / proto / reference / COMMENT)+
+  struct     <-  STRUCTs KEY TAIL STRUCTc END _
+  proto      <-  PROTOs KEY TAIL STRUCTc END _
+  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _
   STRUCTs    <-  "struct" SP
   PROTOs     <-  "proto" SP
   REFs       <-  "reference" SP
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto)+
   REFc       <-  (REF_VARDEF / REF_ADDKVP)+
-  PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL %make_pair
-  REF_VARDEF <-  VAR KVs value TAIL %ref_sub_var
-  REF_ADDKVP <-  "+" KEY KVs value TAIL %ref_add_var
-  FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
-  KEY        <-  [a-z] [a-zA-Z0-9_]*  %found_key
+  PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL
+  REF_VARDEF <-  VAR KVs value TAIL
+  REF_ADDKVP <-  "+" KEY KVs value TAIL
+  FLAT_KEY   <-  KEY ("." KEY)+   # Flattened struct/reference syntax
+  KEY        <-  [a-z] [a-zA-Z0-9_]*
   value      <-  list / HEX / number / string
   string     <-  '"' [^"]* '"' %make_string
-  list       <-  SBo value (COMMA value)* SBc %make_list
-  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
+  list       <-  SBo value (COMMA value)* SBc
+  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?
   VARc       <-  [A-Z] [A-Z0-9_]*
-  VAR        <-  "$" ("{" VARc "}" / VARc)  %make_var
-  VALUE_LOOKUP    <-  "$(" FLAT_KEY ")" %var_ref
-  HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
+  VAR        <-  "$" ("{" VARc "}" / VARc)
+  VALUE_LOOKUP <-  "$(" FLAT_KEY ")"
+  HEX        <-  "0" [xX] [0-9a-fA-F]+
   KVs        <-  oSP "=" oSP
   CBo        <-  "{" oSP
   CBc        <- oSP "}" _
