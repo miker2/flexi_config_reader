@@ -176,7 +176,7 @@ struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, TAIL> {};
 
 // Special definition of a struct contained in a proto
 struct STRUCT_IN_PROTOc;
-struct STRUCT_IN_PROTO : peg::seq<STRUCTs, PROTOc, END, WS_> {};
+struct STRUCT_IN_PROTO : peg::seq<STRUCTs, PROTOc, END, TAIL> {};
 
 struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT_IN_PROTO, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
