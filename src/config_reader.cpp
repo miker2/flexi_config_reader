@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "flexi_cfg/config/reader.h"
-//#include <range/v3/all.hpp>  // get everything
+// #include <range/v3/all.hpp>  // get everything
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
