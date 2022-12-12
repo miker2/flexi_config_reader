@@ -262,10 +262,11 @@ struct action<LIST::element> {
     if (out.lists.back()->list_element_type == types::Type::kUnknown) {
       out.lists.back()->list_element_type = out.obj_res->type;
     } else if (out.lists.back()->list_element_type != out.obj_res->type) {
+      const auto key = !out.keys.empty() ? out.keys.back() : "";
       THROW_EXCEPTION(InvalidTypeException,
                       "While processing '{}' at {}, found {}, but expected {}. All elements in {} "
                       "must be of the same type.",
-                      out.keys.back(), out.obj_res->loc(), out.obj_res->type,
+                      key, out.obj_res->loc(), out.obj_res->type,
                       out.lists.back()->list_element_type, out.lists.back()->type);
     }
     out.lists.back()->data.push_back(std::move(out.obj_res));

@@ -45,6 +45,56 @@ void checkResult(const std::string& input, config::types::Type expected_type,
 TEST(config_grammar, analyze) { ASSERT_EQ(peg::analyze<config::grammar>(), 0); }
 
 // NOLINTNEXTLINE
+TEST(config_grammar, HEX) {
+  auto checkHex = [](const std::string& input) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::HEX, peg::eolf>, config::types::ConfigValue>(
+        input, config::types::Type::kNumber, out);
+  };
+  {
+    const std::string content = "0x0";
+    checkHex(content);
+  }
+  {
+    const std::string content = "0x0de34";
+    checkHex(content);
+  }
+  {
+    const std::string content = "0xD34F";
+    checkHex(content);
+  }
+  {
+    const std::string content = "0xd0D";
+    checkHex(content);
+  }
+  {
+    const std::string content = "0Xd0D0";
+    checkHex(content);
+  }
+  {
+    // This will fail due to an extra leading 0
+    std::string content = "00x00";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
+  }
+  {
+    // This will fail due to an alpha character not within the hexadecimal range
+    std::string content = "0xG";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
+  }
+  {
+    // This will fail due to a leading negative sign
+    std::string content = "-0xd0D";
+    std::optional<RetType> ret;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST(config_grammar, INTEGER) {
   auto checkInt = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -234,56 +284,6 @@ TEST(config_grammar, NUMBER) {
 }
 
 // NOLINTNEXTLINE
-TEST(config_grammar, HEX) {
-  auto checkHex = [](const std::string& input) {
-    std::optional<config::ActionData> out;
-    checkResult<peg::must<config::HEX, peg::eolf>, config::types::ConfigValue>(
-        input, config::types::Type::kNumber, out);
-  };
-  {
-    const std::string content = "0x0";
-    checkHex(content);
-  }
-  {
-    const std::string content = "0x0de34";
-    checkHex(content);
-  }
-  {
-    const std::string content = "0xD34F";
-    checkHex(content);
-  }
-  {
-    const std::string content = "0xd0D";
-    checkHex(content);
-  }
-  {
-    const std::string content = "0Xd0D0";
-    checkHex(content);
-  }
-  {
-    // This will fail due to an extra leading 0
-    std::string content = "00x00";
-    std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
-  }
-  {
-    // This will fail due to an alpha character not within the hexadecimal range
-    std::string content = "0xG";
-    std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
-  }
-  {
-    // This will fail due to a leading negative sign
-    std::string content = "-0xd0D";
-    std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
-  }
-}
-
-// NOLINTNEXTLINE
 TEST(config_grammar, BOOLEAN) {
   auto checkBoolean = [](const std::string& input, bool expected) {
     std::optional<config::ActionData> out;
@@ -384,6 +384,38 @@ TEST(config_grammar, STRING) {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::STRING, peg::eolf>>(content)),
                  std::exception);
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(config_grammar, LIST) {
+  auto checkList = [](const std::string& input) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::LIST, peg::eolf>, config::types::ConfigList>(
+        input, config::types::Type::kList, out);
+  };
+  {
+    const std::string content = "[1, 2, 3]";
+    checkList(content);
+  }
+  {
+    const std::string content = "[1.0, 2., -3.3]";
+    checkList(content);
+  }
+  {
+    const std::string content = R"(["one", "two", "three"])";
+    checkList(content);
+  }
+  {
+    const std::string content = "[0x123, 0Xabc, 0xA1B2F9]";
+    checkList(content);
+  }
+  {
+    // Non-homogeneous lists are not allowed
+    const std::string content = R"([12, "two", 10.2])";
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::LIST, peg::eolf>>(content)),
+                 config::InvalidTypeException);
   }
 }
 
