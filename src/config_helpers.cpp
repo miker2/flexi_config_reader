@@ -183,7 +183,9 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       logger::trace("At: {} = {} | type: {}", k, v, v->type);
     }
 
-    if (v->type == types::Type::kVar) {
+    /// \brief A helper function for grabbing the correct ref_var from the map and returning it
+    auto replace_var = [&ref_vars = std::as_const(ref_vars),
+                        &k = std::as_const(k)](const types::BasePtr& v) {
       auto v_var = dynamic_pointer_cast<types::ConfigVar>(v);
       // Pull the value from the reference vars and add it to the structure.
       if (!ref_vars.contains(v_var->name)) {
@@ -191,13 +193,17 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         "Attempting to replace '{}' with undefined var: '{}' at {}.", k,
                         v_var->name, v->loc());
       }
-      cfg_map[k] = ref_vars.at(v_var->name);
-    } else if (v->type == types::Type::kString) {
+      return ref_vars.at(v_var->name);
+    };
+
+    /// \brief A helper function for replacing VAR elements within a string
+    auto replace_var_in_str = [&ref_vars = std::as_const(ref_vars)](const types::BasePtr& v) {
       auto v_value = dynamic_pointer_cast<types::ConfigValue>(v);
 
       auto out = replaceVarInStr(v_value->value, ref_vars);
       if (!out.has_value()) {
-        continue;
+        // There were no references in the string, so just return the original object;
+        return v;
       }
       // Replace the existing value with the new value.
       std::shared_ptr<types::ConfigBase> new_value =
@@ -205,7 +211,25 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
 
       new_value->line = v->line;
       new_value->source = v->source;
-      cfg_map[k] = std::move(new_value);
+      return std::move(new_value);
+    };
+
+    if (v->type == types::Type::kVar) {
+      cfg_map[k] = replace_var(v);
+    } else if (v->type == types::Type::kString) {
+      cfg_map[k] = replace_var_in_str(v);
+    } else if (v->type == types::Type::kList) {
+      auto v_list = dynamic_pointer_cast<types::ConfigList>(v);
+      logger::info("Resolving references in list: {}", v_list);
+      for (auto& e : v_list->data) {
+        logger::info("Element type: {}, data: {}", e->type, e);
+        if (e->type == types::Type::kVar) {
+          e = replace_var(e);
+        } else if (e->type == types::Type::kString) {
+          e = replace_var_in_str(e);
+        }
+        // If this is any other type, we're going to skip it
+      }
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
 
