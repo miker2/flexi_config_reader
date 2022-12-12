@@ -417,6 +417,13 @@ TEST(config_grammar, LIST) {
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::LIST, peg::eolf>>(content)),
                  config::InvalidTypeException);
   }
+  {
+    // Fails due to the trailing comma
+    const std::string content = "[0x123, 0Xabc, 0xA1B2F9,]";
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::LIST, peg::eolf>>(content)),
+                 tao::pegtl::parse_error);
+  }
 }
 
 // NOLINTNEXTLINE
