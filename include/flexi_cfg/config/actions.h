@@ -296,7 +296,7 @@ struct action<EXPRESSION> {
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
     }
-    CONFIG_ACTION_TRACE("EXPRESSION contains the following VAR_REF objects: {}",
+    CONFIG_ACTION_TRACE("EXPRESSION contains the following VALUE_LOOKUP objects: {}",
                         ranges::views::values(out.value_lookups));
     // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
 
@@ -314,7 +314,7 @@ struct action<VAR> {
     if (VERBOSE_DEBUG_ACTIONS) {
       CONFIG_ACTION_TRACE("Found var: {}", in.string());
     }
-    // Store string here in `result` because for the case of a `REF_VARSUB` element, storing the
+    // Store string here in `result` because for the case of a `REF_VARDEF` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
     out.result = in.string();
@@ -392,23 +392,23 @@ struct action<FLAT_KEY> {
 };
 
 template <>
-struct action<VAR_REF> {
+struct action<VALUE_LOOKUP> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     // This is a bit hacky. We need to look at what was parsed, and pull the correct keys out of
     // the existing key list.
 
-    // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the VAR_REF
-    // starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
+    // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the
+    // VALUE_LOOKUP starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
     if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[VAR_REF] Result: {}", var_ref);
+      CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
     }
     const auto parts = utils::split(var_ref, '.');
     for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
       if (!out.keys.empty() && out.keys.back() == *it) {
         if (VERBOSE_DEBUG_ACTIONS) {
-          CONFIG_ACTION_TRACE("[VAR_REF] Consuming: '{}'", out.keys.back());
+          CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
         }
         out.keys.pop_back();
       }
@@ -524,7 +524,7 @@ struct action<PROTO_PAIR> {
 };
 
 template <>
-struct action<REF_VARADD> {
+struct action<REF_ADDKVP> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
@@ -544,7 +544,7 @@ struct action<REF_VARADD> {
                       out.objects.back()->data[out.keys.back()]->type, out.obj_res->loc(),
                       out.obj_res->type);
     }
-    CONFIG_ACTION_TRACE("In REF_VARADD action: '+{} = {}'", out.keys.back(), out.obj_res);
+    CONFIG_ACTION_TRACE("In REF_ADDKVP action: '+{} = {}'", out.keys.back(), out.obj_res);
 
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
 
@@ -553,7 +553,7 @@ struct action<REF_VARADD> {
 };
 
 template <>
-struct action<REF_VARSUB> {
+struct action<REF_VARDEF> {
   static void apply0(ActionData& out) {
     // If we're here, then there must be an object and it must be a reference!
     if (out.objects.back()->type != types::Type::kReference) {
@@ -562,7 +562,7 @@ struct action<REF_VARSUB> {
                       "Error while processing '{} = {}' in {}. Expected 'reference', found '{}'.",
                       out.result, out.obj_res, out.objects.back()->name, out.objects.back()->type);
     }
-    CONFIG_ACTION_TRACE("In REF_VARSUB action: '{} = {}'", out.result, out.obj_res);
+    CONFIG_ACTION_TRACE("In REF_VARDEF action: '{} = {}'", out.result, out.obj_res);
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     ref->ref_vars[out.result] = std::move(out.obj_res);

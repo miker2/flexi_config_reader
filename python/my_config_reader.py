@@ -112,15 +112,15 @@ def make_var(elements):
     return ProtoVar(elements[1:])
 
 @debugmethod
-def ref_sub_var(*elements, **kwargs):
+def ref_def_var(*elements, **kwargs):
     return ReferenceVar(elements[0].name, elements[1])
 
 @debugmethod
-def ref_add_var(*elements, **kwargs):
+def ref_add_kvp(*elements, **kwargs):
     return {elements[0] : elements[1]}
 
 @debugmethod
-def var_ref(*elements, **kwargs):
+def value_lookup(*elements, **kwargs):
     return ValueLookup(elements[0][2:-1])
 
 @debugmethod
@@ -185,9 +185,9 @@ class ConfigReader:
                                            'proto' : make_proto,
                                            'reference' : make_reference,
                                            'PAIR' : make_pair,
-                                           'REF_VARSUB' : ref_sub_var,
-                                           'REF_VARADD' : ref_add_var,
-                                           'VAR_REF': pe.actions.Capture(var_ref),
+                                           'REF_VARDEF' : ref_def_var,
+                                           'REF_ADDKVP' : ref_add_kvp,
+                                           'VALUE_LOOKUP': pe.actions.Capture(value_lookup),
                                            'VAR' : pe.actions.Capture(make_var),
                                            'KEY' : pe.actions.Capture(found_key),
                                            'FLAT_KEY' : pe.actions.Capture(found_key),
@@ -263,8 +263,8 @@ class ConfigReader:
         self._resolve_references(d)
         logger.info(pprint.pformat(d))
 
-        logger.info("----- Resolving variable references ----------")
-        self._resolve_var_ref(flat_data, d, d)
+        logger.info("----- Resolving variable redirection ---------")
+        self._resolve_value_lookup(flat_data, d, d)
         logger.info(pprint.pformat(d))
 
         logger.info("----- Done! ----------------")
@@ -335,7 +335,7 @@ class ConfigReader:
                 self._resolve_references(v, new_name, ref_vars)
 
     @debugmethod
-    def _resolve_var_ref(self, flat_data, root, d):
+    def _resolve_value_lookup(self, flat_data, root, d):
         for k, v in d.items():
             if isinstance(v, ValueLookup):
                 try:
@@ -345,4 +345,4 @@ class ConfigReader:
                 print(f"Found instance of ValueLookup: {v}. Has value={value}")
                 d[k] = value
             elif isinstance(v, dict):
-                self._resolve_var_ref(flat_data, root, v)
+                self._resolve_value_lookup(flat_data, root, v)

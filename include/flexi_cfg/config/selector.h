@@ -10,13 +10,14 @@ namespace config {
 // TODO(michael.rose0): Strip trailing whitespace from comments!
 
 template <typename Rule>
-struct selector : peg::parse_tree::selector<
-                      Rule,
-                      peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY,
-                                                         COMMENT, filename::FILENAME>,
-                      peg::parse_tree::remove_content::on<END, REF_VARADD, REF_VARSUB, VAR_REF>,
-                      peg::parse_tree::fold_one::on<CONFIG, STRUCTc, STRUCT, PROTO, REFERENCE,
-                                                    VALUE, PAIR, LIST>> {};
+struct selector
+    : peg::parse_tree::selector<
+          Rule,
+          peg::parse_tree::store_content::on<HEX, NUMBER, STRING, VAR, FLAT_KEY, KEY, COMMENT,
+                                             filename::FILENAME>,
+          peg::parse_tree::remove_content::on<END, REF_ADDKVP, REF_VARDEF, VALUE_LOOKUP>,
+          peg::parse_tree::fold_one::on<CONFIG, STRUCTc, STRUCT, PROTO, REFERENCE, VALUE, PAIR,
+                                        LIST>> {};
 
 template <>
 struct selector<INCLUDE> : std::true_type {

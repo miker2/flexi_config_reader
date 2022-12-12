@@ -33,32 +33,33 @@ struct expression;
 
 namespace config {
 
+// TODO: Update this
 // clang-format off
 /*
 grammar my_config
-  map        <-  _ (struct / proto / reference)+ _ %make_map
-  struct     <-  STRUCTs KEY TAIL STRUCTc END _ %make_struct
-  proto      <-  PROTOs KEY TAIL STRUCTc END _ %make_proto
-  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _ %make_reference
+  map        <-  _ (struct / proto / reference / COMMENT)+
+  struct     <-  STRUCTs KEY TAIL STRUCTc END _
+  proto      <-  PROTOs KEY TAIL STRUCTc END _
+  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _
   STRUCTs    <-  "struct" SP
   PROTOs     <-  "proto" SP
   REFs       <-  "reference" SP
   END        <-  "end" SP KEY
   STRUCTc    <-  (struct / PAIR / reference / proto)+
-  REFc       <-  (VARREF / VARADD)+
-  PAIR       <-  KEY KVs (value / VAR_REF) TAIL %make_pair
-  REF_VARSUB <-  VAR KVs value TAIL %ref_sub_var
-  REF_VARADD <-  "+" KEY KVs value TAIL %ref_add_var
-  FLAT_KEY   <-  KEY ("." KEY)+  %found_key  # Flattened struct/reference syntax
-  KEY        <-  [a-z] [a-zA-Z0-9_]*  %found_key
+  REFc       <-  (REF_VARDEF / REF_ADDKVP)+
+  PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL
+  REF_VARDEF <-  VAR KVs value TAIL
+  REF_ADDKVP <-  "+" KEY KVs value TAIL
+  FLAT_KEY   <-  KEY ("." KEY)+   # Flattened struct/reference syntax
+  KEY        <-  [a-z] [a-zA-Z0-9_]*
   value      <-  list / HEX / number / string
   string     <-  '"' [^"]* '"' %make_string
-  list       <-  SBo value (COMMA value)* SBc %make_list
-  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)? %make_number
+  list       <-  SBo value (COMMA value)* SBc
+  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?
   VARc       <-  [A-Z] [A-Z0-9_]*
-  VAR        <-  "$" ("{" VARc "}" / VARc)  %make_var
-  VAR_REF    <-  "$(" FLAT_KEY ")" %var_ref
-  HEX        <-  "0" [xX] [0-9a-fA-F]+ %make_hex
+  VAR        <-  "$" ("{" VARc "}" / VARc)
+  VALUE_LOOKUP <-  "$(" FLAT_KEY ")"
+  HEX        <-  "0" [xX] [0-9a-fA-F]+
   KVs        <-  oSP "=" oSP
   CBo        <-  "{" oSP
   CBc        <- oSP "}" _
@@ -75,9 +76,7 @@ grammar my_config
 // clang-format on
 
 struct WS_ : peg::star<peg::space> {};
-struct NL : peg::plus<peg::eol> {};
 struct SP : peg::plus<peg::blank> {};
-struct oSP : peg::star<peg::blank> {};
 struct COMMENT : peg::seq<peg::one<'#'>, peg::until<peg::eol>, WS_> {};
 struct TAIL : peg::seq<WS_, peg::star<COMMENT>> {};
 // A rule for padding another rule with blanks on either side
@@ -85,15 +84,19 @@ template <typename Rule>
 struct pd : peg::pad<Rule, peg::blank> {};
 
 struct COMMA : pd<peg::one<','>> {};
+// Square brackets
 struct SBo : pd<peg::one<'['>> {};
 struct SBc : pd<peg::one<']'>> {};
+// Curly braces
 struct CBo : pd<peg::one<'{'>> {};
 struct CBc : pd<peg::one<'}'>> {};
+// Key/value separator
 struct KVs : pd<peg::one<'='>> {};
 // These two rules define the enclosing delimiters for a math expression (i.e. "{{" and "}}")
 struct Eo : pd<peg::two<'{'>> {};
 struct Ec : pd<peg::two<'}'>> {};
 
+// These are reserved keywords that can't be used elsewhere
 struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
 struct REFk : TAO_PEGTL_KEYWORD("reference") {};
@@ -144,39 +147,48 @@ struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
 struct FLAT_KEY : peg::list<KEY, peg::one<'.'>> {};
 
+// A 'VAR' can only be found within a proto (and it's children)
 struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'>>> {};
 // Allow for VAR to be expessed as: $VAR or ${VAR}
 struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
 };
 
-struct VAR_REF : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
-                          peg::one<')'>> {};
+struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
+                               peg::one<')'>> {};
 
-struct REF_VARADD : peg::seq<peg::one<'+'>, KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {
-};
-struct REF_VARSUB : peg::seq<VAR, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, PARENTNAMEk>, TAIL> {};
+struct KV_NOMINAL : peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION> {};
 
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION>, TAIL> {};
-struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VAR_REF, EXPRESSION, VAR>, TAIL> {};
+struct REF_ADDKVP : peg::seq<peg::one<'+'>, KEY, KVs, KV_NOMINAL, TAIL> {};
+struct REF_VARDEF
+    : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
+
+// A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
+struct FULLPAIR : peg::seq<FLAT_KEY, KVs, KV_NOMINAL, TAIL> {};
+struct PAIR : peg::seq<KEY, KVs, KV_NOMINAL, TAIL> {};
+// NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
+// one or more 'VAR' elements
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR>, TAIL> {};
 
 struct END : CBc {};
 
+// A rule for defining struct-like objects
+template <typename Start, typename Content>
+struct STRUCT_LIKE : peg::seq<Start, Content, END, TAIL> {};
+
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
-struct REFc : peg::plus<peg::sor<REF_VARSUB, REF_VARADD>> {};
-struct REFERENCE : peg::seq<REFs, REFc, END, TAIL> {};
+struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
+struct REFERENCE : STRUCT_LIKE<REFs, REFc> {};
 
 struct PROTOc;
 struct PROTOs : peg::seq<PROTOk, SP, KEY, CBo, TAIL> {};
-struct PROTO : peg::seq<PROTOs, PROTOc, END, TAIL> {};
+struct PROTO : STRUCT_LIKE<PROTOs, PROTOc> {};
 
 struct STRUCTc;
 struct STRUCTs : peg::seq<STRUCTk, SP, KEY, CBo, TAIL> {};
-struct STRUCT : peg::seq<STRUCTs, STRUCTc, END, TAIL> {};
+struct STRUCT : STRUCT_LIKE<STRUCTs, STRUCTc> {};
 
 // Special definition of a struct contained in a proto
-struct STRUCT_IN_PROTOc;
-struct STRUCT_IN_PROTO : peg::seq<STRUCTs, PROTOc, END, WS_> {};
+struct STRUCT_IN_PROTO : STRUCT_LIKE<STRUCTs, PROTOc> {};
 
 struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT_IN_PROTO, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
