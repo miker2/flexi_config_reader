@@ -220,9 +220,9 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       cfg_map[k] = replace_var_in_str(v);
     } else if (v->type == types::Type::kList) {
       auto v_list = dynamic_pointer_cast<types::ConfigList>(v);
-      logger::info("Resolving references in list: {}", v_list);
+      logger::trace("Resolving references in list: {}", v_list);
       for (auto& e : v_list->data) {
-        logger::info("Element type: {}, data: {}", e->type, e);
+        logger::trace("Element type: {}, data: {}", e->type, e);
         if (e->type == types::Type::kVar) {
           e = replace_var(e);
         } else if (e->type == types::Type::kString) {
@@ -230,6 +230,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         }
         // If this is any other type, we're going to skip it
       }
+      logger::trace("Resolved list: {}", v_list);
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
 
