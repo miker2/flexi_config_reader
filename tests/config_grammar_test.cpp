@@ -73,21 +73,21 @@ TEST(config_grammar, HEX) {
   }
   {
     // This will fail due to an extra leading 0
-    std::string content = "00x00";
+    const std::string content = "00x00";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
   }
   {
     // This will fail due to an alpha character not within the hexadecimal range
-    std::string content = "0xG";
+    const std::string content = "0xG";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
   }
   {
     // This will fail due to a leading negative sign
-    std::string content = "-0xd0D";
+    const std::string content = "-0xd0D";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::HEX, peg::eolf>>(content)), std::exception);
@@ -163,60 +163,60 @@ TEST(config_grammar, FLOAT) {
     EXPECT_EQ(std::any_cast<double>(value->value_any), std::stod(input));
   };
   {
-    std::string content = "1234.";
+    const std::string content = "1234.";
     checkFloat(content);
   }
   {
-    std::string content = "-1234.";
+    const std::string content = "-1234.";
     checkFloat(content);
   }
   {
-    std::string content = "+1234.";
+    const std::string content = "+1234.";
     checkFloat(content);
   }
   {
-    std::string content = "1234.56789";
+    const std::string content = "1234.56789";
     checkFloat(content);
   }
   {
-    std::string content = "0.123";
+    const std::string content = "0.123";
     checkFloat(content);
   }
   {
-    std::string content = "-0.123";
+    const std::string content = "-0.123";
     checkFloat(content);
   }
   {
-    std::string content = "+0.123";
+    const std::string content = "+0.123";
     checkFloat(content);
   }
   {
-    std::string content = "1.23e4";
+    const std::string content = "1.23e4";
     checkFloat(content);
   }
   {
-    std::string content = "1.23e+4";
+    const std::string content = "1.23e+4";
     checkFloat(content);
   }
   {
-    std::string content = "1.23e-4";
+    const std::string content = "1.23e-4";
     checkFloat(content);
   }
   {
-    std::string content = "1.23E-4";
+    const std::string content = "1.23E-4";
     checkFloat(content);
   }
   {
-    std::string content = "1.23E0";
+    const std::string content = "1.23E0";
     checkFloat(content);
   }
   {
-    std::string content = "1e3";
+    const std::string content = "1e3";
     checkFloat(content);
   }
   {
     // This will fail due to the leading zero.
-    std::string content = "01.23";
+    const std::string content = "01.23";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
@@ -224,7 +224,7 @@ TEST(config_grammar, FLOAT) {
   }
   {
     // This will fail due to being an integer
-    std::string content = "123";
+    const std::string content = "123";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
@@ -232,7 +232,7 @@ TEST(config_grammar, FLOAT) {
   }
   {
     // This will fail due to the decimal valued exponent
-    std::string content = "1.23e1.2";
+    const std::string content = "1.23e1.2";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
@@ -240,7 +240,7 @@ TEST(config_grammar, FLOAT) {
   }
   {
     // This will fail due to the exponent value missing.
-    std::string content = "1.23e";
+    const std::string content = "1.23e";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::FLOAT, peg::eolf>>(content)),
@@ -258,27 +258,27 @@ TEST(config_grammar, NUMBER) {
   // NOTE: Testing of FLOAT and INTEGER is already covered. This just checks that the grammar
   // handles both types.
   {
-    std::string content = "+0.123";
+    const std::string content = "+0.123";
     checkNumber(content);
   }
   {
-    std::string content = "-1.23e4";
+    const std::string content = "-1.23e4";
     checkNumber(content);
   }
   {
-    std::string content = "1.23e+4";
+    const std::string content = "1.23e+4";
     checkNumber(content);
   }
   {
-    std::string content = "321";
+    const std::string content = "321";
     checkNumber(content);
   }
   {
-    std::string content = "-312";
+    const std::string content = "-312";
     checkNumber(content);
   }
   {
-    std::string content = "+231";
+    const std::string content = "+231";
     checkNumber(content);
   }
 }
@@ -424,6 +424,13 @@ TEST(config_grammar, LIST) {
     EXPECT_THROW(ret.emplace(runTest<peg::must<config::LIST, peg::eolf>>(content)),
                  tao::pegtl::parse_error);
   }
+  {
+    // Fails due to containing a VAR
+    const std::string content = "[0x123, $VAR, 0xA1B2F9,]";
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::LIST, peg::eolf>>(content)),
+                 tao::pegtl::parse_error);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -533,6 +540,24 @@ TEST(config_grammar, KEY) {
 }
 
 // NOLINTNEXTLINE
+TEST(config_grammar, FLAT_KEY) {
+  {
+    const std::string content = "this.is.a.var.ref";
+    auto ret = runTest<peg::must<config::FLAT_KEY, peg::eolf>>(content);
+    EXPECT_TRUE(ret.first);
+    ASSERT_EQ(ret.second.flat_keys.size(), 1);
+    ASSERT_EQ(ret.second.flat_keys[0], content);
+  }
+  {
+    const std::string content = "flat_key";
+    auto ret = runTest<peg::must<config::FLAT_KEY, peg::eolf>>(content);
+    EXPECT_TRUE(ret.first);
+    ASSERT_EQ(ret.second.flat_keys.size(), 1);
+    ASSERT_EQ(ret.second.flat_keys[0], content);
+  }
+}
+
+// NOLINTNEXTLINE
 TEST(config_grammar, VAR) {
   auto checkVar = [](const std::string& input) {
     std::optional<config::ActionData> out;
@@ -566,38 +591,36 @@ TEST(config_grammar, VAR) {
 }
 
 // NOLINTNEXTLINE
-TEST(config_grammar, FULLPAIR) {
-  const std::string flat_key = "float.my.value";
-  std::string content = flat_key + "   =  5.37e+6";
-
-  auto ret = runTest<peg::must<config::FULLPAIR, peg::eolf>>(content);
-  EXPECT_TRUE(ret.first);
-  // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
-  // keys are resolved into structs.
-  ret.second.cfg_res.erase(
-      std::remove_if(std::begin(ret.second.cfg_res), std::end(ret.second.cfg_res),
-                     [](const auto& m) { return m.empty(); }),
-      std::end(ret.second.cfg_res));
-  ASSERT_EQ(ret.second.cfg_res.size(), 1);
-  config::types::CfgMap* cfg_map = &ret.second.cfg_res.front();
-  const auto keys = utils::split(flat_key, '.');
-  for (const auto& key : keys) {
-    ASSERT_TRUE(cfg_map->contains(key));
-    auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(cfg_map->at(key));
-    if (struct_like != nullptr) {
-      cfg_map = &struct_like->data;
-    }
+TEST(config_grammar, PROTO_LIST) {
+  auto checkProtoList = [](const std::string& input) {
+    std::optional<config::ActionData> out;
+    checkResult<peg::must<config::PROTO_LIST, peg::eolf>, config::types::ConfigList>(
+        input, config::types::Type::kList, out);
+    out->print(std::cout);
+  };
+  {
+    const std::string content = "[3, 4, ${TEST}]";
+    checkProtoList(content);
   }
-  EXPECT_EQ(cfg_map->at(keys.back())->type, config::types::Type::kNumber);
-}
-
-// NOLINTNEXTLINE
-TEST(config_grammar, FLAT_KEY) {
-  std::string content = "this.is.a.var.ref";
-  auto ret = runTest<peg::must<config::FLAT_KEY, peg::eolf>>(content);
-  EXPECT_TRUE(ret.first);
-  ASSERT_EQ(ret.second.flat_keys.size(), 1);
-  ASSERT_EQ(ret.second.flat_keys[0], content);
+  {
+    const std::string content = "[0.35, ${TEST}, -3.14159, $VAR]";
+    checkProtoList(content);
+  }
+  {
+    const std::string content = "[0.35, ${TEST}, 0xA4, $VAR]";
+    checkProtoList(content);
+  }
+  {
+    const std::string content = "[0.35, 12, 0xA4, -1e+4]";
+    checkProtoList(content);
+  }
+  {
+    // Fails due to non-homogeneous list
+    const std::string content = R"([0.35, 12, "fail", -1e+4])";
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<config::PROTO_LIST, peg::eolf>>(content)),
+                 config::InvalidTypeException);
+  }
 }
 
 // NOLINTNEXTLINE
@@ -623,4 +646,30 @@ TEST(config_grammar, VALUE_LOOKUP) {
   for (const auto& content : valid) {
     checkVarRef(content);
   }
+}
+
+// NOLINTNEXTLINE
+TEST(config_grammar, FULLPAIR) {
+  const std::string flat_key = "float.my.value";
+  const std::string content = flat_key + "   =  5.37e+6";
+
+  auto ret = runTest<peg::must<config::FULLPAIR, peg::eolf>>(content);
+  EXPECT_TRUE(ret.first);
+  // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
+  // keys are resolved into structs.
+  ret.second.cfg_res.erase(
+      std::remove_if(std::begin(ret.second.cfg_res), std::end(ret.second.cfg_res),
+                     [](const auto& m) { return m.empty(); }),
+      std::end(ret.second.cfg_res));
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  config::types::CfgMap* cfg_map = &ret.second.cfg_res.front();
+  const auto keys = utils::split(flat_key, '.');
+  for (const auto& key : keys) {
+    ASSERT_TRUE(cfg_map->contains(key));
+    auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(cfg_map->at(key));
+    if (struct_like != nullptr) {
+      cfg_map = &struct_like->data;
+    }
+  }
+  EXPECT_EQ(cfg_map->at(keys.back())->type, config::types::Type::kNumber);
 }

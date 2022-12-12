@@ -153,6 +153,15 @@ struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'
 struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
 };
 
+// A special type of list for lists containing VAR elements.
+struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
+// Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
+struct PROTO_LIST : peg::seq<SBo, peg::list<PROTO_LIST_ELEMENT, COMMA, peg::space>, SBc> {
+  using begin = SBo;
+  using end = SBc;
+  using element = PROTO_LIST_ELEMENT;
+};
+
 struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                                peg::one<')'>> {};
 
@@ -167,7 +176,8 @@ struct FULLPAIR : peg::seq<FLAT_KEY, KVs, KV_NOMINAL, TAIL> {};
 struct PAIR : peg::seq<KEY, KVs, KV_NOMINAL, TAIL> {};
 // NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
 // one or more 'VAR' elements
-struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR>, TAIL> {};
+struct PROTO_PAIR
+    : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR, PROTO_LIST>, TAIL> {};
 
 struct END : CBc {};
 
