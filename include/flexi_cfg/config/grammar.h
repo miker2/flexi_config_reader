@@ -135,7 +135,7 @@ struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, LIST> {};
 // 'seq' is used here so that the 'VALUE' action will collect the location information.
 struct LIST_ELEMENT : peg::seq<VALUE> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct LIST : peg::seq<SBo, peg::list<LIST_ELEMENT, COMMA, peg::space>, SBc> {
+struct LIST : peg::seq<SBo, WS_, peg::list<LIST_ELEMENT, COMMA, peg::space>, WS_, SBc> {
   using begin = SBo;
   using end = SBc;
   using element = LIST_ELEMENT;
@@ -156,7 +156,7 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 // A special type of list for lists containing VAR elements.
 struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct PROTO_LIST : peg::seq<SBo, peg::list<PROTO_LIST_ELEMENT, COMMA, peg::space>, SBc> {
+struct PROTO_LIST : peg::seq<SBo, WS_, peg::list<PROTO_LIST_ELEMENT, COMMA, peg::space>, WS_, SBc> {
   using begin = SBo;
   using end = SBc;
   using element = PROTO_LIST_ELEMENT;

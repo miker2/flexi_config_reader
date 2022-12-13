@@ -12,6 +12,7 @@
 
 #include "flexi_cfg/config/reader.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/utils.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {
@@ -57,6 +58,7 @@ auto main(int argc, char* argv[]) -> int {
       const std::string vec_key = "outer.inner.test1.key";
       auto var = cfg.getValue<std::vector<float>>(vec_key);
       fmt::print("Value of '{}' is: {}\n", vec_key, var);
+      var.clear();
       // Just as with scalar values, passing by reference works for vectors.
       cfg.getValue(vec_key, var);
       fmt::print("Value of '{}' is: {}\n", vec_key, var);
@@ -73,6 +75,11 @@ auto main(int argc, char* argv[]) -> int {
       } catch (std::exception& e) {
         logger::error("!!! getValue failure !!!\n{}", e.what());
       }
+    }
+    {
+      const auto my_str_key = utils::join({"outer", "inner", "key_w_str"}, ".");
+      const auto my_strs = cfg.getValue<std::vector<std::string>>(my_str_key);
+      fmt::print("{}: [{}]\n", my_str_key, fmt::join(my_strs, ", "));
     }
     {
       const std::string int_key = "a_top_level_flat_key";
