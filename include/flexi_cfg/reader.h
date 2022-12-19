@@ -25,10 +25,10 @@ class Reader {
   Reader() = default;
   ~Reader() = default;
 
-  Reader(const Reader&) = delete;
-  auto operator=(const Reader&) -> Reader& = delete;
+  Reader(const Reader&) = default;
+  auto operator=(const Reader&) -> Reader& = default;
   Reader(Reader&&) = default;
-  auto operator=(Reader&&) -> Reader& = delete;
+  auto operator=(Reader&&) -> Reader& = default;
 
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
 
