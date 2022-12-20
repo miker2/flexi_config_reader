@@ -54,7 +54,7 @@ class Logger {
   }
 
  private:
-  Severity log_level_{Severity::TRACE};
+  Severity log_level_{Severity::INFO};
 
   const std::map<Severity, fmt::text_style> fg_color_ = {
       {Severity::TRACE, fmt::fg(fmt::color::magenta)},
