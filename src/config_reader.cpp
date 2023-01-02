@@ -5,8 +5,7 @@
 #include <filesystem>
 #include <iostream>
 
-#include "flexi_cfg/config/reader.h"
-// #include <range/v3/all.hpp>  // get everything
+#include "flexi_cfg/reader.h"
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -107,7 +106,9 @@ auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types:
 
 }  // namespace
 
-auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+namespace flexi_cfg {
+
+auto Reader::parse(const std::filesystem::path& cfg_filename) -> bool {
   out_.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
   auto success = parseCommon(cfg_file, out_);
@@ -117,7 +118,7 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   return success;
 }
 
-auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -> bool {
+auto Reader::parse(std::string_view cfg_string, std::string_view source) -> bool {
   peg::memory_input cfg_file(cfg_string, source);
   auto success = parseCommon(cfg_file, out_);
 
@@ -126,7 +127,7 @@ auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -
   return success;
 }
 
-auto ConfigReader::exists(const std::string& key) const -> bool {
+auto Reader::exists(const std::string& key) const -> bool {
   try {
     const auto [final_key, data] = getNestedConfig(key);
     return data.find(final_key) != std::end(data);
@@ -139,9 +140,9 @@ auto ConfigReader::exists(const std::string& key) const -> bool {
   }
 }
 
-void ConfigReader::dump() const { std::cout << cfg_data_; }
+void Reader::dump() const { std::cout << cfg_data_; }
 
-auto ConfigReader::getNestedConfig(const std::string& key) const
+auto Reader::getNestedConfig(const std::string& key) const
     -> std::pair<std::string, const config::types::CfgMap&> {
   // Split the key into parts
   const auto keys = utils::split(key, '.');
@@ -154,7 +155,7 @@ auto ConfigReader::getNestedConfig(const std::string& key) const
   return {keys.back(), data};
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, float& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, float& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -168,7 +169,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, double& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, double& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -182,7 +183,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, int& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, int& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -196,7 +197,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -210,7 +211,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, bool& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, bool& value) {
   if (type != config::types::Type::kBoolean) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected boolean type, but have '{}' type.",
                     type);
@@ -218,7 +219,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   value = value_str == "true";
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type,
+void Reader::convert(const std::string& value_str, config::types::Type type,
                            std::string& value) {
   if (type != config::types::Type::kString) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected string type, but have '{}' type.",
@@ -228,7 +229,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
 }
 
-void ConfigReader::resolveConfig() {
+void Reader::resolveConfig() {
   config::types::CfgMap flat{};
   for (const auto& e : out_.cfg_res) {
     flat = flattenAndFindProtos(e, "", flat);
@@ -275,7 +276,7 @@ void ConfigReader::resolveConfig() {
   config::helpers::cleanupConfig(cfg_data_);
 }
 
-auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
+auto Reader::flattenAndFindProtos(const config::types::CfgMap& in,
                                         const std::string& base_name,
                                         config::types::CfgMap flattened) -> config::types::CfgMap {
   for (const auto& e : in) {
@@ -295,7 +296,7 @@ auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
 
 /// \brief Remove the protos from merged dictionary
 /// \param[in/out] cfg_map - The top level (resolved) config map
-void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
+void Reader::stripProtos(config::types::CfgMap& cfg_map) const {
   // For each entry in the protos map, find the corresponding entry in the resolved config and
   // remove the proto. This isn't strictly necessary, but it simplifies some things later when
   // trying to resolve references and other variables.
@@ -318,7 +319,7 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
   }
 }
 
-void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
+void Reader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
                                      const config::types::RefMap& ref_vars,
                                      const std::vector<std::string>& refd_protos) const {
   for (auto& kv : cfg_map) {
@@ -398,4 +399,6 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
                         ref_vars, refd_protos);
     }
   }
+}
+
 }

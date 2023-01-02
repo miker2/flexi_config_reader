@@ -6,7 +6,7 @@
 #include <magic_enum.hpp>
 #include <span>
 
-#include "flexi_cfg/config/reader.h"
+#include "flexi_cfg/reader.h"
 #include "flexi_cfg/logger.h"
 
 auto main(int argc, char* argv[]) -> int {
@@ -27,7 +27,7 @@ auto main(int argc, char* argv[]) -> int {
     }
     logger::setLevel(log_level);
 
-    ConfigReader cfg;
+    flexi_cfg::Reader cfg;
     const auto success = cfg.parse(std::filesystem::path(args[1]));
     if (success) {
       std::cout << std::endl;

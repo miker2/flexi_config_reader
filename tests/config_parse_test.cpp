@@ -8,7 +8,7 @@
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
-#include "flexi_cfg/config/reader.h"
+#include "flexi_cfg/reader.h"
 #include "flexi_cfg/config/selector.h"
 #include "flexi_cfg/logger.h"
 
@@ -43,7 +43,7 @@ TEST_P(InputString, Parse) {
 // NOLINTNEXTLINE
 TEST_P(InputString, ConfigReaderParse) {
   logger::setLevel(logger::Severity::INFO);
-  ConfigReader cfg;
+  flexi_cfg::Reader cfg;
   bool success{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(success = cfg.parse(GetParam(), "From String"));
@@ -130,7 +130,7 @@ TEST_P(FileInput, Parse) {
 // NOLINTNEXTLINE
 TEST_P(FileInput, ConfigReaderParse) {
   logger::setLevel(logger::Severity::WARN);
-  ConfigReader cfg;
+  flexi_cfg::Reader cfg;
   bool success{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(success = cfg.parse(baseDir() / GetParam()));
