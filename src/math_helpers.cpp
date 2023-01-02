@@ -164,4 +164,4 @@ void Stacks::dump(logger::Severity lvl) {
   }
 }
 
-}  // namespace math
+}  // namespace flexi_cfg::math

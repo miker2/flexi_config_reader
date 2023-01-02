@@ -48,7 +48,8 @@ TEST(config_grammar, analyze) { ASSERT_EQ(peg::analyze<flexi_cfg::config::gramma
 TEST(config_grammar, HEX) {
   auto checkHex = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::HEX, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::HEX, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
   };
   {
@@ -76,21 +77,24 @@ TEST(config_grammar, HEX) {
     const std::string content = "00x00";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
+                 std::exception);
   }
   {
     // This will fail due to an alpha character not within the hexadecimal range
     const std::string content = "0xG";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
+                 std::exception);
   }
   {
     // This will fail due to a leading negative sign
     const std::string content = "-0xd0D";
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
+                 std::exception);
   }
 }
 
@@ -98,7 +102,8 @@ TEST(config_grammar, HEX) {
 TEST(config_grammar, INTEGER) {
   auto checkInt = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::INTEGER, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::INTEGER, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -155,7 +160,8 @@ TEST(config_grammar, INTEGER) {
 TEST(config_grammar, FLOAT) {
   auto checkFloat = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::FLOAT, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::FLOAT, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -252,7 +258,8 @@ TEST(config_grammar, FLOAT) {
 TEST(config_grammar, NUMBER) {
   auto checkNumber = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::NUMBER, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::NUMBER, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
   };
   // NOTE: Testing of FLOAT and INTEGER is already covered. This just checks that the grammar
@@ -287,7 +294,8 @@ TEST(config_grammar, NUMBER) {
 TEST(config_grammar, BOOLEAN) {
   auto checkBoolean = [](const std::string& input, bool expected) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kBoolean, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
     ASSERT_NE(value, nullptr);
@@ -334,7 +342,8 @@ TEST(config_grammar, BOOLEAN) {
 TEST(config_grammar, STRING) {
   auto checkString = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::STRING, peg::eolf>, flexi_cfg::config::types::ConfigValue>(
+    checkResult<peg::must<flexi_cfg::config::STRING, peg::eolf>,
+                flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kString, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
     EXPECT_EQ(value->value, input);
@@ -391,8 +400,9 @@ TEST(config_grammar, STRING) {
 TEST(config_grammar, LIST) {
   auto checkList = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::LIST, peg::eolf>, flexi_cfg::config::types::ConfigList>(
-        input, flexi_cfg::config::types::Type::kList, out);
+    checkResult<peg::must<flexi_cfg::config::LIST, peg::eolf>,
+                flexi_cfg::config::types::ConfigList>(input, flexi_cfg::config::types::Type::kList,
+                                                      out);
   };
   {
     const std::string content = "[1, 2, 3]";
@@ -443,11 +453,13 @@ TEST(config_grammar, VALUE) {
     ASSERT_TRUE(ret.has_value());
     ASSERT_TRUE(ret.value().first);
     auto isValueType = [](const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& in) {
-      return in->type == flexi_cfg::config::types::Type::kNumber || in->type == flexi_cfg::config::types::Type::kString ||
+      return in->type == flexi_cfg::config::types::Type::kNumber ||
+             in->type == flexi_cfg::config::types::Type::kString ||
              in->type == flexi_cfg::config::types::Type::kValue;
     };
     EXPECT_TRUE(isValueType(ret.value().second.obj_res));
-    const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(ret.value().second.obj_res);
+    const auto value =
+        dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(ret.value().second.obj_res);
     EXPECT_NE(value, nullptr);
   };
   {
@@ -484,7 +496,8 @@ TEST(config_grammar, KEY) {
   auto failKey = [](const std::string& input) {
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::KEY, peg::eolf>>(input)), std::exception)
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::KEY, peg::eolf>>(input)),
+                 std::exception)
         << "Input key: " << input;
   };
 
@@ -569,7 +582,8 @@ TEST(config_grammar, VAR) {
   auto failVar = [](const std::string& input) {
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)),
+                 std::exception);
   };
 
   {
@@ -594,8 +608,9 @@ TEST(config_grammar, VAR) {
 TEST(config_grammar, PROTO_LIST) {
   auto checkProtoList = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::PROTO_LIST, peg::eolf>, flexi_cfg::config::types::ConfigList>(
-        input, flexi_cfg::config::types::Type::kList, out);
+    checkResult<peg::must<flexi_cfg::config::PROTO_LIST, peg::eolf>,
+                flexi_cfg::config::types::ConfigList>(input, flexi_cfg::config::types::Type::kList,
+                                                      out);
     out->print(std::cout);
   };
   {
@@ -627,15 +642,18 @@ TEST(config_grammar, PROTO_LIST) {
 TEST(config_grammar, VALUE_LOOKUP) {
   auto checkVarRef = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
-    checkResult<peg::must<flexi_cfg::config::VALUE_LOOKUP, peg::eolf>, flexi_cfg::config::types::ConfigValueLookup>(
+    checkResult<peg::must<flexi_cfg::config::VALUE_LOOKUP, peg::eolf>,
+                flexi_cfg::config::types::ConfigValueLookup>(
         input, flexi_cfg::config::types::Type::kValueLookup, out);
-    const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValueLookup>(out->obj_res);
+    const auto value =
+        dynamic_pointer_cast<flexi_cfg::config::types::ConfigValueLookup>(out->obj_res);
     EXPECT_EQ("$(" + value->var() + ")", input);
   };
   auto failVarRef = [](const std::string& input) {
     std::optional<RetType> ret;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)), std::exception);
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)),
+                 std::exception);
   };
   // These are all valid vars
   const std::vector<std::string> valid = {
@@ -666,7 +684,8 @@ TEST(config_grammar, FULLPAIR) {
   const auto keys = flexi_cfg::utils::split(flat_key, '.');
   for (const auto& key : keys) {
     ASSERT_TRUE(cfg_map->contains(key));
-    auto struct_like = dynamic_pointer_cast<flexi_cfg::config::types::ConfigStructLike>(cfg_map->at(key));
+    auto struct_like =
+        dynamic_pointer_cast<flexi_cfg::config::types::ConfigStructLike>(cfg_map->at(key));
     if (struct_like != nullptr) {
       cfg_map = &struct_like->data;
     }

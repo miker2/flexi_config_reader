@@ -8,9 +8,9 @@
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
-#include "flexi_cfg/reader.h"
 #include "flexi_cfg/config/selector.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 

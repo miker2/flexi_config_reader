@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-
-#include "flexi_cfg/reader.h"
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -24,6 +22,7 @@
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
 namespace {
@@ -42,8 +41,8 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
     success &= output.obj_res == nullptr;
 
     // Eliminate any vector elements with an empty map.
-    output.cfg_res |=
-        ranges::actions::remove_if([](const flexi_cfg::config::types::CfgMap& m) { return m.empty(); });
+    output.cfg_res |= ranges::actions::remove_if(
+        [](const flexi_cfg::config::types::CfgMap& m) { return m.empty(); });
 
     if (!success) {
       flexi_cfg::logger::critical("  Parse failure");
@@ -76,9 +75,10 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
   return success;
 }
 
-auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in) -> flexi_cfg::config::types::CfgMap {
+auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in)
+    -> flexi_cfg::config::types::CfgMap {
   if (in.empty()) {
-    // TODO: Throw exception here? How to handle empty vector?
+    // TODO(miker2): Throw exception here? How to handle empty vector?
     return {};
   }
 
@@ -219,8 +219,7 @@ void Reader::convert(const std::string& value_str, config::types::Type type, boo
   value = value_str == "true";
 }
 
-void Reader::convert(const std::string& value_str, config::types::Type type,
-                           std::string& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, std::string& value) {
   if (type != config::types::Type::kString) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected string type, but have '{}' type.",
                     type);
@@ -276,9 +275,8 @@ void Reader::resolveConfig() {
   config::helpers::cleanupConfig(cfg_data_);
 }
 
-auto Reader::flattenAndFindProtos(const config::types::CfgMap& in,
-                                        const std::string& base_name,
-                                        config::types::CfgMap flattened) -> config::types::CfgMap {
+auto Reader::flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
+                                  config::types::CfgMap flattened) -> config::types::CfgMap {
   for (const auto& e : in) {
     const auto new_name = utils::join({base_name, e.first}, ".");
     const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(e.second);
@@ -320,8 +318,8 @@ void Reader::stripProtos(config::types::CfgMap& cfg_map) const {
 }
 
 void Reader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                                     const config::types::RefMap& ref_vars,
-                                     const std::vector<std::string>& refd_protos) const {
+                               const config::types::RefMap& ref_vars,
+                               const std::vector<std::string>& refd_protos) const {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -401,4 +399,4 @@ void Reader::resolveReferences(config::types::CfgMap& cfg_map, const std::string
   }
 }
 
-}
+}  // namespace flexi_cfg

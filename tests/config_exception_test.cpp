@@ -10,8 +10,8 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/grammar.h"
-#include "flexi_cfg/reader.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 
 namespace {
 
@@ -78,7 +78,8 @@ TEST(config_exception_test, DuplicateKeyException) {
          }\n";
     peg::memory_input in_cfg(duplicate_in_struct, "key1 defined twice");
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException) << "Input file: " << in_cfg.source();
+    EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException)
+        << "Input file: " << in_cfg.source();
   }
   {
     const std::string_view ref_proto_failure =
@@ -93,7 +94,8 @@ TEST(config_exception_test, DuplicateKeyException) {
          }\n";
     flexi_cfg::Reader cfg;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"), flexi_cfg::config::DuplicateKeyException);
+    EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"),
+                 flexi_cfg::config::DuplicateKeyException);
   }
 #if 0  // See FULLPAIR action
   {
@@ -217,7 +219,8 @@ TEST(config_exception_test, InvalidTypeException) {
          }\n";
     flexi_cfg::Reader cfg;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(cfg.parse(key_wrong_type, "key wrong type"), flexi_cfg::config::InvalidTypeException);
+    EXPECT_THROW(cfg.parse(key_wrong_type, "key wrong type"),
+                 flexi_cfg::config::InvalidTypeException);
   }
   {
     const std::string_view non_numeric_in_expression =
@@ -295,7 +298,8 @@ TEST_P(CyclicReference, Exception) {
   flexi_cfg::Reader cfg;
   const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / GetParam();
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-  EXPECT_THROW(cfg.parse(in_file), flexi_cfg::config::CyclicReferenceException) << "Input file: " << in_file;
+  EXPECT_THROW(cfg.parse(in_file), flexi_cfg::config::CyclicReferenceException)
+      << "Input file: " << in_file;
 }
 
 // NOLINTNEXTLINE

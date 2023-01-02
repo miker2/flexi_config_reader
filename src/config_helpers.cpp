@@ -513,4 +513,4 @@ void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
   }
 }
 
-}  // namespace config::helpers
+}  // namespace flexi_cfg::config::helpers
