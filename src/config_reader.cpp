@@ -30,10 +30,10 @@ namespace {
 constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
-auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
+auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
   bool success = true;
   try {
-    success = peg::parse<config::grammar, config::action>(input, output);
+    success = peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
     // 'output.cfg_res').
     success &= output.keys.empty();
@@ -43,40 +43,40 @@ auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
 
     // Eliminate any vector elements with an empty map.
     output.cfg_res |=
-        ranges::actions::remove_if([](const config::types::CfgMap& m) { return m.empty(); });
+        ranges::actions::remove_if([](const flexi_cfg::config::types::CfgMap& m) { return m.empty(); });
 
     if (!success) {
-      logger::critical("  Parse failure");
-      logger::error("  cfg_res size: {}", output.cfg_res.size());
+      flexi_cfg::logger::critical("  Parse failure");
+      flexi_cfg::logger::error("  cfg_res size: {}", output.cfg_res.size());
 
       std::stringstream ss;
       output.print(ss);
-      logger::error("Incomplete output: \n{}", ss.str());
+      flexi_cfg::logger::error("Incomplete output: \n{}", ss.str());
 
       // Print a trace if a failure occured.
       input.restart();
-      peg::standard_trace<config::grammar>(input);
+      peg::standard_trace<flexi_cfg::config::grammar>(input);
       return success;
     }
   } catch (const peg::parse_error& e) {
     success = false;
-    logger::critical("!!!");
-    logger::critical("  Parser failure!");
+    flexi_cfg::logger::critical("!!!");
+    flexi_cfg::logger::critical("  Parser failure!");
     const auto p = e.positions().front();
-    logger::critical("{}", e.what());
-    logger::critical("{}", input.line_at(p));
-    logger::critical("{}^", std::string(p.column - 1, ' '));
+    flexi_cfg::logger::critical("{}", e.what());
+    flexi_cfg::logger::critical("{}", input.line_at(p));
+    flexi_cfg::logger::critical("{}^", std::string(p.column - 1, ' '));
     std::stringstream ss;
     output.print(ss);
-    logger::critical("Partial output: \n{}", ss.str());
-    logger::critical("!!!");
+    flexi_cfg::logger::critical("Partial output: \n{}", ss.str());
+    flexi_cfg::logger::critical("!!!");
     return success;
   }
 
   return success;
 }
 
-auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types::CfgMap {
+auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in) -> flexi_cfg::config::types::CfgMap {
   if (in.empty()) {
     // TODO: Throw exception here? How to handle empty vector?
     return {};
@@ -85,18 +85,18 @@ auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types:
   // This whole function is quite inefficient, but it works, which is a start:
 
   // Start with the first element:
-  config::types::CfgMap squashed_cfg = in[0];
+  flexi_cfg::config::types::CfgMap squashed_cfg = in[0];
 
   // Accumulate all of the other elements of the vector into the CfgMap.
   for (const auto& cfg : ranges::views::tail(in)) {
-    logger::trace(
+    flexi_cfg::logger::trace(
         "======= Working on merging: =======\n{}\n"
         "++++++++++++++ and ++++++++++++++++\n{}",
         fmt::join(squashed_cfg, "\n"), fmt::join(cfg, "\n"));
 
-    squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
+    squashed_cfg = flexi_cfg::config::helpers::mergeNestedMaps(squashed_cfg, cfg);
 
-    logger::trace(
+    flexi_cfg::logger::trace(
         "++++++++++++ result +++++++++++++++\n{}\n"
         "============== END ================\n",
         fmt::join(squashed_cfg, "\n"));

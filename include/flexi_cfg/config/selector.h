@@ -6,7 +6,7 @@
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/logger.h"
 
-namespace config {
+namespace flexi_cfg::config {
 // TODO(michael.rose0): Strip trailing whitespace from comments!
 
 template <typename Rule>

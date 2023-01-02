@@ -18,14 +18,15 @@ auto main(int argc, char* argv[]) -> int {
                 << std::endl;
       return -1;
     }
-    logger::Severity log_level = logger::Severity::INFO;
+    auto log_level = flexi_cfg::logger::Severity::INFO;
     if (argc == 3) {
-      auto out = magic_enum::enum_cast<logger::Severity>(args[2]);
+      auto out = magic_enum::enum_cast<flexi_cfg::logger::Severity>(args[2]);
       if (out.has_value()) {
         log_level = out.value();
       }
     }
-    logger::setLevel(log_level);
+
+    flexi_cfg::logger::setLevel(log_level);
 
     flexi_cfg::Reader cfg;
     const auto success = cfg.parse(std::filesystem::path(args[1]));

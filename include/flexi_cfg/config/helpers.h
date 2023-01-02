@@ -5,7 +5,7 @@
 
 #include "flexi_cfg/config/classes.h"
 
-namespace config {
+namespace flexi_cfg::config {
 // Create a set of traits for acceptable containers for holding elements of type `kList`. We define
 // an implementation for the possible types here, but the actual trait is defined below.
 namespace accepts_list_impl {
@@ -28,7 +28,7 @@ template <typename T>
 inline constexpr bool accepts_list_v = accepts_list<T>::value;
 }  // namespace config
 
-namespace config::helpers {
+namespace flexi_cfg::config::helpers {
 
 auto isStructLike(const types::BasePtr& el) -> bool;
 

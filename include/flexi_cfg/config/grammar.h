@@ -9,6 +9,8 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 // The data should consist only of specific types and eliminate all other
 // unecessary data (e.g. whitespace, etc).
 
+namespace flexi_cfg {
+
 // This grammar parses a filename (path + filename) corresponding to a cfg file.
 namespace filename {
 
@@ -229,5 +231,7 @@ struct CONFIG
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
 }  // namespace config
+
+} // namespace flexi_cfg
 
 #include "flexi_cfg/math/grammar.h"

@@ -8,7 +8,7 @@
 #define THROW_EXCEPTION(E_TYPE, MSG_F, ...) \
   throw E_TYPE(fmt::format("At {}:{} \n" MSG_F, __FILE__, __LINE__, ##__VA_ARGS__));
 
-namespace config {
+namespace flexi_cfg::config {
 
 class InvalidTypeException : public std::runtime_error {
  public:

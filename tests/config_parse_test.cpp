@@ -20,7 +20,7 @@ class InputString : public testing::TestWithParam<std::string> {};
 TEST_P(InputString, ParseTree) {
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
-    auto root = peg::parse_tree::parse<config::grammar, config::selector>(in);
+    auto root = peg::parse_tree::parse<flexi_cfg::config::grammar, flexi_cfg::config::selector>(in);
   };
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(parse());
@@ -28,11 +28,11 @@ TEST_P(InputString, ParseTree) {
 
 // NOLINTNEXTLINE
 TEST_P(InputString, Parse) {
-  logger::setLevel(logger::Severity::INFO);
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
-    config::ActionData out;
-    return peg::parse<config::grammar, config::action>(in, out);
+    flexi_cfg::config::ActionData out;
+    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -42,7 +42,7 @@ TEST_P(InputString, Parse) {
 
 // NOLINTNEXTLINE
 TEST_P(InputString, ConfigReaderParse) {
-  logger::setLevel(logger::Severity::INFO);
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   flexi_cfg::Reader cfg;
   bool success{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -106,7 +106,7 @@ auto filenameGenerator() -> std::vector<std::filesystem::path> {
 TEST_P(FileInput, ParseTree) {
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
-    auto root = peg::parse_tree::parse<config::grammar, config::selector>(in);
+    auto root = peg::parse_tree::parse<flexi_cfg::config::grammar, flexi_cfg::config::selector>(in);
   };
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(parse());
@@ -114,12 +114,12 @@ TEST_P(FileInput, ParseTree) {
 
 // NOLINTNEXTLINE
 TEST_P(FileInput, Parse) {
-  logger::setLevel(logger::Severity::WARN);
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
-    config::ActionData out;
+    flexi_cfg::config::ActionData out;
     out.base_dir = baseDir();
-    return peg::parse<config::grammar, config::action>(in, out);
+    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
@@ -129,7 +129,7 @@ TEST_P(FileInput, Parse) {
 
 // NOLINTNEXTLINE
 TEST_P(FileInput, ConfigReaderParse) {
-  logger::setLevel(logger::Severity::WARN);
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   flexi_cfg::Reader cfg;
   bool success{false};
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)

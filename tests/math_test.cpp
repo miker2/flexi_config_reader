@@ -44,14 +44,14 @@ class MathExpressionTest : public ::testing::Test {
 };
 
 // NOLINTNEXTLINE
-TEST(MathExpressionGrammar, analyze) { ASSERT_EQ(peg::analyze<math::expression>(), 0); }
+TEST(MathExpressionGrammar, analyze) { ASSERT_EQ(peg::analyze<flexi_cfg::math::expression>(), 0); }
 
 // NOLINTNEXTLINE
 TEST_F(MathExpressionTest, evaluate) {
   auto test_input = [](const std::string& input) -> double {
     peg::memory_input in(input, "from content");
-    math::ActionData out;
-    const auto result = peg::parse<math::expression, math::action>(in, out);
+    flexi_cfg::math::ActionData out;
+    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 
@@ -75,9 +75,9 @@ TEST_F(MathExpressionTest, evaluate) {
 TEST_F(MathExpressionTest, evaluate_var_ref) {
   auto test_input = [](const std::string& input, const RefMap& ref_map) -> double {
     peg::memory_input in(input, "from content");
-    math::ActionData out;
+    flexi_cfg::math::ActionData out;
     out.var_ref_map = ref_map;
-    const auto result = peg::parse<math::expression, math::action>(in, out);
+    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 

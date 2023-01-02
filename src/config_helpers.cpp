@@ -23,7 +23,7 @@ namespace {
 constexpr bool CONFIG_HELPERS_DEBUG{false};
 }
 
-namespace config::helpers {
+namespace flexi_cfg::config::helpers {
 
 auto isStructLike(const types::BasePtr& el) -> bool {
   // TODO: Change this to be a `dynamic_pointer_cast`. As is, it's a bit of a maintenance burden.

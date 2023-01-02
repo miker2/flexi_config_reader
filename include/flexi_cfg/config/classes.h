@@ -16,7 +16,7 @@
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
 
-namespace config::types {
+namespace flexi_cfg::config::types {
 constexpr std::size_t tw{4};  // The width of the indentation
 
 class ConfigBase;
@@ -392,11 +392,11 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
 };  // namespace config::types
 
 template <>
-struct fmt::formatter<config::types::Type> : formatter<std::string_view> {
+struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
-  auto format(const config::types::Type& type, FormatContext& ctx) {
-    const auto type_s = magic_enum::enum_name<config::types::Type>(type);
+  auto format(const flexi_cfg::config::types::Type& type, FormatContext& ctx) {
+    const auto type_s = magic_enum::enum_name<flexi_cfg::config::types::Type>(type);
     return formatter<std::string_view>::format(type_s, ctx);
   }
 };
@@ -404,11 +404,11 @@ struct fmt::formatter<config::types::Type> : formatter<std::string_view> {
 // Formatter for all types that inherit from `config::types::ConfigBase`.
 template <typename T>
 struct fmt::formatter<
-    T, std::enable_if_t<std::is_convertible_v<T, std::shared_ptr<config::types::ConfigBase>>, char>>
+  T, std::enable_if_t<std::is_convertible_v<T, std::shared_ptr<flexi_cfg::config::types::ConfigBase>>, char>>
     : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
-  auto format(const std::shared_ptr<config::types::ConfigBase>& cfg, FormatContext& ctx) {
+  auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg, FormatContext& ctx) {
     std::stringstream ss;
     if (cfg != nullptr) {
       cfg->stream(ss);
@@ -420,14 +420,14 @@ struct fmt::formatter<
 };
 
 template <>
-struct fmt::formatter<config::types::CfgMap::value_type> {
+struct fmt::formatter<flexi_cfg::config::types::CfgMap::value_type> {
   template <typename ParseContext>
   constexpr auto parse(ParseContext& ctx) {
     return ctx.begin();
   }
 
   template <typename FormatContext>
-  auto format(const config::types::CfgMap::value_type& kv, FormatContext& ctx) {
+  auto format(const flexi_cfg::config::types::CfgMap::value_type& kv, FormatContext& ctx) {
     return format_to(ctx.out(), "{} = {}", kv.first, kv.second);
   }
 };

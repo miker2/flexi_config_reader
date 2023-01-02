@@ -6,7 +6,7 @@
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
-namespace math {
+namespace flexi_cfg::math {
 /*
  expression --> P {B P}
  P --> v | "(" expression ")" | U P
