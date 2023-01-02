@@ -27,13 +27,14 @@ template <typename GRAMMAR, typename T>
 void checkResult(const std::string& input, flexi_cfg::config::types::Type expected_type,
                  std::optional<flexi_cfg::config::ActionData>& out) {
   std::optional<RetType> ret;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input)));
   ASSERT_TRUE(ret.has_value());
-  ASSERT_TRUE(ret.value().first);
-  EXPECT_EQ(ret.value().second.obj_res->type, expected_type);
-  const auto value = dynamic_pointer_cast<T>(ret.value().second.obj_res);
-  ASSERT_NE(value, nullptr);
+  if (ret.has_value()) {
+    ASSERT_TRUE(ret.value().first);
+    EXPECT_EQ(ret.value().second.obj_res->type, expected_type);
+    const auto value = dynamic_pointer_cast<T>(ret.value().second.obj_res);
+    ASSERT_NE(value, nullptr);
+  }
 
   if (ret.has_value()) {
     out = ret.value().second;
@@ -41,11 +42,9 @@ void checkResult(const std::string& input, flexi_cfg::config::types::Type expect
 }
 }  // namespace
 
-// NOLINTNEXTLINE
-TEST(config_grammar, analyze) { ASSERT_EQ(peg::analyze<flexi_cfg::config::grammar>(), 0); }
+TEST(ConfigGrammar, analyze) { ASSERT_EQ(peg::analyze<flexi_cfg::config::grammar>(), 0); }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, HEX) {
+TEST(ConfigGrammar, HEX) {
   auto checkHex = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::HEX, peg::eolf>,
@@ -76,7 +75,6 @@ TEST(config_grammar, HEX) {
     // This will fail due to an extra leading 0
     const std::string content = "00x00";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
                  std::exception);
   }
@@ -84,7 +82,6 @@ TEST(config_grammar, HEX) {
     // This will fail due to an alpha character not within the hexadecimal range
     const std::string content = "0xG";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
                  std::exception);
   }
@@ -92,21 +89,18 @@ TEST(config_grammar, HEX) {
     // This will fail due to a leading negative sign
     const std::string content = "-0xd0D";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::HEX, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, INTEGER) {
+TEST(ConfigGrammar, INTEGER) {
   auto checkInt = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::INTEGER, peg::eolf>,
                 flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(std::any_cast<int>(value->value_any));
     EXPECT_EQ(std::any_cast<int>(value->value_any), std::stoi(input));
   };
@@ -134,7 +128,6 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to the leading zero.
     const std::string content = "0123";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
@@ -142,7 +135,6 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to being a float.
     const std::string content = "12.3";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
@@ -150,21 +142,18 @@ TEST(config_grammar, INTEGER) {
     // This should fail due to being a float.
     const std::string content = "0.";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::INTEGER, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, FLOAT) {
+TEST(ConfigGrammar, FLOAT) {
   auto checkFloat = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::FLOAT, peg::eolf>,
                 flexi_cfg::config::types::ConfigValue>(
         input, flexi_cfg::config::types::Type::kNumber, out);
     const auto value = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(out->obj_res);
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(std::any_cast<double>(value->value_any));
     EXPECT_EQ(std::any_cast<double>(value->value_any), std::stod(input));
   };
@@ -224,7 +213,6 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the leading zero.
     const std::string content = "01.23";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -232,7 +220,6 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to being an integer
     const std::string content = "123";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -240,7 +227,6 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the decimal valued exponent
     const std::string content = "1.23e1.2";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
@@ -248,14 +234,12 @@ TEST(config_grammar, FLOAT) {
     // This will fail due to the exponent value missing.
     const std::string content = "1.23e";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::FLOAT, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, NUMBER) {
+TEST(ConfigGrammar, NUMBER) {
   auto checkNumber = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::NUMBER, peg::eolf>,
@@ -290,8 +274,7 @@ TEST(config_grammar, NUMBER) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, BOOLEAN) {
+TEST(ConfigGrammar, BOOLEAN) {
   auto checkBoolean = [](const std::string& input, bool expected) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>,
@@ -316,7 +299,6 @@ TEST(config_grammar, BOOLEAN) {
     // This should fail due to the boolean being quoted (it is a string)
     const std::string content = R"("true")";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>>(content)),
                  std::exception);
   }
@@ -324,7 +306,6 @@ TEST(config_grammar, BOOLEAN) {
     // This should fail due to incorrect case
     const std::string content = "True";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>>(content)),
                  std::exception);
   }
@@ -332,14 +313,12 @@ TEST(config_grammar, BOOLEAN) {
     // This should fail due to incorrect case
     const std::string content = "False";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::BOOLEAN, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, STRING) {
+TEST(ConfigGrammar, STRING) {
   auto checkString = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::STRING, peg::eolf>,
@@ -374,7 +353,6 @@ TEST(config_grammar, STRING) {
     // This will fail due to a lack of trailing quote
     const std::string content = "\"test";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
@@ -382,7 +360,6 @@ TEST(config_grammar, STRING) {
     // This will fail due to a lack of leading quote
     const std::string content = "test\"";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
@@ -390,14 +367,12 @@ TEST(config_grammar, STRING) {
     // This will fail due to an extra internal quote
     const std::string content = R"("te"st")";
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::STRING, peg::eolf>>(content)),
                  std::exception);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, LIST) {
+TEST(ConfigGrammar, LIST) {
   auto checkList = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::LIST, peg::eolf>,
@@ -443,12 +418,10 @@ TEST(config_grammar, LIST) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, VALUE) {
+TEST(ConfigGrammar, VALUE) {
   // NOTE: Can't use the `checkResult` helper here due to the need to check multiple types.
   auto checkValue = [](const std::string& input) {
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VALUE, peg::eolf>>(input)));
     ASSERT_TRUE(ret.has_value());
     ASSERT_TRUE(ret.value().first);
@@ -480,11 +453,9 @@ TEST(config_grammar, VALUE) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, KEY) {
+TEST(ConfigGrammar, KEY) {
   auto checkKey = [](const std::string& input) {
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::KEY, peg::eolf>>(input)));
     ASSERT_TRUE(ret.has_value());
     ASSERT_TRUE(ret.value().first);
@@ -495,7 +466,6 @@ TEST(config_grammar, KEY) {
 
   auto failKey = [](const std::string& input) {
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::KEY, peg::eolf>>(input)),
                  std::exception)
         << "Input key: " << input;
@@ -552,8 +522,7 @@ TEST(config_grammar, KEY) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, FLAT_KEY) {
+TEST(ConfigGrammar, FLATKEY) {
   {
     const std::string content = "this.is.a.var.ref";
     auto ret = runTest<peg::must<flexi_cfg::config::FLAT_KEY, peg::eolf>>(content);
@@ -570,8 +539,7 @@ TEST(config_grammar, FLAT_KEY) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, VAR) {
+TEST(ConfigGrammar, VAR) {
   auto checkVar = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::VAR, peg::eolf>, flexi_cfg::config::types::ConfigVar>(
@@ -581,7 +549,6 @@ TEST(config_grammar, VAR) {
   };
   auto failVar = [](const std::string& input) {
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)),
                  std::exception);
   };
@@ -604,8 +571,7 @@ TEST(config_grammar, VAR) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, PROTO_LIST) {
+TEST(ConfigGrammar, PROTOLIST) {
   auto checkProtoList = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::PROTO_LIST, peg::eolf>,
@@ -638,8 +604,7 @@ TEST(config_grammar, PROTO_LIST) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, VALUE_LOOKUP) {
+TEST(ConfigGrammar, VALUELOOKUP) {
   auto checkVarRef = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
     checkResult<peg::must<flexi_cfg::config::VALUE_LOOKUP, peg::eolf>,
@@ -651,7 +616,6 @@ TEST(config_grammar, VALUE_LOOKUP) {
   };
   auto failVarRef = [](const std::string& input) {
     std::optional<RetType> ret;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::VAR, peg::eolf>>(input)),
                  std::exception);
   };
@@ -666,8 +630,7 @@ TEST(config_grammar, VALUE_LOOKUP) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_grammar, FULLPAIR) {
+TEST(ConfigGrammar, FULLPAIR) {
   const std::string flat_key = "float.my.value";
   const std::string content = flat_key + "   =  5.37e+6";
 

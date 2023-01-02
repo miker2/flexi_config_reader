@@ -23,8 +23,7 @@ constexpr auto kValue = flexi_cfg::config::types::Type::kValue;
 using flexi_cfg::config::types::Type::kValue;
 #endif
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, isStructLike) {
+TEST(ConfigHelpers, isStructLike) {
   testIsStructLike<flexi_cfg::config::types::ConfigValue>("", kValue);
 
   testIsStructLike<flexi_cfg::config::types::ConfigValueLookup>("");
@@ -38,8 +37,7 @@ TEST(config_helpers_test, isStructLike) {
   testIsStructLike<flexi_cfg::config::types::ConfigReference>("reference", "proto", 0);
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, checkForErrors) {
+TEST(ConfigHelpers, checkForErrors) {
   {
     // This test should fail due to duplicate keys
     const std::string key = "key1";
@@ -50,7 +48,6 @@ TEST(config_helpers_test, checkForErrors) {
         {key, std::make_shared<flexi_cfg::config::types::ConfigValue>(
                   "string", flexi_cfg::config::types::Type::kString)}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key),
                  flexi_cfg::config::DuplicateKeyException);
   }
@@ -64,7 +61,6 @@ TEST(config_helpers_test, checkForErrors) {
         {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
                   key, 0 /* depth doesn't matter */)}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key),
                  flexi_cfg::config::MismatchKeyException);
   }
@@ -78,7 +74,6 @@ TEST(config_helpers_test, checkForErrors) {
         {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
                   key, 0 /* depth doesn't matter */)}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key),
                  flexi_cfg::config::MismatchTypeException);
   }
@@ -92,7 +87,6 @@ TEST(config_helpers_test, checkForErrors) {
         {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
                   key, 0 /* depth doesn't matter */)}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key));
   }
   {
@@ -107,17 +101,14 @@ TEST(config_helpers_test, checkForErrors) {
         {key2, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
                    key2, 0 /* depth doesn't matter */)}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key1), std::out_of_range)
         << "cfg1: " << cfg1 << ", cfg2: " << cfg2;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key2), std::out_of_range)
         << "cfg1: " << cfg1 << ", cfg2: " << cfg2;
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, mergeNestedMaps) {
+TEST(ConfigHelpers, mergeNestedMaps) {
   {
     // This test should succeed (no exceptions thrown)
     const std::string key = "key";
@@ -155,7 +146,6 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //    key3 = ""
     //    key4 = ""
     flexi_cfg::config::types::CfgMap cfg_out{};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2));
 
     // The resulting map contains the top level key.
@@ -199,7 +189,6 @@ TEST(config_helpers_test, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
     flexi_cfg::config::types::CfgMap cfg_out{};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
                  flexi_cfg::config::DuplicateKeyException);
   }
@@ -269,7 +258,6 @@ TEST(config_helpers_test, mergeNestedMaps) {
     //      key3 = ""
     //      key4 = ""
     flexi_cfg::config::types::CfgMap cfg_out{};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2));
 
     // The inner struct should contain all of the above keys and no more.
@@ -290,8 +278,7 @@ TEST(config_helpers_test, mergeNestedMaps) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, structFromReference) {
+TEST(ConfigHelpers, structFromReference) {
   {
     // This test should succeed (no exceptions thrown)
     const std::string ref_name = "hx";
@@ -334,7 +321,6 @@ TEST(config_helpers_test, structFromReference) {
                       expected_proto_values[keys[4]], kValue)}};
 
     std::shared_ptr<flexi_cfg::config::types::ConfigStruct> struct_out{};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     ASSERT_NO_THROW(struct_out = flexi_cfg::config::helpers::structFromReference(reference, proto));
 
     // Ensure that the struct was created properly from the reference
@@ -365,7 +351,7 @@ TEST(config_helpers_test, structFromReference) {
       }
     }
 
-    // Check that the contents are as expected.
+    // Check that :the contents are as expected.
     for (const auto& kv : proto->data) {
       if (kv.second->type == flexi_cfg::config::types::Type::kVar) {
         EXPECT_EQ(expected_proto_values[kv.first],
@@ -381,12 +367,11 @@ TEST(config_helpers_test, structFromReference) {
     }
   }
   {
-    // TODO(michael.rose0): Consider adding a more complex test with a proto that has nested values.
+    // TODO(miker2): Consider adding a more complex test with a proto that has nested values.
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, replaceVarInStr) {
+TEST(ConfigHelpers, replaceVarInStr) {
   {
     const std::string input = "this.is.a.$VAR";
     const std::string expected = "this.is.a.var";
@@ -475,7 +460,7 @@ TEST(config_helpers_test, replaceVarInStr) {
   }
 }
 
-// TODO: Test for replaceProtoVar
+// TODO(miker2): Test for replaceProtoVar
 
 auto generateConfig() -> flexi_cfg::config::types::CfgMap {
   /* Build up an example config structure
@@ -506,8 +491,7 @@ auto generateConfig() -> flexi_cfg::config::types::CfgMap {
   return cfg;
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, getNestedConfig) {
+TEST(ConfigHelpers, getNestedConfig) {
   auto cfg = generateConfig();
   // NOTE: getNestedConfig always returns the "parent" of the last key
   {
@@ -566,8 +550,7 @@ TEST(config_helpers_test, getNestedConfig) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, getConfigValue) {
+TEST(ConfigHelpers, getConfigValue) {
   auto cfg = generateConfig();
 
   {
@@ -604,8 +587,7 @@ TEST(config_helpers_test, getConfigValue) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_helpers_test, resolveVarRefs) {
+TEST(ConfigHelpers, resolveVarRefs) {
   {
     auto cfg = generateConfig();
     auto key1 = flexi_cfg::config::helpers::getConfigValue(cfg, {"outer", "inner", "key1"});
@@ -613,7 +595,6 @@ TEST(config_helpers_test, resolveVarRefs) {
     const std::string expected_value =
         dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(key1)->value;
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(flexi_cfg::config::helpers::resolveVarRefs(cfg, cfg));
 
     ASSERT_EQ(cfg["ref"]->type, flexi_cfg::config::types::Type::kValue);
@@ -632,7 +613,6 @@ TEST(config_helpers_test, resolveVarRefs) {
         {"bar", std::make_shared<flexi_cfg::config::types::ConfigValueLookup>("baz")},
         {"baz", std::make_shared<flexi_cfg::config::types::ConfigValueLookup>("foo")}};
 
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(flexi_cfg::config::helpers::resolveVarRefs(cfg, cfg),
                  flexi_cfg::config::CyclicReferenceException);
   }

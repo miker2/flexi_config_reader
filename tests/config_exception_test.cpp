@@ -30,8 +30,7 @@ auto parse(std::filesystem::path& input) {
 
 }  // namespace
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, parse_error) {
+TEST(ConfigException, ParseError) {
   {
     const std::vector parse_error = {
         "struct test1 {                                                      \n\
@@ -47,14 +46,12 @@ TEST(config_exception_test, parse_error) {
          foo.bar = 1   # Can't mix flat keys with struct in same file."};
     for (const auto& input : parse_error) {
       peg::memory_input in_cfg(input, "From content");
-      // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
       EXPECT_THROW(parse(in_cfg), peg::parse_error) << "Input file: " << in_cfg.source();
     }
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, mismatched_key) {
+TEST(ConfigException, MismatchedKey) {
   {
     const std::string_view mismatched_key =
         "\n\
@@ -62,13 +59,11 @@ TEST(config_exception_test, mismatched_key) {
           key = \"value\" \n\
         }  # This end key should match the 'struct' key, and will produce an exception.";
     peg::memory_input in_cfg(mismatched_key, "No trailing newline");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), peg::parse_error) << "Input file: " << in_cfg.source();
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, DuplicateKeyException) {
+TEST(ConfigException, DuplicateKeyException) {
   {
     const std::string_view duplicate_in_struct =
         "struct test1 {      \n\
@@ -77,7 +72,6 @@ TEST(config_exception_test, DuplicateKeyException) {
            key1 = -4   #  Duplicate key. This should produce an exception. \n\
          }\n";
     peg::memory_input in_cfg(duplicate_in_struct, "key1 defined twice");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException)
         << "Input file: " << in_cfg.source();
   }
@@ -93,7 +87,6 @@ TEST(config_exception_test, DuplicateKeyException) {
            +bar = 0                     \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"),
                  flexi_cfg::config::DuplicateKeyException);
   }
@@ -104,7 +97,6 @@ TEST(config_exception_test, DuplicateKeyException) {
          another.key = -1.2         \n\
          this.is.a.key = \"again\"  \n";
     peg::memory_input in_cfg(duplicate_full_pair, "this.is.a.key defined twice");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException);
   }
 #endif
@@ -121,7 +113,6 @@ TEST(config_exception_test, DuplicateKeyException) {
            +bar = 0                     \n\
          }\n";
     peg::memory_input in_cfg(var_add_duplicate, "test2.bar defined twice");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException);
   }
   {
@@ -132,7 +123,6 @@ TEST(config_exception_test, DuplicateKeyException) {
            baz = $(duplicate.key)       \n\
          }\n";
     peg::memory_input in_cfg(proto_pair_duplicate, "proto_foo.baz defined twice");
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException);
   }
 }
@@ -156,7 +146,6 @@ auto structLikes() -> const std::vector<std::string_view>& {
 class DuplicateKeys
     : public testing::TestWithParam<std::tuple<std::string_view, std::string_view>> {};
 
-// NOLINTNEXTLINE
 TEST_P(DuplicateKeys, Exception) {
   const std::string_view cfg_base =
       "struct foo {{                    \n\
@@ -172,17 +161,14 @@ TEST_P(DuplicateKeys, Exception) {
       cfg_base, fmt::make_format_args(std::get<0>(GetParam()), std::get<1>(GetParam())));
   // std::cout << "Test config: \n" << cfg << std::endl;
   peg::memory_input in_cfg(cfg, "duplicate 'fizz'");
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException) << "Input config:\n" << cfg;
 }
 
-// NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(config_exception_test, DuplicateKeys,
+INSTANTIATE_TEST_SUITE_P(ConfigException, DuplicateKeys,
                          testing::Combine(testing::ValuesIn(structLikes()),
                                           testing::ValuesIn(structLikes())));
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, InvalidKeyException) {
+TEST(ConfigException, InvalidKeyException) {
   {
     const std::string_view invalid_key_reference =
         // Here we have 'key' referencing a key 'test1.key2' that doesn't exist.
@@ -190,7 +176,6 @@ TEST(config_exception_test, InvalidKeyException) {
            key = $(test1.key2)  \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(invalid_key_reference, "invalid key reference"),
                  flexi_cfg::config::InvalidKeyException);
   }
@@ -202,13 +187,11 @@ TEST(config_exception_test, InvalidKeyException) {
            key = $(test1.key3.bar)  \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(not_a_struct, "not a struct"), flexi_cfg::config::InvalidKeyException);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, InvalidTypeException) {
+TEST(ConfigException, InvalidTypeException) {
   {
     // This can also occur if the key exists but is of the wrong type
     const std::string_view key_wrong_type =
@@ -218,7 +201,6 @@ TEST(config_exception_test, InvalidTypeException) {
            key3 = 0                 \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(key_wrong_type, "key wrong type"),
                  flexi_cfg::config::InvalidTypeException);
   }
@@ -229,14 +211,12 @@ TEST(config_exception_test, InvalidTypeException) {
            key2 = {{ 0.5 * $(foo.key1) }}  \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(non_numeric_in_expression, "non numeric in expression"),
                  flexi_cfg::config::InvalidTypeException);
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, UndefinedReferenceVarException) {
+TEST(ConfigException, UndefinedReferenceVarException) {
   {
     const std::string_view proto_var_doesnt_exist =
         "proto foo_proto {             \n\
@@ -249,7 +229,6 @@ TEST(config_exception_test, UndefinedReferenceVarException) {
            #$KEY2 undefined            \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(proto_var_doesnt_exist, "$KEY2 is undefined"),
                  flexi_cfg::config::UndefinedReferenceVarException);
   }
@@ -266,13 +245,11 @@ TEST(config_exception_test, UndefinedReferenceVarException) {
            $EXTRA_KEY = 0  # not useful, but not an error  \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(cfg.parse(extra_proto_var, "$EXTRA_KEY is unused"));
   }
 }
 
-// NOLINTNEXTLINE
-TEST(config_exception_test, UndefinedProtoException) {
+TEST(ConfigException, UndefinedProtoException) {
   {
     const std::string_view undefined_proto =
         "proto foo_proto {                                 \n\
@@ -285,7 +262,6 @@ TEST(config_exception_test, UndefinedProtoException) {
            $KEY2 = \"defined\"                             \n\
          }\n";
     flexi_cfg::Reader cfg;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(cfg.parse(undefined_proto, "bar_proto not defined"),
                  flexi_cfg::config::UndefinedProtoException);
   }
@@ -293,15 +269,12 @@ TEST(config_exception_test, UndefinedProtoException) {
 
 class CyclicReference : public testing::TestWithParam<std::string> {};
 
-// NOLINTNEXTLINE
 TEST_P(CyclicReference, Exception) {
   flexi_cfg::Reader cfg;
   const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / GetParam();
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_THROW(cfg.parse(in_file), flexi_cfg::config::CyclicReferenceException)
       << "Input file: " << in_file;
 }
 
-// NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(config_exception_test, CyclicReference,
+INSTANTIATE_TEST_SUITE_P(ConfigException, CyclicReference,
                          testing::Values("config_cyclic1.cfg", "config_cyclic2.cfg"));

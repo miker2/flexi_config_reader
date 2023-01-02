@@ -14,8 +14,7 @@ void compareVecEq(const std::vector<std::string>& expected, const std::vector<st
 };
 }  // namespace
 
-// NOLINTNEXTLINE
-TEST(utils_test, trim) {
+TEST(UtilsTest, trim) {
   std::string base = "This is a test";
 
   {
@@ -50,8 +49,7 @@ TEST(utils_test, trim) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(utils_test, split) {
+TEST(UtilsTest, split) {
   auto combine_str = [](const std::vector<std::string>& in, const std::string& sep) -> std::string {
     std::string combined = in[0];
     for (size_t i = 1; i < in.size(); ++i) {
@@ -79,8 +77,7 @@ TEST(utils_test, split) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(utils_test, join) {
+TEST(UtilsTest, join) {
   {
     const std::vector<std::string> input{"this", "is", "a", "test"};
     const std::string expected = "this.is.a.test";
@@ -105,8 +102,7 @@ TEST(utils_test, join) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(utils_test, splitAndJoin) {
+TEST(UtilsTest, splitAndJoin) {
   {
     const std::vector<std::string> input = {"This", "should", "always", "pass"};
 
@@ -132,8 +128,7 @@ TEST(utils_test, splitAndJoin) {
   }
 }
 
-// NOLINTNEXTLINE
-TEST(utils_test, makeName) {
+TEST(UtilsTest, makeName) {
   {
     // Single value first
     const std::string expected = "a_string_here";
@@ -154,8 +149,5 @@ TEST(utils_test, makeName) {
     const auto result = flexi_cfg::utils::makeName(part1, part2);
     EXPECT_EQ(expected, result);
   }
-  {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
-    EXPECT_THROW(flexi_cfg::utils::makeName("", ""), std::runtime_error);
-  }
+  { EXPECT_THROW(flexi_cfg::utils::makeName("", ""), std::runtime_error); }
 }

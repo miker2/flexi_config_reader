@@ -16,17 +16,14 @@ namespace peg = TAO_PEGTL_NAMESPACE;
 
 class InputString : public testing::TestWithParam<std::string> {};
 
-// NOLINTNEXTLINE
 TEST_P(InputString, ParseTree) {
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
     auto root = peg::parse_tree::parse<flexi_cfg::config::grammar, flexi_cfg::config::selector>(in);
   };
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(parse());
 }
 
-// NOLINTNEXTLINE
 TEST_P(InputString, Parse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   auto parse = []() {
@@ -35,17 +32,14 @@ TEST_P(InputString, Parse) {
     return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(ret = parse());
   EXPECT_TRUE(ret);
 }
 
-// NOLINTNEXTLINE
 TEST_P(InputString, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   flexi_cfg::Reader cfg;
   bool success{false};
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(success = cfg.parse(GetParam(), "From String"));
   EXPECT_TRUE(success);
   EXPECT_TRUE(cfg.exists("test1.key1"));
@@ -62,7 +56,6 @@ TEST_P(InputString, ConfigReaderParse) {
   EXPECT_EQ(cfg.getValue<bool>("test2.n_key"), true);
 }
 
-// NOLINTNEXTLINE
 INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string("\n\
 struct test1 {\n\
     key1 = \"value\"\n\
@@ -102,17 +95,14 @@ auto filenameGenerator() -> std::vector<std::filesystem::path> {
 }
 }  // namespace
 
-// NOLINTNEXTLINE
 TEST_P(FileInput, ParseTree) {
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
     auto root = peg::parse_tree::parse<flexi_cfg::config::grammar, flexi_cfg::config::selector>(in);
   };
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(parse());
 }
 
-// NOLINTNEXTLINE
 TEST_P(FileInput, Parse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   auto parse = []() {
@@ -122,20 +112,16 @@ TEST_P(FileInput, Parse) {
     return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(ret = parse());
   EXPECT_TRUE(ret);
 }
 
-// NOLINTNEXTLINE
 TEST_P(FileInput, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   flexi_cfg::Reader cfg;
   bool success{false};
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
   EXPECT_NO_THROW(success = cfg.parse(baseDir() / GetParam()));
   EXPECT_TRUE(success);
 }
 
-// NOLINTNEXTLINE
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));

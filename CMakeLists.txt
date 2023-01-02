@@ -83,7 +83,7 @@ option(CFG_EXAMPLES "Build example applications." OFF)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
-set(PUBLIC_CFG_HEADERS include/flexi_cfg/config/reader.h)
+set(PUBLIC_CFG_HEADERS include/flexi_cfg/reader.h)
 set(CFG_HEADERS
   ${PUBLIC_CFG_HEADERS}
   include/flexi_cfg/config/actions.h
@@ -112,7 +112,6 @@ target_compile_features(flexi_cfg INTERFACE cxx_std_20)
 
 target_link_libraries(flexi_cfg
   taocpp::pegtl
-  #magic_enum::magic_enum
   fmt::fmt
   range-v3::range-v3
 )
