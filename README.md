@@ -161,12 +161,14 @@ used within the `struct`, `proto` or `reference` constructs. The syntax is `$(pa
 
 ### Supported value types
 
-1.  Integers (signed or unsigned)
-2.  Floating point
-3.  Hexadecimal
-4.  String
-5.  Boolean (`true` or `false`)
-5.  List/Array - These _must_ be homogeneous
+The following value types are supported:
+
+1.  *Integers* (signed or unsigned)
+2.  *Floating point* (standard or scientific notation)
+3.  *Hexadecimal* (i.e. 0x[0-9a-fA-f]+, upper- or lower-case characers are supported). These resolve to an integer
+4.  *Strings* - Any set of characters enclosed by double-quotes
+5.  *Boolean* (`true` or `false`)
+6.  *List/Array* - a bracket-enclosed, comma-separated list of same-typed values from the types listed above (i.e. one may define a list of strings or floating-point numbers, but not a mixed combination of the two).
 
 ### Mathematical expressions
 
@@ -194,23 +196,29 @@ The following operators are supported:
 *  `pi` - the value of pi
 *  `(` and `)` - Parentheses grouping operations
 
-### Value types
+### Coments
 
-The following value types are supported:
+The hash (`#`) symbol is used to add comments within a config file (think python syntax). Any characters after the `#` will be considered part of the comment until the end-of-line. This allows for trailing comments. While there is no multi-line comment character, multi-line comments can be achieved by placing a `#` at the beginning of each line.
 
-1. Decimal numbers
-2. Floating-point numbers (standard or scientific notation)
-3. Hexadecimal numbers (which resolve to a decimal number)
-4. double-quoted string
-5. List - a bracket-enclosed, comma-separated list of same-typed values from the types listed above (i.e. one may define a list of strings or floating-point numbers, but not a mixed combination of the two).
+```
+# Comments can start at the beginning of a line
+
+   # Leading spaces are also okay
+
+struct foo {  # A trailing comment works like this
+  key1 = 0
+  # comments can also be embedded in a struct/proto/reference
+  key2 = "a"  # We might leave a comment here to explain this variable
+}
+
+# A multi-line comment might look something
+# like this, which is basically just a few
+# normal comments in a row.
+```
+
+See [`config_example3.cfg`](examples/config_example3.cfg) and [`config_example5.cfg`](examples/config_example5.cfg) for additional examples of comment usage.
 
 # Parsers
-
-## Python
-The syntax is defined in python using PEG notation. The `pe` library is used to parse the PEG defined grammar, which
-is used to parse the configuration files. There is then a post-processing step to fully resolve all protos, references,
-variable references, etc. The end result is a nested dictionary of key value pairs. There are a variety of tests and
-examples which demonstrate more of the capabilities of the language.
 
 ## C++
 The C++ implementation uses the [`taocpp::pegtl`](https://github.com/taocpp/PEGTL) library to define the grammar.
@@ -273,3 +281,10 @@ In addition to the tests, there are a number of simple applications that provide
 
  *  [`config_build`](src/config_build.cpp) - This application can be used to parse a config file and build the resulting config tree. Usage: `./src/config_reader ../example/config_example5.cfg`.
  *  [`config_reader_example`](src/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
+
+## Python
+The syntax is defined in python using PEG notation. The `pe` library is used to parse the PEG defined grammar, which
+is used to parse the configuration files. There is then a post-processing step to fully resolve all protos, references,
+variable references, etc. The end result is a nested dictionary of key value pairs. There are a variety of tests and
+examples which demonstrate more of the capabilities of the language.
+
