@@ -26,7 +26,7 @@ struct accepts_list {
 
 template <typename T>
 inline constexpr bool accepts_list_v = accepts_list<T>::value;
-}  // namespace config
+}  // namespace flexi_cfg::config
 
 namespace flexi_cfg::config::helpers {
 
@@ -86,4 +86,4 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
 
 void cleanupConfig(types::CfgMap& cfg, std::size_t depth = 0);
 
-}  // namespace config::helpers
+}  // namespace flexi_cfg::config::helpers

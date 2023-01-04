@@ -110,7 +110,7 @@ auto contains(const C& v, const T& x) -> decltype(end(v), true) {
   }
 }
 
-}  // namespace utils
+}  // namespace flexi_cfg::utils
 
 template <typename T>
 auto operator<<(std::ostream& o, const std::vector<T>& vec) -> std::ostream& {

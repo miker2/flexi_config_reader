@@ -232,6 +232,6 @@ struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
 }  // namespace config
 
-} // namespace flexi_cfg
+}  // namespace flexi_cfg
 
 #include "flexi_cfg/math/grammar.h"

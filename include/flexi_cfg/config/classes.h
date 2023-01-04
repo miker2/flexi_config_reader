@@ -389,7 +389,7 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
   ConfigReference(ConfigReference&&) = default;
 };
 
-};  // namespace config::types
+};  // namespace flexi_cfg::config::types
 
 template <>
 struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_view> {
@@ -404,11 +404,13 @@ struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_vi
 // Formatter for all types that inherit from `config::types::ConfigBase`.
 template <typename T>
 struct fmt::formatter<
-  T, std::enable_if_t<std::is_convertible_v<T, std::shared_ptr<flexi_cfg::config::types::ConfigBase>>, char>>
+    T, std::enable_if_t<
+           std::is_convertible_v<T, std::shared_ptr<flexi_cfg::config::types::ConfigBase>>, char>>
     : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
-  auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg, FormatContext& ctx) {
+  auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg,
+              FormatContext& ctx) {
     std::stringstream ss;
     if (cfg != nullptr) {
       cfg->stream(ss);

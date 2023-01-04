@@ -79,4 +79,4 @@ struct selector<INCLUDE> : std::true_type {
   }
 };
 
-}  // namespace config
+}  // namespace flexi_cfg::config

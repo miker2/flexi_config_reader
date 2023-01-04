@@ -112,7 +112,7 @@ static void warn(std::string_view msg) { Logger::instance().log(Severity::WARN, 
 static void error(std::string_view msg) { Logger::instance().log(Severity::ERROR, msg); }
 static void critical(std::string_view msg) { Logger::instance().log(Severity::CRITICAL, msg); }
 
-}  // namespace logger
+}  // namespace flexi_cfg::logger
 
 template <>
 struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {

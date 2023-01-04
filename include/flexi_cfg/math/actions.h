@@ -124,4 +124,4 @@ struct action<Bo> {
   }
 };
 
-}  // namespace math
+}  // namespace flexi_cfg::math

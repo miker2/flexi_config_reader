@@ -51,4 +51,4 @@ struct Stacks {
   std::vector<Stack> s_;
 };
 
-}  // namespace math
+}  // namespace flexi_cfg::math

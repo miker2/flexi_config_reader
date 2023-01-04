@@ -155,4 +155,4 @@ auto Reader::getValue(const std::string& name) const -> T {
   return value;
 }
 
-}
+}  // namespace flexi_cfg

@@ -736,4 +736,4 @@ struct action<END> {
   }
 };
 
-}  // namespace config
+}  // namespace flexi_cfg::config
