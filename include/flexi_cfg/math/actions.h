@@ -24,10 +24,10 @@
 //      https://godbolt.org/z/35c19neYG
 // https://marginalhacks.com/Hacks/libExpr.rb/
 
-namespace math {
+namespace flexi_cfg::math {
 
 struct ActionData {
-  math::stacks s{};
+  math::Stacks s{};
 
   // This could be a `config::types::CfgMap` object, but rather than introduce that dependency,
   // we'll make it a simple map from strings to values.
@@ -124,4 +124,4 @@ struct action<Bo> {
   }
 };
 
-}  // namespace math
+}  // namespace flexi_cfg::math

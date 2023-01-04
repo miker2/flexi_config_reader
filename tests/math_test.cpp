@@ -44,21 +44,20 @@ class MathExpressionTest : public ::testing::Test {
 };
 
 // NOLINTNEXTLINE
-TEST(MathExpressionGrammar, analyze) { ASSERT_EQ(peg::analyze<math::expression>(), 0); }
+TEST(MathExpressionGrammar, analyze) { ASSERT_EQ(peg::analyze<flexi_cfg::math::expression>(), 0); }
 
 // NOLINTNEXTLINE
 TEST_F(MathExpressionTest, evaluate) {
   auto test_input = [](const std::string& input) -> double {
     peg::memory_input in(input, "from content");
-    math::ActionData out;
-    const auto result = peg::parse<math::expression, math::action>(in, out);
+    flexi_cfg::math::ActionData out;
+    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 
   for (const auto& input : test_strings) {
     std::cout << "Input: " << input.first << std::endl;
     double result{0};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(input.first));
     EXPECT_FLOAT_EQ(result, input.second);
   }
@@ -66,7 +65,6 @@ TEST_F(MathExpressionTest, evaluate) {
   // We'll intentionally omit the var_ref_map here to ensure a failure occurs
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_THROW(test_input(std::get<0>(input)), std::runtime_error);
   }
 }
@@ -75,16 +73,15 @@ TEST_F(MathExpressionTest, evaluate) {
 TEST_F(MathExpressionTest, evaluate_var_ref) {
   auto test_input = [](const std::string& input, const RefMap& ref_map) -> double {
     peg::memory_input in(input, "from content");
-    math::ActionData out;
+    flexi_cfg::math::ActionData out;
     out.var_ref_map = ref_map;
-    const auto result = peg::parse<math::expression, math::action>(in, out);
+    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 
   for (const auto& input : test_w_var_ref) {
     std::cout << "Input: " << std::get<0>(input) << std::endl;
     double result{0};
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
     EXPECT_NO_THROW(result = test_input(std::get<0>(input), std::get<2>(input)));
     EXPECT_FLOAT_EQ(result, std::get<1>(input));
   }

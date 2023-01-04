@@ -23,10 +23,11 @@ namespace {
 constexpr bool CONFIG_HELPERS_DEBUG{false};
 }
 
-namespace config::helpers {
+namespace flexi_cfg::config::helpers {
 
 auto isStructLike(const types::BasePtr& el) -> bool {
-  // TODO: Change this to be a `dynamic_pointer_cast`. As is, it's a bit of a maintenance burden.
+  // TODO(miker2): Change this to be a `dynamic_pointer_cast`. As is, it's a bit of a maintenance
+  // burden.
   return el->type == types::Type::kStruct || el->type == types::Type::kStructInProto ||
          el->type == types::Type::kProto || el->type == types::Type::kReference;
 }
@@ -513,4 +514,4 @@ void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
   }
 }
 
-}  // namespace config::helpers
+}  // namespace flexi_cfg::config::helpers

@@ -6,8 +6,8 @@
 #include <magic_enum.hpp>
 #include <span>
 
-#include "flexi_cfg/config/reader.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {
@@ -18,16 +18,17 @@ auto main(int argc, char* argv[]) -> int {
                 << std::endl;
       return -1;
     }
-    logger::Severity log_level = logger::Severity::INFO;
+    auto log_level = flexi_cfg::logger::Severity::INFO;
     if (argc == 3) {
-      auto out = magic_enum::enum_cast<logger::Severity>(args[2]);
+      auto out = magic_enum::enum_cast<flexi_cfg::logger::Severity>(args[2]);
       if (out.has_value()) {
         log_level = out.value();
       }
     }
-    logger::setLevel(log_level);
 
-    ConfigReader cfg;
+    flexi_cfg::logger::setLevel(log_level);
+
+    flexi_cfg::Reader cfg;
     const auto success = cfg.parse(std::filesystem::path(args[1]));
     if (success) {
       std::cout << std::endl;

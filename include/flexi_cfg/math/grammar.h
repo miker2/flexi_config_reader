@@ -6,7 +6,7 @@
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
-namespace math {
+namespace flexi_cfg::math {
 /*
  expression --> P {B P}
  P --> v | "(" expression ")" | U P
@@ -43,4 +43,4 @@ struct P;
 struct P : peg::sor<atom /*v, BRACKET*/, peg::seq<Uo, P>> {};  // <-- recursive rule
 struct expression : peg::list<P, Bo, ignored> {};              // <-- Terminal
 
-}  // namespace math
+}  // namespace flexi_cfg::math

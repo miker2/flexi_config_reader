@@ -10,7 +10,7 @@
 #include <map>
 #include <string_view>
 
-namespace logger {
+namespace flexi_cfg::logger {
 
 enum class Severity : uint8_t { TRACE = 0, DEBUG, INFO, WARN, ERROR, CRITICAL };
 
@@ -112,14 +112,14 @@ static void warn(std::string_view msg) { Logger::instance().log(Severity::WARN, 
 static void error(std::string_view msg) { Logger::instance().log(Severity::ERROR, msg); }
 static void critical(std::string_view msg) { Logger::instance().log(Severity::CRITICAL, msg); }
 
-}  // namespace logger
+}  // namespace flexi_cfg::logger
 
 template <>
-struct fmt::formatter<logger::Severity> : formatter<std::string_view> {
+struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
-  auto format(const logger::Severity& severity, FormatContext& ctx) {
-    const auto severity_s = magic_enum::enum_name<logger::Severity>(severity);
+  auto format(const flexi_cfg::logger::Severity& severity, FormatContext& ctx) {
+    const auto severity_s = magic_enum::enum_name<flexi_cfg::logger::Severity>(severity);
     return formatter<std::string_view>::format(severity_s, ctx);
   }
 };

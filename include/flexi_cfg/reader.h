@@ -18,15 +18,17 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
 
-class ConfigReader {
- public:
-  ConfigReader() = default;
-  ~ConfigReader() = default;
+namespace flexi_cfg {
 
-  ConfigReader(const ConfigReader&) = delete;
-  auto operator=(const ConfigReader&) -> ConfigReader& = delete;
-  ConfigReader(ConfigReader&&) = default;
-  auto operator=(ConfigReader&&) -> ConfigReader& = delete;
+class Reader {
+ public:
+  Reader() = default;
+  ~Reader() = default;
+
+  Reader(const Reader&) = delete;
+  auto operator=(const Reader&) -> Reader& = delete;
+  Reader(Reader&&) = default;
+  auto operator=(Reader&&) -> Reader& = delete;
 
   auto parse(const std::filesystem::path& cfg_filename) -> bool;
 
@@ -86,7 +88,7 @@ class ConfigReader {
 };
 
 template <typename T>
-void ConfigReader::getValue(const std::string& name, T& value) const {
+void Reader::getValue(const std::string& name, T& value) const {
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
@@ -99,7 +101,7 @@ void ConfigReader::getValue(const std::string& name, T& value) const {
 }
 
 template <typename T>
-void ConfigReader::getValue(const std::string& name, std::vector<T>& value) const {
+void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
@@ -122,7 +124,7 @@ void ConfigReader::getValue(const std::string& name, std::vector<T>& value) cons
 }
 
 template <typename T, size_t N>
-void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) const {
+void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
   // Split the key into parts
   const auto keys = utils::split(name, '.');
 
@@ -147,8 +149,10 @@ void ConfigReader::getValue(const std::string& name, std::array<T, N>& value) co
 }
 
 template <typename T>
-auto ConfigReader::getValue(const std::string& name) const -> T {
+auto Reader::getValue(const std::string& name) const -> T {
   T value{};
   getValue(name, value);
   return value;
 }
+
+}  // namespace flexi_cfg

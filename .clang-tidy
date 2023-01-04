@@ -22,3 +22,4 @@ HeaderFilterRegex: 'cpp/.*'
 
 CheckOptions:
   - { key: readability-function-cognitive-complexity.IgnoreMacros,     value: 1 }
+  - { key: readability-function-cognitive-complexity.Threshold,        value: 40 }

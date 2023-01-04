@@ -58,16 +58,16 @@ void evalBack(std::vector<double>& vals, std::vector<std::string>& ops) {
   // Compute the new value
   const auto v = ops::get(op).f(lhs, rhs);
 
-  logger::debug("Reducing: {} {} {} = {}", lhs, op, rhs, v);
+  flexi_cfg::logger::debug("Reducing: {} {} {} = {}", lhs, op, rhs, v);
   // Push the result onto the stack.
   vals.push_back(v);
-  logger::trace("stack: op={}, v={}", ops.size(), vals.size());
+  flexi_cfg::logger::trace("stack: op={}, v={}", ops.size(), vals.size());
 }
 }  // namespace ops
 
-namespace math {
+namespace flexi_cfg::math {
 
-void stack::push(const std::string& op) {
+void Stack::push(const std::string& op) {
   // This is the core of the shunting yard algorithm. If the operator stack is not empty, then
   // precedence of the new operator is compared to the operator at the top of the stack
   // (comparison depends on left vs right-associativity). If the operator at the top of the stack
@@ -93,12 +93,12 @@ void stack::push(const std::string& op) {
   logger::trace("Pushing {} onto stack. ops={}, values={}", op, ops_.size(), vs_.size());
 }
 
-void stack::push(const double& v) {
+void Stack::push(const double& v) {
   vs_.push_back(v);
   logger::trace("Pushing {} onto stack. ops={}, values={}", v, ops_.size(), vs_.size());
 }
 
-auto stack::finish() -> double {
+auto Stack::finish() -> double {
   // Clear out the stacks by evaluating any remaining operators.
   while (!ops_.empty()) {
     evalBack();
@@ -111,7 +111,7 @@ auto stack::finish() -> double {
   return v;
 }
 
-void stack::dump(logger::Severity lvl) const {
+void Stack::dump(logger::Severity lvl) const {
   logger::log(lvl, "ops={}, vs={}", ops_.size(), vs_.size());
   std::stringstream ss;
   for (const auto& o : ops_) {
@@ -125,7 +125,7 @@ void stack::dump(logger::Severity lvl) const {
   logger::log(lvl, "vs = [{}]", ss.str());
 }
 
-void stack::evalBack() {
+void Stack::evalBack() {
   logger::debug("In 'evalBack' - ops={}, vs={}", ops_.size(), vs_.size());
   // NOLINTNEXTLINE
   assert(vs_.size() == ops_.size() + 1);
@@ -136,14 +136,14 @@ void stack::evalBack() {
   ops::evalBack(vs_, ops_);
 }
 
-stacks::stacks() { open(); }
+Stacks::Stacks() { open(); }
 
-void stacks::open() {
+void Stacks::open() {
   logger::debug("Opening stack.");
   s_.emplace_back();
 }
 
-void stacks::close() {
+void Stacks::close() {
   logger::debug("Closing stack.");
   // NOLINTNEXTLINE
   assert(s_.size() > 1);
@@ -152,16 +152,16 @@ void stacks::close() {
   s_.back().push(r);
 }
 
-auto stacks::finish() -> double {
+auto Stacks::finish() -> double {
   // NOLINTNEXTLINE
   assert(s_.size() == 1);
   return s_.back().finish();
 }
 
-void stacks::dump(logger::Severity lvl) {
+void Stacks::dump(logger::Severity lvl) {
   for (const auto& s : s_) {
     s.dump(lvl);
   }
 }
 
-}  // namespace math
+}  // namespace flexi_cfg::math

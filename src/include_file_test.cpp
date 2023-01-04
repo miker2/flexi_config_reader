@@ -14,7 +14,7 @@
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
-namespace filename {
+namespace flexi_cfg::filename {
 
 template <typename Rule>
 using selector =
@@ -26,7 +26,7 @@ using selector =
 namespace include_file {
 struct INCLUDE : TAO_PEGTL_KEYWORD("#include") {};
 
-struct grammar : peg::seq<INCLUDE, peg::plus<peg::blank>, filename::FILENAME> {};
+struct grammar : peg::seq<INCLUDE, peg::plus<peg::blank>, flexi_cfg::filename::FILENAME> {};
 }  // namespace include_file
 
 template <typename GTYPE, typename SOURCE>
@@ -78,7 +78,7 @@ auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool 
 auto main() -> int {
   const bool pdot = false;
 
-  if (peg::analyze<filename::grammar>() != 0) {
+  if (peg::analyze<flexi_cfg::filename::grammar>() != 0) {
     std::cout << "Something in the grammar is broken!" << std::endl;
     return 1;
   }
@@ -89,7 +89,7 @@ auto main() -> int {
   std::vector<std::string> test_filenames = {"example1.cfg", "../example2.cfg", "foo/bar/baz.cfg"};
 
   for (const auto& e : test_filenames) {
-    ret &= runTest<filename::FILENAME>(test_num++, e);
+    ret &= runTest<flexi_cfg::filename::FILENAME>(test_num++, e);
   }
 
   runTest<include_file::grammar>(0, "#include ../robot/default.cfg");

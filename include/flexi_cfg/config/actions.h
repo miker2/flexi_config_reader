@@ -34,7 +34,7 @@
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
   logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
-namespace config {
+namespace flexi_cfg::config {
 constexpr bool VERBOSE_DEBUG_ACTIONS{false};
 
 constexpr std::string_view DEFAULT_RES{"***"};
@@ -736,4 +736,4 @@ struct action<END> {
   }
 };
 
-}  // namespace config
+}  // namespace flexi_cfg::config

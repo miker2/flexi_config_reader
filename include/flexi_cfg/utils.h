@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace utils {
+namespace flexi_cfg::utils {
 /// \brief Removes all instances of any char foundi in `sep` from the beginning and end of `s`
 /// \param[in] s - Input string
 /// \paarm[in] sep - A string containing all `char`s to trim
@@ -110,7 +110,7 @@ auto contains(const C& v, const T& x) -> decltype(end(v), true) {
   }
 }
 
-}  // namespace utils
+}  // namespace flexi_cfg::utils
 
 template <typename T>
 auto operator<<(std::ostream& o, const std::vector<T>& vec) -> std::ostream& {

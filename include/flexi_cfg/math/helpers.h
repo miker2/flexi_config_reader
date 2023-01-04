@@ -5,9 +5,9 @@
 
 #include "flexi_cfg/logger.h"
 
-namespace math {
+namespace flexi_cfg::math {
 
-class stack {
+class Stack {
  public:
   void push(const std::string& op);
 
@@ -29,8 +29,8 @@ class stack {
 //   1. the stack current stack is "finished", caching the result.
 //   2. the current stack is removed from the stack of stacks.
 //   3. the result is then pushed onto the top stack.
-struct stacks {
-  stacks();
+struct Stacks {
+  Stacks();
 
   void open();
 
@@ -48,7 +48,7 @@ struct stacks {
   void dump(logger::Severity lvl = logger::Severity::DEBUG);
 
  private:
-  std::vector<stack> s_;
+  std::vector<Stack> s_;
 };
 
-}  // namespace math
+}  // namespace flexi_cfg::math

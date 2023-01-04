@@ -4,9 +4,6 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-
-#include "flexi_cfg/config/reader.h"
-// #include <range/v3/all.hpp>  // get everything
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -25,16 +22,17 @@
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
-auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
+auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
   bool success = true;
   try {
-    success = peg::parse<config::grammar, config::action>(input, output);
+    success = peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
     // 'output.cfg_res').
     success &= output.keys.empty();
@@ -43,61 +41,62 @@ auto parseCommon(INPUT& input, config::ActionData& output) -> bool {
     success &= output.obj_res == nullptr;
 
     // Eliminate any vector elements with an empty map.
-    output.cfg_res |=
-        ranges::actions::remove_if([](const config::types::CfgMap& m) { return m.empty(); });
+    output.cfg_res |= ranges::actions::remove_if(
+        [](const flexi_cfg::config::types::CfgMap& m) { return m.empty(); });
 
     if (!success) {
-      logger::critical("  Parse failure");
-      logger::error("  cfg_res size: {}", output.cfg_res.size());
+      flexi_cfg::logger::critical("  Parse failure");
+      flexi_cfg::logger::error("  cfg_res size: {}", output.cfg_res.size());
 
       std::stringstream ss;
       output.print(ss);
-      logger::error("Incomplete output: \n{}", ss.str());
+      flexi_cfg::logger::error("Incomplete output: \n{}", ss.str());
 
       // Print a trace if a failure occured.
       input.restart();
-      peg::standard_trace<config::grammar>(input);
+      peg::standard_trace<flexi_cfg::config::grammar>(input);
       return success;
     }
   } catch (const peg::parse_error& e) {
     success = false;
-    logger::critical("!!!");
-    logger::critical("  Parser failure!");
+    flexi_cfg::logger::critical("!!!");
+    flexi_cfg::logger::critical("  Parser failure!");
     const auto p = e.positions().front();
-    logger::critical("{}", e.what());
-    logger::critical("{}", input.line_at(p));
-    logger::critical("{}^", std::string(p.column - 1, ' '));
+    flexi_cfg::logger::critical("{}", e.what());
+    flexi_cfg::logger::critical("{}", input.line_at(p));
+    flexi_cfg::logger::critical("{}^", std::string(p.column - 1, ' '));
     std::stringstream ss;
     output.print(ss);
-    logger::critical("Partial output: \n{}", ss.str());
-    logger::critical("!!!");
+    flexi_cfg::logger::critical("Partial output: \n{}", ss.str());
+    flexi_cfg::logger::critical("!!!");
     return success;
   }
 
   return success;
 }
 
-auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types::CfgMap {
+auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in)
+    -> flexi_cfg::config::types::CfgMap {
   if (in.empty()) {
-    // TODO: Throw exception here? How to handle empty vector?
+    // TODO(miker2): Throw exception here? How to handle empty vector?
     return {};
   }
 
   // This whole function is quite inefficient, but it works, which is a start:
 
   // Start with the first element:
-  config::types::CfgMap squashed_cfg = in[0];
+  flexi_cfg::config::types::CfgMap squashed_cfg = in[0];
 
   // Accumulate all of the other elements of the vector into the CfgMap.
   for (const auto& cfg : ranges::views::tail(in)) {
-    logger::trace(
+    flexi_cfg::logger::trace(
         "======= Working on merging: =======\n{}\n"
         "++++++++++++++ and ++++++++++++++++\n{}",
         fmt::join(squashed_cfg, "\n"), fmt::join(cfg, "\n"));
 
-    squashed_cfg = config::helpers::mergeNestedMaps(squashed_cfg, cfg);
+    squashed_cfg = flexi_cfg::config::helpers::mergeNestedMaps(squashed_cfg, cfg);
 
-    logger::trace(
+    flexi_cfg::logger::trace(
         "++++++++++++ result +++++++++++++++\n{}\n"
         "============== END ================\n",
         fmt::join(squashed_cfg, "\n"));
@@ -107,7 +106,9 @@ auto mergeNested(const std::vector<config::types::CfgMap>& in) -> config::types:
 
 }  // namespace
 
-auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
+namespace flexi_cfg {
+
+auto Reader::parse(const std::filesystem::path& cfg_filename) -> bool {
   out_.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
   auto success = parseCommon(cfg_file, out_);
@@ -117,7 +118,7 @@ auto ConfigReader::parse(const std::filesystem::path& cfg_filename) -> bool {
   return success;
 }
 
-auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -> bool {
+auto Reader::parse(std::string_view cfg_string, std::string_view source) -> bool {
   peg::memory_input cfg_file(cfg_string, source);
   auto success = parseCommon(cfg_file, out_);
 
@@ -126,7 +127,7 @@ auto ConfigReader::parse(std::string_view cfg_string, std::string_view source) -
   return success;
 }
 
-auto ConfigReader::exists(const std::string& key) const -> bool {
+auto Reader::exists(const std::string& key) const -> bool {
   try {
     const auto [final_key, data] = getNestedConfig(key);
     return data.find(final_key) != std::end(data);
@@ -139,9 +140,9 @@ auto ConfigReader::exists(const std::string& key) const -> bool {
   }
 }
 
-void ConfigReader::dump() const { std::cout << cfg_data_; }
+void Reader::dump() const { std::cout << cfg_data_; }
 
-auto ConfigReader::getNestedConfig(const std::string& key) const
+auto Reader::getNestedConfig(const std::string& key) const
     -> std::pair<std::string, const config::types::CfgMap&> {
   // Split the key into parts
   const auto keys = utils::split(key, '.');
@@ -154,7 +155,7 @@ auto ConfigReader::getNestedConfig(const std::string& key) const
   return {keys.back(), data};
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, float& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, float& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -168,7 +169,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, double& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, double& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -182,7 +183,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, int& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, int& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -196,7 +197,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, int64_t& value) {
   if (type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     type);
@@ -210,7 +211,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   }
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type, bool& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, bool& value) {
   if (type != config::types::Type::kBoolean) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected boolean type, but have '{}' type.",
                     type);
@@ -218,8 +219,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   value = value_str == "true";
 }
 
-void ConfigReader::convert(const std::string& value_str, config::types::Type type,
-                           std::string& value) {
+void Reader::convert(const std::string& value_str, config::types::Type type, std::string& value) {
   if (type != config::types::Type::kString) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected string type, but have '{}' type.",
                     type);
@@ -228,7 +228,7 @@ void ConfigReader::convert(const std::string& value_str, config::types::Type typ
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
 }
 
-void ConfigReader::resolveConfig() {
+void Reader::resolveConfig() {
   config::types::CfgMap flat{};
   for (const auto& e : out_.cfg_res) {
     flat = flattenAndFindProtos(e, "", flat);
@@ -275,9 +275,8 @@ void ConfigReader::resolveConfig() {
   config::helpers::cleanupConfig(cfg_data_);
 }
 
-auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
-                                        const std::string& base_name,
-                                        config::types::CfgMap flattened) -> config::types::CfgMap {
+auto Reader::flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
+                                  config::types::CfgMap flattened) -> config::types::CfgMap {
   for (const auto& e : in) {
     const auto new_name = utils::join({base_name, e.first}, ".");
     const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(e.second);
@@ -295,7 +294,7 @@ auto ConfigReader::flattenAndFindProtos(const config::types::CfgMap& in,
 
 /// \brief Remove the protos from merged dictionary
 /// \param[in/out] cfg_map - The top level (resolved) config map
-void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
+void Reader::stripProtos(config::types::CfgMap& cfg_map) const {
   // For each entry in the protos map, find the corresponding entry in the resolved config and
   // remove the proto. This isn't strictly necessary, but it simplifies some things later when
   // trying to resolve references and other variables.
@@ -318,9 +317,9 @@ void ConfigReader::stripProtos(config::types::CfgMap& cfg_map) const {
   }
 }
 
-void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
-                                     const config::types::RefMap& ref_vars,
-                                     const std::vector<std::string>& refd_protos) const {
+void Reader::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
+                               const config::types::RefMap& ref_vars,
+                               const std::vector<std::string>& refd_protos) const {
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
     auto& v = kv.second;
@@ -399,3 +398,5 @@ void ConfigReader::resolveReferences(config::types::CfgMap& cfg_map, const std::
     }
   }
 }
+
+}  // namespace flexi_cfg

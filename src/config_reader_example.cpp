@@ -10,20 +10,20 @@
 #include <string>
 #include <vector>
 
-#include "flexi_cfg/config/reader.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {
     const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
-    ConfigReader cfg;
+    flexi_cfg::Reader cfg;
     if (!cfg.parse(cfg_file)) {
-      logger::error("Failed to parse {}", cfg_file.string());
+      flexi_cfg::logger::error("Failed to parse {}", cfg_file.string());
     }
 
-    logger::setLevel(logger::Severity::INFO);
+    flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
 
     std::cout << std::endl;
     // Read a variety of values from the config file (and print their values).
@@ -49,8 +49,8 @@ auto main(int argc, char* argv[]) -> int {
       try {
         auto out_i = cfg.getValue<int>(float_key);
         fmt::print("Value of '{}' as an int is: {}\n", float_key, out_i);
-      } catch (config::MismatchTypeException& e) {
-        logger::error("!!! getValue failure !!!\n{}", e.what());
+      } catch (flexi_cfg::config::MismatchTypeException& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
       }
     }
     {
@@ -71,13 +71,13 @@ auto main(int argc, char* argv[]) -> int {
       try {
         // There are only 3 values contained by the key, but we're looking for 4!
         auto arr_var = cfg.getValue<std::array<float, 4>>(vec_key);
-        logger::info("Value of {} is {}", vec_key, arr_var);
+        flexi_cfg::logger::info("Value of {} is {}", vec_key, arr_var);
       } catch (std::exception& e) {
-        logger::error("!!! getValue failure !!!\n{}", e.what());
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
       }
     }
     {
-      const auto my_str_key = utils::join({"outer", "inner", "key_w_str"}, ".");
+      const auto my_str_key = flexi_cfg::utils::join({"outer", "inner", "key_w_str"}, ".");
       const auto my_strs = cfg.getValue<std::vector<std::string>>(my_str_key);
       fmt::print("{}: [{}]\n", my_str_key, fmt::join(my_strs, ", "));
     }
@@ -86,7 +86,7 @@ auto main(int argc, char* argv[]) -> int {
       const auto out = cfg.getValue<int>(int_key);
       fmt::print("Value of '{}' is: {}\n", int_key, out);
 
-      // TODO: Decide if we should allow this or if it should be a failure.
+      // TODO(miker2): Decide if we should allow this or if it should be a failure.
       const auto out_f = cfg.getValue<float>(int_key);
       fmt::print("Value of '{}' is: {}\n", int_key, out_f);
     }
