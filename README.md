@@ -196,7 +196,7 @@ The following operators are supported:
 *  `pi` - the value of pi
 *  `(` and `)` - Parentheses grouping operations
 
-### Coments
+### Comments
 
 The hash (`#`) symbol is used to add comments within a config file (think python syntax). Any characters after the `#` will be considered part of the comment until the end-of-line. This allows for trailing comments. While there is no multi-line comment character, multi-line comments can be achieved by placing a `#` at the beginning of each line.
 
