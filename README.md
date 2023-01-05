@@ -103,7 +103,7 @@ turn it into a concrete `struct` of data.
 
 Keys within a `proto` (or any `struct` nested within a `proto`) may be assigned a "variable" which will be resolved later as explained below. A variable begins with a `$` and is followed by a variable name matching `[A-Z0-9_]+`. The variable name may optionally be enclosed in a set of curly braces (e.g. `{...}`).
 
-Variables may also be used within strings (e.g. `"foo.$BAR.baz"`), within a [key-value reference](#key-value-reference), in a list (e.g. `[0, ${ONE}, 2]`) or in an [expression](#mathematical-expressions) (e.g. `{{ 0.5 * ($MIN + ${MAX}) }}`)
+Variables may also be used within strings (e.g. `"foo.$BAR.baz"`), within a [key-value reference](#key-value-references), in a list (e.g. `[0, ${ONE}, 2]`) or in an [expression](#mathematical-expressions) (e.g. `{{ 0.5 * ($MIN + ${MAX}) }}`)
 
 ### `reference` keyword
 
