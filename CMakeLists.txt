@@ -83,7 +83,7 @@ option(CFG_EXAMPLES "Build example applications." OFF)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
-set(PUBLIC_CFG_HEADERS include/flexi_cfg/reader.h)
+set(PUBLIC_CFG_HEADERS include/flexi_cfg/reader.h include/flexi_cfg/parser.h)
 set(CFG_HEADERS
   ${PUBLIC_CFG_HEADERS}
   include/flexi_cfg/config/actions.h
@@ -100,6 +100,7 @@ set(CFG_HEADERS
 
 add_library(flexi_cfg
   src/config_helpers.cpp
+  src/config_parser.cpp
   src/config_reader.cpp
   src/math_helpers.cpp
 )
