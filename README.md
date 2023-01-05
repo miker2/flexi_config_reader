@@ -99,6 +99,12 @@ also a nested struct (which also contains a contrete key and a variable key `key
 This `proto` does not add anything to the configuration parameters as is. It must be `reference`d in order to
 turn it into a concrete `struct` of data.
 
+#### Variable
+
+Keys within a `proto` (or any `struct` nested within a `proto`) may be assigned a "variable" which will be resolved later as explained below. A variable begins with a `$` and is followed by a variable name matching `[A-Z0-9_]+`. The variable name may optionally be enclosed in a set of curly braces (e.g. `{...}`).
+
+Variables may also be used within strings (e.g. `"foo.$BAR.baz"`), within a [key-value reference](#key-value-reference), in a list (e.g. `[0, ${ONE}, 2]`) or in an [expression](#mathematical-expressions) (e.g. `{{ 0.5 * ($MIN + ${MAX}) }}`)
+
 ### `reference` keyword
 
 The `reference` keyword is used to turn a `proto` into a `struct`. Following on from the example above:
@@ -114,10 +120,12 @@ reference protos.foo as fuzz {
 The above example introduces the following concepts:
 
 1. When referencing a `proto`, the fully qualified name of the proto must be used (i.e. `protos.foo` instead of `foo`).
-2. The variables `$KEY3` and `$KEY_B` that were introduced in `protos.foo` and `protos.foo.bar` respectively are given values when the `proto` is `reference`d. These variables can be used in the following situations
+2. The variables `$KEY3` and `$KEY_B` that were introduced in `protos.foo` and `protos.foo.bar` respectively are given values when the `proto` is `reference`d. These variables can be used in the following situations as explained [above](#variable)
     - Alone, as the value in a key/value pair
     - Within a string value (e.g. `key = "refer.to.$KEY3.thing"`)
     - Within a [key-value reference](#key-value-references) (e.g. `key = $(reference.$THIS.var)`)
+    - Within a list
+    - Within an expression
 3. `+extra_key` is an appended key. The `proto` "protos.foo" does not contain this key, but the resulting `struct fuzz`
    will contain this additional key.
 
