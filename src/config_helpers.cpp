@@ -169,6 +169,8 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
 void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
+  // TODO(miker2): This is probably the *most* complex part of the entire config resolution
+  // algorithm. Perhaps revisit to see if it can be simplified/clarified at all.
   logger::trace(
       "replaceProtoVars --- \n"
       "   {}\n"
@@ -176,6 +178,16 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       "   {}\n"
       "  -- END --",
       cfg_map, ref_vars);
+
+  auto str_contains_var = [](const std::string& str) {
+    // Use the existing VAR grammar rule to check if any variables exist
+    peg::memory_input in(str, "contains VAR?");
+    config::ActionData state;
+    // NOTE: 'peg::until' will consume everything until the rule 'config::VAR' matches. If
+    // 'config::VAR' never matches, then 'parse' will return false, otherwise true
+    const auto ret = peg::parse<peg::until<config::VAR>, config::action>(in, state);
+    return ret;
+  };
 
   for (auto& kv : cfg_map) {
     const auto& k = kv.first;
@@ -248,6 +260,15 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
 
       state.obj_res->line = v->line;
       state.obj_res->source = v->source;
+      auto contains_var = str_contains_var(out.value());
+      logger::debug("{} has var? {}", out.value(), contains_var);
+      if (contains_var) {
+        THROW_EXCEPTION(
+            InvalidConfigException,
+            "Key: '{}' of type '{}' (at {}) contains unresolved VARs: '{}'. Did reference '{}' "
+            "fail to define all variables?",
+            k, v->type, v->loc(), out.value(), ref_vars.at("$PARENT"));
+      }
       cfg_map[k] = std::move(state.obj_res);
     } else if (v->type == types::Type::kValueLookup) {
       logger::debug("Key: {}, checking {} for vars.", k, v);
