@@ -23,6 +23,7 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/utils.h"
+#include "flexi_cfg/reader.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};
@@ -109,32 +110,29 @@ auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in)
 
 namespace flexi_cfg {
 
-auto Parser::parse(const std::filesystem::path& cfg_filename) -> bool {
+auto Parser::parse(const std::filesystem::path& cfg_filename) -> Reader {
   config::ActionData state;
   state.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
 
+  // TODO: Do something smarter if "parseCommon" fails!
   auto success = parseCommon(cfg_file, state);
 
   Parser parser;
-  parser.resolveConfig(state);
-
-  return success;
+  return Reader(parser.resolveConfig(state));
 }
 
-auto Parser::parse(std::string_view cfg_string, std::string_view source) -> bool {
+auto Parser::parse(std::string_view cfg_string, std::string_view source) -> Reader {
   peg::memory_input cfg_file(cfg_string, source);
   config::ActionData state;
 
   auto success = parseCommon(cfg_file, state);
 
   Parser parser;
-  parser.resolveConfig(state);
-
-  return success;
+  return Reader(parser.resolveConfig(state));
 }
 
-void Parser::resolveConfig(config::ActionData& state) {
+auto Parser::resolveConfig(config::ActionData& state) -> const config::types::CfgMap& {
   config::types::CfgMap flat{};
   for (const auto& e : state.cfg_res) {
     flat = flattenAndFindProtos(e, "", flat);
@@ -181,6 +179,8 @@ void Parser::resolveConfig(config::ActionData& state) {
   config::helpers::cleanupConfig(cfg_data_);
 
   // fmt::print("config:\n{}", cfg_data_);
+
+  return cfg_data_;
 }
 
 auto Parser::flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,

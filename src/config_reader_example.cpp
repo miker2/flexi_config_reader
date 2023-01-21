@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
@@ -18,10 +19,7 @@ auto main(int argc, char* argv[]) -> int {
   try {
     const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
-    flexi_cfg::Reader cfg;
-    if (!cfg.parse(cfg_file)) {
-      flexi_cfg::logger::error("Failed to parse {}", cfg_file.string());
-    }
+    auto cfg = flexi_cfg::Parser::parse(cfg_file);
 
     flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
 

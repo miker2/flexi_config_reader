@@ -10,6 +10,7 @@
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/selector.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
@@ -38,10 +39,9 @@ TEST_P(InputString, Parse) {
 
 TEST_P(InputString, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
-  flexi_cfg::Reader cfg;
-  bool success{false};
-  EXPECT_NO_THROW(success = cfg.parse(GetParam(), "From String"));
-  EXPECT_TRUE(success);
+  flexi_cfg::Reader cfg({});
+  
+  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");
   EXPECT_TRUE(cfg.exists("test1.key2"));
@@ -118,10 +118,7 @@ TEST_P(FileInput, Parse) {
 
 TEST_P(FileInput, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
-  flexi_cfg::Reader cfg;
-  bool success{false};
-  EXPECT_NO_THROW(success = cfg.parse(baseDir() / GetParam()));
-  EXPECT_TRUE(success);
+  EXPECT_NO_THROW(flexi_cfg::Parser::parse(baseDir() / GetParam()));
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));

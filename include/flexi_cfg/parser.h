@@ -7,20 +7,21 @@
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
+#include "flexi_cfg/reader.h"
 
 namespace flexi_cfg {
 
 class Parser {
  public:
-  static auto parse(const std::filesystem::path& cfg_filename) -> bool;
+  static auto parse(const std::filesystem::path& cfg_filename) -> Reader;
 
-  static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> bool;
+  static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader;
 
   ~Parser() = default;
  private:
   Parser() = default;
 
-  void resolveConfig(config::ActionData& state);
+  auto resolveConfig(config::ActionData& state) -> const config::types::CfgMap&;
 
   auto flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
                             config::types::CfgMap flattened = {}) -> config::types::CfgMap;

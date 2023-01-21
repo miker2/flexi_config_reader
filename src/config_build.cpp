@@ -29,16 +29,11 @@ auto main(int argc, char* argv[]) -> int {
 
     flexi_cfg::logger::setLevel(log_level);
 
-    flexi_cfg::Parser::parse(std::filesystem::path(args[1]));
+    auto cfg = flexi_cfg::Parser::parse(std::filesystem::path(args[1]));
+    std::cout << std::endl;
+    cfg.dump();
 
-    flexi_cfg::Reader cfg;
-    const auto success = cfg.parse(std::filesystem::path(args[1]));
-    if (success) {
-      std::cout << std::endl;
-      cfg.dump();
-    }
-
-    return (success ? EXIT_SUCCESS : EXIT_FAILURE);
+    return EXIT_SUCCESS;
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
     return EXIT_FAILURE;

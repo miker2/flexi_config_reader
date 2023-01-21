@@ -11,6 +11,7 @@
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 
 namespace {
@@ -86,8 +87,7 @@ TEST(ConfigException, DuplicateKeyException) {
            $BAZ = \"baz\"               \n\
            +bar = 0                     \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(ref_proto_failure, "ref_proto_failure"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(ref_proto_failure, "ref_proto_failure"),
                  flexi_cfg::config::DuplicateKeyException);
   }
 #if 0  // See FULLPAIR action
@@ -175,8 +175,7 @@ TEST(ConfigException, InvalidKeyException) {
         "struct test1 {         \n\
            key = $(test1.key2)  \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(invalid_key_reference, "invalid key reference"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(invalid_key_reference, "invalid key reference"),
                  flexi_cfg::config::InvalidKeyException);
   }
   {
@@ -186,8 +185,7 @@ TEST(ConfigException, InvalidKeyException) {
         "struct test1 {             \n\
            key = $(test1.key3.bar)  \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(not_a_struct, "not a struct"), flexi_cfg::config::InvalidKeyException);
+    EXPECT_THROW(flexi_cfg::Parser::parse(not_a_struct, "not a struct"), flexi_cfg::config::InvalidKeyException);
   }
 }
 
@@ -200,8 +198,7 @@ TEST(ConfigException, InvalidTypeException) {
            key = $(test1.key3.bar)  \n\
            key3 = 0                 \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(key_wrong_type, "key wrong type"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(key_wrong_type, "key wrong type"),
                  flexi_cfg::config::InvalidTypeException);
   }
   {
@@ -210,8 +207,7 @@ TEST(ConfigException, InvalidTypeException) {
            key1 = \"not a number\"         \n\
            key2 = {{ 0.5 * $(foo.key1) }}  \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(non_numeric_in_expression, "non numeric in expression"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(non_numeric_in_expression, "non numeric in expression"),
                  flexi_cfg::config::InvalidTypeException);
   }
 }
@@ -228,8 +224,7 @@ TEST(ConfigException, UndefinedReferenceVarException) {
            $KEY1 = 0                   \n\
            #$KEY2 undefined            \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(proto_var_doesnt_exist, "$KEY2 is undefined"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(proto_var_doesnt_exist, "$KEY2 is undefined"),
                  flexi_cfg::config::UndefinedReferenceVarException);
   }
   {
@@ -244,8 +239,7 @@ TEST(ConfigException, UndefinedReferenceVarException) {
            $KEY2 = \"defined\"                             \n\
            $EXTRA_KEY = 0  # not useful, but not an error  \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_NO_THROW(cfg.parse(extra_proto_var, "$EXTRA_KEY is unused"));
+    EXPECT_NO_THROW(flexi_cfg::Parser::parse(extra_proto_var, "$EXTRA_KEY is unused"));
   }
 }
 
@@ -261,8 +255,7 @@ TEST(ConfigException, UndefinedProtoException) {
            $KEY1 = 0                                       \n\
            $KEY2 = \"defined\"                             \n\
          }\n";
-    flexi_cfg::Reader cfg;
-    EXPECT_THROW(cfg.parse(undefined_proto, "bar_proto not defined"),
+    EXPECT_THROW(flexi_cfg::Parser::parse(undefined_proto, "bar_proto not defined"),
                  flexi_cfg::config::UndefinedProtoException);
   }
 }
@@ -270,9 +263,8 @@ TEST(ConfigException, UndefinedProtoException) {
 class CyclicReference : public testing::TestWithParam<std::string> {};
 
 TEST_P(CyclicReference, Exception) {
-  flexi_cfg::Reader cfg;
   const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / GetParam();
-  EXPECT_THROW(cfg.parse(in_file), flexi_cfg::config::CyclicReferenceException)
+  EXPECT_THROW(flexi_cfg::Parser::parse(in_file), flexi_cfg::config::CyclicReferenceException)
       << "Input file: " << in_file;
 }
 
