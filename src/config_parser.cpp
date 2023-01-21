@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <memory>
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -50,6 +51,7 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
       std::stringstream ss;
       output.print(ss);
       flexi_cfg::logger::error("Incomplete output: \n{}", ss.str());
+      flexi_cfg::logger::error("Error at: {} : {}", position.source, position.line);
 
       // Print a trace if a failure occured.
       input.restart();
@@ -111,9 +113,11 @@ auto Parser::parse(const std::filesystem::path& cfg_filename) -> bool {
   config::ActionData state;
   state.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
+
   auto success = parseCommon(cfg_file, state);
 
-  resolveConfig(state);
+  Parser parser;
+  parser.resolveConfig(state);
 
   return success;
 }
@@ -121,9 +125,11 @@ auto Parser::parse(const std::filesystem::path& cfg_filename) -> bool {
 auto Parser::parse(std::string_view cfg_string, std::string_view source) -> bool {
   peg::memory_input cfg_file(cfg_string, source);
   config::ActionData state;
+
   auto success = parseCommon(cfg_file, state);
 
-  resolveConfig(state);
+  Parser parser;
+  parser.resolveConfig(state);
 
   return success;
 }
@@ -173,6 +179,8 @@ void Parser::resolveConfig(config::ActionData& state) {
 
   // Removes empty structs, fixes incorrect depth, etc.
   config::helpers::cleanupConfig(cfg_data_);
+
+  // fmt::print("config:\n{}", cfg_data_);
 }
 
 auto Parser::flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,

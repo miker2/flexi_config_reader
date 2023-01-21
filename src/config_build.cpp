@@ -8,6 +8,7 @@
 
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/reader.h"
+#include "flexi_cfg/parser.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {
@@ -27,6 +28,8 @@ auto main(int argc, char* argv[]) -> int {
     }
 
     flexi_cfg::logger::setLevel(log_level);
+
+    flexi_cfg::Parser::parse(std::filesystem::path(args[1]));
 
     flexi_cfg::Reader cfg;
     const auto success = cfg.parse(std::filesystem::path(args[1]));

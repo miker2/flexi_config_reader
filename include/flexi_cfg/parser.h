@@ -12,22 +12,22 @@ namespace flexi_cfg {
 
 class Parser {
  public:
-  Parser() = default;
+  static auto parse(const std::filesystem::path& cfg_filename) -> bool;
+
+  static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> bool;
+
   ~Parser() = default;
-
-    auto parse(const std::filesystem::path& cfg_filename) -> bool;  // PARSER
-
-  auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> bool;  // PARSER
-
  private:
-  void resolveConfig(config::ActionData& state);  // PARSER
+  Parser() = default;
+
+  void resolveConfig(config::ActionData& state);
 
   auto flattenAndFindProtos(const config::types::CfgMap& in, const std::string& base_name,
-                            config::types::CfgMap flattened = {}) -> config::types::CfgMap; // PARSER
+                            config::types::CfgMap flattened = {}) -> config::types::CfgMap;
 
   /// \brief Remove the protos from merged dictionary
   /// \param[in/out] cfg_map - The top level (resolved) config map
-  void stripProtos(config::types::CfgMap& cfg_map) const;   // PARSER
+  void stripProtos(config::types::CfgMap& cfg_map) const;
 
   /// \brief Walk through CfgMap and find all references. Convert them to structs
   /// \param[in/out] cfg_map
@@ -36,7 +36,7 @@ class Parser {
   /// \param[in] refd_protos - vector of all protos already referenced. Used to track cycles.
   void resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
                          const config::types::RefMap& ref_vars = {},
-                         const std::vector<std::string>& refd_protos = {}) const;  // PARSER
+                         const std::vector<std::string>& refd_protos = {}) const;
 
   config::types::ProtoMap protos_{};
 
