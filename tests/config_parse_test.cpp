@@ -40,7 +40,7 @@ TEST_P(InputString, Parse) {
 TEST_P(InputString, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   flexi_cfg::Reader cfg({});
-  
+
   EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");

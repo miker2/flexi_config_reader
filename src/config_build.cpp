@@ -7,8 +7,8 @@
 #include <span>
 
 #include "flexi_cfg/logger.h"
-#include "flexi_cfg/reader.h"
 #include "flexi_cfg/parser.h"
+#include "flexi_cfg/reader.h"
 
 auto main(int argc, char* argv[]) -> int {
   try {

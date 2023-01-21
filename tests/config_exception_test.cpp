@@ -185,7 +185,8 @@ TEST(ConfigException, InvalidKeyException) {
         "struct test1 {             \n\
            key = $(test1.key3.bar)  \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(not_a_struct, "not a struct"), flexi_cfg::config::InvalidKeyException);
+    EXPECT_THROW(flexi_cfg::Parser::parse(not_a_struct, "not a struct"),
+                 flexi_cfg::config::InvalidKeyException);
   }
 }
 

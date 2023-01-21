@@ -18,6 +18,7 @@ class Parser {
   static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader;
 
   ~Parser() = default;
+
  private:
   Parser() = default;
 
@@ -44,4 +45,4 @@ class Parser {
   config::types::CfgMap cfg_data_;
 };
 
-}
+}  // namespace flexi_cfg

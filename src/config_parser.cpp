@@ -22,8 +22,8 @@
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
-#include "flexi_cfg/utils.h"
 #include "flexi_cfg/reader.h"
+#include "flexi_cfg/utils.h"
 
 namespace {
 constexpr bool STRIP_PROTOS{true};
