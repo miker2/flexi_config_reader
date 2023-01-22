@@ -47,6 +47,8 @@ class Reader {
   template <typename T, size_t N>
   void getValue(const std::string& name, std::array<T, N>& value) const;
 
+  auto findStructsWithKey(const std::string& key) const -> std::vector<std::string>;
+
  protected:
   auto getNestedConfig(const std::string& key) const
       -> std::pair<std::string, const config::types::CfgMap&>;

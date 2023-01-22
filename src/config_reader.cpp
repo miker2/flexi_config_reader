@@ -41,6 +41,30 @@ auto Reader::keys() const -> std::vector<std::string> {
   return cfg_data_ | ranges::views::keys | ranges::to<std::vector<std::string>>;
 }
 
+auto Reader::findStructsWithKey(const std::string& key) const -> std::vector<std::string> {
+  std::vector<std::string> structs{};
+
+  std::function<void(const std::string&, const config::types::CfgMap&)> contains_key =
+      [&key = std::as_const(key), &structs, &contains_key](const std::string& root,
+                                                           const config::types::CfgMap& cfg) {
+        for (const auto& [k, val] : cfg) {
+          if (k == key) {
+            // Do something to keep track of this
+            logger::trace("Found key: '{}' in '{}'", k, root);
+            structs.emplace_back(root);
+          }
+
+          if (config::helpers::isStructLike(val)) {
+            contains_key(utils::makeName(root, k),
+                         dynamic_pointer_cast<config::types::ConfigStructLike>(val)->data);
+          }
+        }
+      };
+
+  contains_key("", cfg_data_);
+  return structs;
+}
+
 auto Reader::getNestedConfig(const std::string& key) const
     -> std::pair<std::string, const config::types::CfgMap&> {
   // Split the key into parts

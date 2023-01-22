@@ -111,6 +111,13 @@ auto main(int argc, char* argv[]) -> int {
         flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
       }
     }
+    {
+      // Find the name of all structs containing a specific key
+      const std::string key = "offset";
+      const auto& structs = cfg.findStructsWithKey(key);
+      fmt::print("Found the following that contain '{}': \n\t{}\n", key,
+                 fmt::join(structs, "\n\t"));
+    }
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
     return EXIT_FAILURE;
