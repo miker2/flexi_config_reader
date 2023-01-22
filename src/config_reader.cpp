@@ -19,8 +19,8 @@
 
 namespace flexi_cfg {
 
-Reader::Reader(config::types::CfgMap cfg, const std::string& parent)
-    : cfg_data_(std::move(cfg)), parent_name_(parent) {}
+Reader::Reader(config::types::CfgMap cfg, std::string parent)
+    : cfg_data_(std::move(cfg)), parent_name_(std::move(parent)) {}
 
 void Reader::dump() const { std::cout << cfg_data_; }
 

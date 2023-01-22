@@ -115,8 +115,8 @@ auto Parser::parse(const std::filesystem::path& cfg_filename) -> Reader {
   state.base_dir = cfg_filename.parent_path().string();
   peg::file_input cfg_file(cfg_filename);
 
-  // TODO: Do something smarter if "parseCommon" fails!
-  auto success = parseCommon(cfg_file, state);
+  // TODO(miker2): Do something smarter if "parseCommon" fails!
+  parseCommon(cfg_file, state);
 
   Parser parser;
   return Reader(parser.resolveConfig(state));
@@ -126,7 +126,8 @@ auto Parser::parse(std::string_view cfg_string, std::string_view source) -> Read
   peg::memory_input cfg_file(cfg_string, source);
   config::ActionData state;
 
-  auto success = parseCommon(cfg_file, state);
+  // TODO(miker2): Do something smarter if "parseCommon" fails!
+  parseCommon(cfg_file, state);
 
   Parser parser;
   return Reader(parser.resolveConfig(state));

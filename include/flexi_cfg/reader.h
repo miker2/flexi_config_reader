@@ -21,7 +21,7 @@ namespace flexi_cfg {
 
 class Reader {
  public:
-  explicit Reader(config::types::CfgMap cfg, const std::string& parent = "");
+  explicit Reader(config::types::CfgMap cfg, std::string parent = "");
   ~Reader() = default;
 
   Reader(const Reader&) = default;
