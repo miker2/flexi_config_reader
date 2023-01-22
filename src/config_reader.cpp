@@ -3,7 +3,10 @@
 
 #include <algorithm>
 #include <iostream>
+#include <range/v3/range/conversion.hpp>
+#include <string>
 #include <tao/pegtl.hpp>
+#include <vector>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
@@ -16,7 +19,10 @@
 
 namespace flexi_cfg {
 
-Reader::Reader(config::types::CfgMap cfg) : cfg_data_(std::move(cfg)) {}
+Reader::Reader(config::types::CfgMap cfg, const std::string& parent)
+    : cfg_data_(std::move(cfg)), parent_name_(parent) {}
+
+void Reader::dump() const { std::cout << cfg_data_; }
 
 auto Reader::exists(const std::string& key) const -> bool {
   try {
@@ -31,7 +37,9 @@ auto Reader::exists(const std::string& key) const -> bool {
   }
 }
 
-void Reader::dump() const { std::cout << cfg_data_; }
+auto Reader::keys() const -> std::vector<std::string> {
+  return cfg_data_ | ranges::views::keys | ranges::to<std::vector<std::string>>;
+}
 
 auto Reader::getNestedConfig(const std::string& key) const
     -> std::pair<std::string, const config::types::CfgMap&> {
@@ -117,6 +125,21 @@ void Reader::convert(const std::string& value_str, config::types::Type type, std
   }
   value = value_str;
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
+}
+
+void Reader::getValue(const std::string& name, Reader& reader) const {
+  // Split the key into parts
+  const auto keys = utils::split(name, '.');
+  auto cfg_value = config::helpers::getConfigValue(cfg_data_, keys);
+  const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(cfg_value);
+  if (struct_like == nullptr) {
+    // throw an exception here
+    THROW_EXCEPTION(config::MismatchTypeException,
+                    "Expected struct type when reading {}, but have '{}' type.",
+                    utils::makeName(parent_name_, name), cfg_value->type);
+  }
+
+  reader = Reader(struct_like->data, name);
 }
 
 }  // namespace flexi_cfg

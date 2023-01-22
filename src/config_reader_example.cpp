@@ -88,6 +88,29 @@ auto main(int argc, char* argv[]) -> int {
       const auto out_f = cfg.getValue<float>(int_key);
       fmt::print("Value of '{}' is: {}\n", int_key, out_f);
     }
+    {
+      // We can get a sub-struct:
+      const std::string struct_key = "this.is";
+      const auto out = cfg.getValue<flexi_cfg::Reader>(struct_key);
+      fmt::print("Value of '{}' is: \n", struct_key);
+      out.dump();
+
+      try {
+        // Look for a sub-struct that isn't a substruct
+        const std::string bad_key = "this.is.a.flat.key";
+        const auto fail = cfg.getValue<flexi_cfg::Reader>(bad_key);
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
+
+      try {
+        // Look for a sub-struct that isn't a substruct
+        const std::string bad_key = "this.is.an";
+        const auto fail = cfg.getValue<flexi_cfg::Reader>(bad_key);
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
+    }
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
     return EXIT_FAILURE;

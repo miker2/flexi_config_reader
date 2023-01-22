@@ -39,7 +39,8 @@ TEST_P(InputString, Parse) {
 
 TEST_P(InputString, ConfigReaderParse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
-  flexi_cfg::Reader cfg({});
+  flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
+                                  // capture the output of 'parse' from within the "try/catch" block
 
   EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));

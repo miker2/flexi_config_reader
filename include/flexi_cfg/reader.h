@@ -21,7 +21,7 @@ namespace flexi_cfg {
 
 class Reader {
  public:
-  explicit Reader(config::types::CfgMap cfg);
+  explicit Reader(config::types::CfgMap cfg, const std::string& parent = "");
   ~Reader() = default;
 
   Reader(const Reader&) = default;
@@ -32,6 +32,8 @@ class Reader {
   void dump() const;
 
   auto exists(const std::string& key) const -> bool;
+
+  auto keys() const -> std::vector<std::string>;
 
   template <typename T>
   auto getValue(const std::string& name) const -> T;
@@ -50,6 +52,8 @@ class Reader {
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
+  Reader() = default;
+
   static void convert(const std::string& value_str, config::types::Type type, float& value);
   static void convert(const std::string& value_str, config::types::Type type, double& value);
   static void convert(const std::string& value_str, config::types::Type type, int& value);
@@ -57,9 +61,20 @@ class Reader {
   static void convert(const std::string& value_str, config::types::Type type, bool& value);
   static void convert(const std::string& value_str, config::types::Type type, std::string& value);
 
+  void getValue(const std::string& name, Reader& reader) const;
+
   // All of the config data!
   config::types::CfgMap cfg_data_;
+  // Store the name of the parent struct for debugging/printing
+  std::string parent_name_;
 };
+
+template <typename T>
+auto Reader::getValue(const std::string& name) const -> T {
+  T value{};
+  getValue(name, value);
+  return value;
+}
 
 template <typename T>
 void Reader::getValue(const std::string& name, T& value) const {
@@ -84,7 +99,8 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
     THROW_EXCEPTION(config::InvalidTypeException,
-                    "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
+                    "Expected '{}' to contain a list, but is of type {}",
+                    utils::makeName(parent_name_, name), cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
@@ -107,26 +123,21 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
   // Ensure this is a list if the user is asking for a list.
   if (cfg_val->type != config::types::Type::kList) {
     THROW_EXCEPTION(config::InvalidTypeException,
-                    "Expected '{}' to contain a list, but is of type {}", name, cfg_val->type);
+                    "Expected '{}' to contain a list, but is of type {}",
+                    utils::makeName(parent_name_, name), cfg_val->type);
   }
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
   if (list.size() != N) {
-    THROW_EXCEPTION(std::runtime_error, "Expected {} entries in '{}', but found {}!", N, cfg_val,
-                    list.size());
+    THROW_EXCEPTION(std::runtime_error,
+                    "While reading '{}': Expected {} entries in '{}', but found {}!",
+                    utils::makeName(parent_name_, name), N, cfg_val, list.size());
   }
   for (size_t i = 0; i < N; ++i) {
     const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);
     const auto value_str = value_ptr->value;
     convert(value_str, value_ptr->type, value[i]);
   }
-}
-
-template <typename T>
-auto Reader::getValue(const std::string& name) const -> T {
-  T value{};
-  getValue(name, value);
-  return value;
 }
 
 }  // namespace flexi_cfg
