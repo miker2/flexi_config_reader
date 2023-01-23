@@ -133,7 +133,8 @@ struct BOOLEAN : peg::sor<TRUE, FALSE> {};
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 struct LIST;
-struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, LIST> {};
+struct VALUE_LOOKUP;
+struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, VALUE_LOOKUP, LIST> {};
 // 'seq' is used here so that the 'VALUE' action will collect the location information.
 struct LIST_ELEMENT : peg::seq<VALUE> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
@@ -155,6 +156,9 @@ struct VARc : peg::seq<peg::upper, peg::star<peg::ranges<'A', 'Z', '0', '9', '_'
 struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg::one<'}'>>, VARc>> {
 };
 
+struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
+                               peg::one<')'>> {};
+
 // A special type of list for lists containing VAR elements.
 struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
@@ -163,9 +167,6 @@ struct PROTO_LIST : peg::seq<SBo, WS_, peg::list<PROTO_LIST_ELEMENT, COMMA, peg:
   using end = SBc;
   using element = PROTO_LIST_ELEMENT;
 };
-
-struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
-                               peg::one<')'>> {};
 
 struct KV_NOMINAL : peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION> {};
 
