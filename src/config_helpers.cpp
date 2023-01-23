@@ -241,6 +241,12 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         } else if (e->type == types::Type::kString) {
           e = replace_var_in_str(e);
         }
+        if (!listElementValid(v_list, e->type)) {
+          THROW_EXCEPTION(InvalidTypeException,
+                          "While resolving a reference in {} ({}), encountered an incorrect type. "
+                          "Expected {}, but found {}",
+                          k, v_list->loc(), v_list->list_element_type, e->type);
+        }
         // If this is any other type, we're going to skip it
       }
       logger::trace("Resolved list: {}", v_list);
@@ -359,6 +365,10 @@ auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::Confi
   return getConfigValue(cfg, var->keys);
 }
 
+/// \brief Handles the resolution of kValueLookup objects
+/// \param root - The root of the config tree
+/// \param src_key - The key from which the kValueLookup originates
+/// \param src - The kValueLookup object itself
 auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
                     const std::shared_ptr<types::ConfigBase>& src)
     -> std::shared_ptr<types::ConfigBase> {
@@ -415,6 +425,26 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                           kvl.first, src_key, kv.second, kv.second->loc(), value, value->type);
         }
         expression->value_lookups[kvl.first] = value;
+      }
+    } else if (kv.second && kv.second->type == types::Type::kList) {
+      // Check the elements of the list to see if it contains any kValueLookup objects
+      auto list = dynamic_pointer_cast<types::ConfigList>(kv.second);
+      for (auto& el : list->data) {
+        if (el->type == types::Type::kValueLookup) {
+          logger::trace("Found {} in {}.{} which is a {}", el->type, parent_key, kv.first,
+                        kv.second->type);
+          const auto el_resolved = resolveVarRefs(root, src_key, el);
+          // Since this list contains a ValueLookup, we need to check if it is consistent (i.e. all
+          // elements in the list are of the same type)
+          if (!listElementValid(list, el_resolved->type)) {
+            THROW_EXCEPTION(InvalidTypeException,
+                            "While resolving a key/value reference ($({})) in {} (type: {}), "
+                            "encountered an incorrect type. Expected {}, but found {}",
+                            dynamic_pointer_cast<types::ConfigValueLookup>(el)->var(), src_key,
+                            kv.second->type, list->list_element_type, el_resolved->type);
+          }
+          el = el_resolved;
+        }
       }
     } else if (isStructLike(kv.second)) {
       resolveVarRefs(root, dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, src_key);
@@ -533,6 +563,20 @@ void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
   for (const auto& key : to_erase) {
     cfg.erase(key);
   }
+}
+
+bool listElementValid(std::shared_ptr<types::ConfigList> list, types::Type type) {
+  bool valid = true;
+  if (type == types::Type::kVar || type == types::Type::kValueLookup ||
+      type == types::Type::kExpression) {
+    // This is a VAR or VALUE_LOOKUP, so we'll just continue. It's okay to mix these. We'll resolve
+    // them later.
+  } else if (list->list_element_type == types::Type::kUnknown) {
+    list->list_element_type = type;
+  } else if (list->list_element_type != type) {
+    valid = false;
+  }
+  return valid;
 }
 
 }  // namespace flexi_cfg::config::helpers

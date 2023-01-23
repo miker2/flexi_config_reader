@@ -256,7 +256,8 @@ template <>
 /* struct action<PROTO_LIST::begin> */
 struct action<LIST::begin> {
   static void apply0(ActionData& out) {
-    CONFIG_ACTION_TRACE("In LIST::begin action - creating {}", types::Type::kList);
+    CONFIG_ACTION_TRACE("In LIST::begin action - creating {} for {}", types::Type::kList,
+                        out.keys.back());
     out.lists.push_back(std::make_shared<types::ConfigList>());
   }
 };
@@ -266,11 +267,7 @@ struct action<LIST::element> {
   static void apply0(ActionData& out) {
     CONFIG_ACTION_TRACE("In LIST::element action - adding {}", out.obj_res);
     // Add (or check) the type of the elements in the list
-    if (out.obj_res->type == types::Type::kValueLookup) {
-      // This is a VALUE_LOOKUP, so we'll continue. It's okay to mix these. We'll resolve them later
-    } else if (out.lists.back()->list_element_type == types::Type::kUnknown) {
-      out.lists.back()->list_element_type = out.obj_res->type;
-    } else if (out.lists.back()->list_element_type != out.obj_res->type) {
+    if (!helpers::listElementValid(out.lists.back(), out.obj_res->type)) {
       const auto key = !out.keys.empty() ? out.keys.back() : "";
       THROW_EXCEPTION(InvalidTypeException,
                       "While processing '{}' at {}, found {}, but expected {}. All elements in {} "
@@ -297,11 +294,7 @@ struct action<PROTO_LIST::element> {
   static void apply0(ActionData& out) {
     CONFIG_ACTION_TRACE("In PROTO_LIST::element action - adding {}", out.obj_res);
     // Add (or check) the type of the elements in the list
-    if (out.obj_res->type == types::Type::kVar || out.obj_res->type == types::Type::kValueLookup) {
-      // This is a VAR, so we'll just continue. It's okay to mix these. We'll resolve them later
-    } else if (out.lists.back()->list_element_type == types::Type::kUnknown) {
-      out.lists.back()->list_element_type = out.obj_res->type;
-    } else if (out.lists.back()->list_element_type != out.obj_res->type) {
+    if (!helpers::listElementValid(out.lists.back(), out.obj_res->type)) {
       const auto key = !out.keys.empty() ? out.keys.back() : "";
       THROW_EXCEPTION(InvalidTypeException,
                       "While processing '{}' at {}, found {}, but expected {}. All elements in {} "
