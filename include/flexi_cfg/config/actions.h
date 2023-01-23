@@ -256,8 +256,7 @@ template <>
 /* struct action<PROTO_LIST::begin> */
 struct action<LIST::begin> {
   static void apply0(ActionData& out) {
-    CONFIG_ACTION_TRACE("In LIST::begin action - creating {} for {}", types::Type::kList,
-                        out.keys.back());
+    CONFIG_ACTION_TRACE("In LIST::begin action - creating {}", types::Type::kList);
     out.lists.push_back(std::make_shared<types::ConfigList>());
   }
 };
