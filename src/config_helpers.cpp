@@ -400,6 +400,35 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
 
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key) {
+  auto resolve_expression_vars = [&root](std::shared_ptr<types::ConfigExpression>& expression,
+                                         const std::string& src_key) {
+    assert(expression != nullptr);
+    logger::trace("Calling resolve_expression_vars with expression={}, src_key={}", expression,
+                  src_key);
+    for (auto& kvl : expression->value_lookups) {
+      if (kvl.second->type == types::Type::kNumber) {
+        // We may have already resolved this variable, so no need to do anything
+        continue;
+      }
+      logger::trace("Attempting to resolve {} = {}", kvl.first, kvl.second);
+      auto value = resolveVarRefs(root, src_key, kvl.second);
+      if (value->type == types::Type::kExpression) {
+        logger::debug("Found sub expression '{}' when trying to evaluate '{}'.", kvl.first,
+                      src_key);
+        // Follow the trail!
+        auto sub_expression = dynamic_pointer_cast<types::ConfigExpression>(value);
+        value = evaluateExpression(sub_expression, src_key);
+      }
+      if (value->type != types::Type::kNumber) {
+        THROW_EXCEPTION(InvalidTypeException,
+                        "All key/value references in expressions must be of numeric type!\n"
+                        "When looking up '{}' in '{} = {}' at {} found '{}' of type {}.",
+                        kvl.first, src_key, expression, expression->loc(), value, value->type);
+      }
+      expression->value_lookups[kvl.first] = value;
+    }
+  };
+
   for (const auto& kv : sub_tree) {
     const auto src_key = utils::makeName(parent_key, kv.first);
     if (kv.second && kv.second->type == types::Type::kValueLookup) {
@@ -408,24 +437,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       sub_tree[kv.first] = resolveVarRefs(root, src_key, kv.second);
     } else if (kv.second && kv.second->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
-      for (auto& kvl : expression->value_lookups) {
-        logger::trace("Attempting to resolve {} = {}", kvl.first, kvl.second);
-        auto value = resolveVarRefs(root, src_key, kvl.second);
-        if (value->type == types::Type::kExpression) {
-          logger::debug("Found sub expression '{}' when trying to evaluate '{}'.", kvl.first,
-                        src_key);
-          // Follow the trail!
-          auto sub_expression = dynamic_pointer_cast<types::ConfigExpression>(value);
-          value = evaluateExpression(sub_expression, src_key);
-        }
-        if (value->type != types::Type::kNumber) {
-          THROW_EXCEPTION(InvalidTypeException,
-                          "All key/value references in expressions must be of numeric type!\n"
-                          "When looking up '{}' in '{} = {}' at {} found '{}' of type {}.",
-                          kvl.first, src_key, kv.second, kv.second->loc(), value, value->type);
-        }
-        expression->value_lookups[kvl.first] = value;
-      }
+      resolve_expression_vars(expression, src_key);
     } else if (kv.second && kv.second->type == types::Type::kList) {
       // Check the elements of the list to see if it contains any kValueLookup objects
       auto list = dynamic_pointer_cast<types::ConfigList>(kv.second);
@@ -444,6 +456,10 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                             kv.second->type, list->list_element_type, el_resolved->type);
           }
           el = el_resolved;
+        } else if (el->type == types::Type::kExpression) {
+          logger::trace("Found {} ({}) in {}", el->type, el, list);
+          auto expression = dynamic_pointer_cast<types::ConfigExpression>(el);
+          resolve_expression_vars(expression, src_key);
         }
       }
     } else if (isStructLike(kv.second)) {
@@ -483,6 +499,21 @@ void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {
       logger::debug("Evaluating expression {} = {}", key, kv.second);
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
       cfg[kv.first] = evaluateExpression(expression);
+    } else if (kv.second && kv.second->type == types::Type::kList) {
+      auto list = dynamic_pointer_cast<types::ConfigList>(kv.second);
+      for (auto& el : list->data) {
+        if (el->type == types::Type::kExpression) {
+          logger::debug("Found a list element that contains an expression: {}!", el);
+          auto expression = dynamic_pointer_cast<types::ConfigExpression>(el);
+          el = evaluateExpression(expression);
+          if (!listElementValid(list, el->type)) {
+            logger::critical("Invalid list element type! Expected {}, but got {}",
+                             list->list_element_type, el->type);
+            THROW_EXCEPTION(InvalidTypeException,
+                            "Resulting element of list '{}' has invalid type {}", list, el->type);
+          }
+        }
+      }
     } else if (isStructLike(kv.second)) {
       evaluateExpressions(dynamic_pointer_cast<types::ConfigStructLike>(kv.second)->data, key);
     }
