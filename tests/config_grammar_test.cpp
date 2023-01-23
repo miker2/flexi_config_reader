@@ -396,6 +396,14 @@ TEST(ConfigGrammar, LIST) {
     checkList(content);
   }
   {
+    const std::string content = "[0.123, $(ref.var), 3.456]";
+    checkList(content);
+  }
+  {
+    const std::string content = "[$(ref.var2), $(ref.var1), 3.456]";
+    checkList(content);
+  }
+  {
     // Non-homogeneous lists are not allowed
     const std::string content = R"([12, "two", 10.2])";
     std::optional<RetType> ret;
@@ -593,6 +601,14 @@ TEST(ConfigGrammar, PROTOLIST) {
   }
   {
     const std::string content = "[0.35, 12, 0xA4, -1e+4]";
+    checkProtoList(content);
+  }
+  {
+    const std::string content = "[0.35, $(foo.bar), 0xA4, -1e+4]";
+    checkProtoList(content);
+  }
+  {
+    const std::string content = "[0.35, $(foo.bar), 0xA4, $TEST]";
     checkProtoList(content);
   }
   {

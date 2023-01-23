@@ -176,24 +176,11 @@ The following value types are supported:
 3.  *Hexadecimal* (i.e. 0x[0-9a-fA-f]+, upper- or lower-case characers are supported). These resolve to an integer
 4.  *Strings* - Any set of characters enclosed by double-quotes
 5.  *Boolean* (`true` or `false`)
-6.  *List/Array* - a bracket-enclosed, comma-separated list of same-typed values from the types listed above (i.e. one may define a list of strings or floating-point numbers, but not a mixed combination of the two).
+6.  *List/Array* - a bracket-enclosed, comma-separated list of same-typed values from the types listed above (i.e. one may define a list of strings or floating-point numbers, but not a mixed combination of the two). The exception to this rule is that lists may contain variables (e.g. `$VAR`), [key-value references](#key-value-references) and/or [expressions](#mathematical-expressions), but when resolved, the list elements must be homogeneous.
 
 ### Mathematical expressions
 
-The config syntax also supports the ability to express mathematical expressions using numbers and key-value references. When using key-value references within a mathematical expression, the value must evaluate to a numeric value (chained references are allowed as long as the end of the chain is numeric). Mathematical expressions are enclosed within a set of opening and closing curly braces (i.e. `{{` and `}}`). The keyword `pi` may also be used to represent the value of pi more precisely. E.g.
-
-```
-struct foo {
-  key1 = 1.25
-  key2 = -2
-  val = {{ $(foo.key1) * $(foo.key2) }}
-}
-
-struct bar {
-  key1 = 1e-2
-  key2 = {{ $(foo.val) * $(bar.key1) ^ 0.5 + 10 }}
-}
-```
+The config syntax also supports the ability to express mathematical expressions using numbers and [key-value references](#key-value-references). When using key-value references within a mathematical expression, the value must evaluate to a numeric value (chained references are allowed as long as the end of the chain is numeric). Mathematical expressions are enclosed within a set of opening and closing curly braces (i.e. `{{` and `}}`). The keyword `pi` may also be used to represent the value of pi more precisely.
 
 The following operators are supported:
 *  `+` - plus (both binary and unary)
@@ -203,6 +190,36 @@ The following operators are supported:
 *  `^` or `**` - power
 *  `pi` - the value of pi
 *  `(` and `)` - Parentheses grouping operations
+
+The following example:
+
+```
+struct foo {
+  key1 = 1.25
+  key2 = -2
+  val = {{ $(foo.key1) * $(foo.key2) + 2*pi }}
+}
+
+struct bar {
+  key1 = 1e-2
+  key2 = {{ $(foo.val) * $(bar.key1) ^ 0.5 + 10 }}
+}
+```
+
+will evaluate to:
+
+```
+struct foo {
+  key1 = 1.25
+  key2 = -2
+  val = 3.78318
+}
+
+struct bar {
+  key1 = 1e-2
+  key2 = 10.378318
+}
+```
 
 ### Comments
 

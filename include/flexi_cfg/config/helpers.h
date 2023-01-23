@@ -68,6 +68,7 @@ auto getConfigValue(const types::CfgMap& cfg, const std::vector<std::string>& ke
 auto getConfigValue(const types::CfgMap& cfg, const std::shared_ptr<types::ConfigValueLookup>& var)
     -> types::BasePtr;
 
+/// \brief Finds all ValueLookup objects and resolves them
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key = "");
 
@@ -85,5 +86,7 @@ auto unflatten(std::span<std::string> keys, const types::CfgMap& cfg) -> types::
 void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t depth = 0);
 
 void cleanupConfig(types::CfgMap& cfg, std::size_t depth = 0);
+
+bool listElementValid(std::shared_ptr<types::ConfigList> list, types::Type type);
 
 }  // namespace flexi_cfg::config::helpers
