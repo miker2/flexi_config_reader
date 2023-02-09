@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
@@ -18,10 +19,7 @@ auto main(int argc, char* argv[]) -> int {
   try {
     const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
-    flexi_cfg::Reader cfg;
-    if (!cfg.parse(cfg_file)) {
-      flexi_cfg::logger::error("Failed to parse {}", cfg_file.string());
-    }
+    auto cfg = flexi_cfg::Parser::parse(cfg_file);
 
     flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
 
@@ -89,6 +87,36 @@ auto main(int argc, char* argv[]) -> int {
       // TODO(miker2): Decide if we should allow this or if it should be a failure.
       const auto out_f = cfg.getValue<float>(int_key);
       fmt::print("Value of '{}' is: {}\n", int_key, out_f);
+    }
+    {
+      // We can get a sub-struct:
+      const std::string struct_key = "this.is";
+      const auto out = cfg.getValue<flexi_cfg::Reader>(struct_key);
+      fmt::print("Value of '{}' is: \n", struct_key);
+      out.dump();
+
+      try {
+        // Look for a sub-struct that isn't a substruct
+        const std::string bad_key = "this.is.a.flat.key";
+        const auto fail = cfg.getValue<flexi_cfg::Reader>(bad_key);
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
+
+      try {
+        // Look for a sub-struct that isn't a substruct
+        const std::string bad_key = "this.is.an";
+        const auto fail = cfg.getValue<flexi_cfg::Reader>(bad_key);
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
+    }
+    {
+      // Find the name of all structs containing a specific key
+      const std::string key = "offset";
+      const auto& structs = cfg.findStructsWithKey(key);
+      fmt::print("Found the following that contain '{}': \n\t{}\n", key,
+                 fmt::join(structs, "\n\t"));
     }
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
