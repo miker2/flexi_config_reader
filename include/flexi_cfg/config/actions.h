@@ -135,7 +135,7 @@ template <>
 struct action<VALUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (out.obj_res == nullptr || out.obj_res->type == types::Type::kValue) {
+    if (out.obj_res == nullptr) {
       // NOTE: This should never happen! This probably means that an action corresponding to a token
       // is missing.
       const auto pre_post = std::string(10, '!');
@@ -144,7 +144,8 @@ struct action<VALUE> {
       throw std::logic_error(
           "The 'VALUE' action should never be executed on a nullptr! This is likely the result of "
           "a new token being added to the grammar without a corresponding action being created.");
-    } else if (out.obj_res->type == types::Type::kValue) {
+    }
+    if (out.obj_res != nullptr && out.obj_res->type == types::Type::kValue) {
       // NOTE: The `kValue` type exists only for testing purposes. An object should never be created
       // of this type when parsing a file. This is likely the result of an ill-formed action.
       const auto pre_post = std::string(10, '!');

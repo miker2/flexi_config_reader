@@ -306,6 +306,7 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
     // See: https://stackoverflow.com/a/25069711
     struct make_shared_enabler : public ConfigStruct {};
     auto cloned =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
     for (const auto& kv : data) {
       (*cloned)[kv.first] = kv.second->clone();
@@ -342,6 +343,7 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
     // See: https://stackoverflow.com/a/25069711
     struct make_shared_enabler : public ConfigProto {};
     auto cloned =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
     for (const auto& kv : data) {
       (*cloned)[kv.first] = kv.second->clone();

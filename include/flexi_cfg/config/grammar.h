@@ -35,7 +35,7 @@ struct expression;
 
 namespace config {
 
-// TODO: Update this
+// TODO(miker2): Update this
 // clang-format off
 /*
 grammar my_config
@@ -189,7 +189,7 @@ template <typename Start, typename Content>
 struct STRUCT_LIKE : peg::seq<Start, Content, END, TAIL> {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
-struct REFc : peg::plus<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
+struct REFc : peg::star<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
 struct REFERENCE : STRUCT_LIKE<REFs, REFc> {};
 
 struct PROTOc;
