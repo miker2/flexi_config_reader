@@ -596,7 +596,7 @@ void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
   }
 }
 
-bool listElementValid(std::shared_ptr<types::ConfigList> list, types::Type type) {
+auto listElementValid(const std::shared_ptr<types::ConfigList>& list, types::Type type) -> bool {
   bool valid = true;
   if (type == types::Type::kVar || type == types::Type::kValueLookup ||
       type == types::Type::kExpression) {

@@ -125,6 +125,10 @@ TEST(ConfigException, DuplicateKeyException) {
     peg::memory_input in_cfg(proto_pair_duplicate, "proto_foo.baz defined twice");
     EXPECT_THROW(parse(in_cfg), flexi_cfg::config::DuplicateKeyException);
   }
+  {
+    const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / "config_malformed3.cfg";
+    EXPECT_THROW(flexi_cfg::Parser::parse(in_file), flexi_cfg::config::DuplicateKeyException);
+  }
 }
 
 namespace {
@@ -242,6 +246,12 @@ TEST(ConfigException, UndefinedReferenceVarException) {
          }\n";
     EXPECT_NO_THROW(flexi_cfg::Parser::parse(extra_proto_var, "$EXTRA_KEY is unused"));
   }
+
+  {
+    const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / "config_malformed2.cfg";
+    EXPECT_THROW(flexi_cfg::Parser::parse(in_file),
+                 flexi_cfg::config::UndefinedReferenceVarException);
+  }
 }
 
 TEST(ConfigException, UndefinedProtoException) {
@@ -268,6 +278,14 @@ TEST_P(CyclicReference, Exception) {
   EXPECT_THROW(flexi_cfg::Parser::parse(in_file), flexi_cfg::config::CyclicReferenceException)
       << "Input file: " << in_file;
 }
-
 INSTANTIATE_TEST_SUITE_P(ConfigException, CyclicReference,
                          testing::Values("config_cyclic1.cfg", "config_cyclic2.cfg"));
+
+class InvalidConfig : public testing::TestWithParam<std::string> {};
+
+TEST_P(InvalidConfig, Exception) {
+  const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / GetParam();
+  EXPECT_THROW(flexi_cfg::Parser::parse(in_file), flexi_cfg::config::InvalidConfigException)
+      << "Input file: " << in_file;
+}
+INSTANTIATE_TEST_SUITE_P(ConfigException, InvalidConfig, testing::Values("config_malformed4.cfg"));

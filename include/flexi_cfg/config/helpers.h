@@ -87,6 +87,6 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
 
 void cleanupConfig(types::CfgMap& cfg, std::size_t depth = 0);
 
-bool listElementValid(std::shared_ptr<types::ConfigList> list, types::Type type);
+auto listElementValid(const std::shared_ptr<types::ConfigList>& list, types::Type type) -> bool;
 
 }  // namespace flexi_cfg::config::helpers

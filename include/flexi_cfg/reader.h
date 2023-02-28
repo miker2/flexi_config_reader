@@ -31,9 +31,9 @@ class Reader {
 
   void dump() const;
 
-  auto exists(const std::string& key) const -> bool;
+  [[nodiscard]] auto exists(const std::string& key) const -> bool;
 
-  auto keys() const -> std::vector<std::string>;
+  [[nodiscard]] auto keys() const -> std::vector<std::string>;
 
   template <typename T>
   auto getValue(const std::string& name) const -> T;
@@ -47,10 +47,10 @@ class Reader {
   template <typename T, size_t N>
   void getValue(const std::string& name, std::array<T, N>& value) const;
 
-  auto findStructsWithKey(const std::string& key) const -> std::vector<std::string>;
+  [[nodiscard]] auto findStructsWithKey(const std::string& key) const -> std::vector<std::string>;
 
  protected:
-  auto getNestedConfig(const std::string& key) const
+  [[nodiscard]] auto getNestedConfig(const std::string& key) const
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
