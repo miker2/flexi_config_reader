@@ -147,6 +147,19 @@ struct fuzz {
 }
 ```
 
+NOTE: A `proto` with no variables may be referenced using empty curly braces, e.g. The following is valid syntax:
+
+```
+proto foo {
+  bar = 1
+  baz = "test"
+}
+
+reference foo as copy {}
+```
+
+This construct is useful when you want to fully define a portion of the config and then reference (i.e. copy) it in other places within the config file.
+
 ### Key-value references
 
 As mentioned above, existing values may be referenced by their key in order to define a different key/value pair. E.g.
