@@ -22,6 +22,7 @@ namespace flexi_cfg {
 class Reader {
  public:
   explicit Reader(config::types::CfgMap cfg, std::string parent = "");
+  Reader() = default;
   ~Reader() = default;
 
   Reader(const Reader&) = default;
@@ -54,8 +55,6 @@ class Reader {
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
-  Reader() = default;
-
   static void convert(const std::string& value_str, config::types::Type type, float& value);
   static void convert(const std::string& value_str, config::types::Type type, double& value);
   static void convert(const std::string& value_str, config::types::Type type, int& value);
