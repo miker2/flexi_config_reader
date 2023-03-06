@@ -123,16 +123,10 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
                     "Expected '{}' to contain a list, but is of type {}",
                     utils::makeName(parent_name_, name), cfg_val->type);
   }
-
   logger::debug("Reading vector of type: {}", typeid(T).name());
 
-  const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
-  for (const auto& e : list) {
-    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
-    T v{};
-    convert(value_ptr, v);
-    value.emplace_back(v);
-  }
+  const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+  convert(value_ptr, value);
 }
 
 template <typename T, size_t N>
