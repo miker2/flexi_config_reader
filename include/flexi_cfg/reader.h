@@ -55,12 +55,12 @@ class Reader {
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, float& value);
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, double& value);
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, int& value);
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, int64_t& value);
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, bool& value);
-  static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::string& value);
+  static void convert(const config::types::ValuePtr& value_ptr, float& value);
+  static void convert(const config::types::ValuePtr& value_ptr, double& value);
+  static void convert(const config::types::ValuePtr& value_ptr, int& value);
+  static void convert(const config::types::ValuePtr& value_ptr, int64_t& value);
+  static void convert(const config::types::ValuePtr& value_ptr, bool& value);
+  static void convert(const config::types::ValuePtr& value_ptr, std::string& value);
 
   // template <typename T>
   // static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::vector<T>& value); 

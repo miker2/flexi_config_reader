@@ -27,6 +27,9 @@ using RefMap = std::map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
 
+class ConfigValue;
+using ValuePtr = std::shared_ptr<ConfigValue>;
+
 enum class Type {
   kValue,
   kString,

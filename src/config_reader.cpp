@@ -78,7 +78,7 @@ auto Reader::getNestedConfig(const std::string& key) const
   return {keys.back(), data};
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, float& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, float& value) {
   if (value_ptr->type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     value_ptr->type);
@@ -92,7 +92,7 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   }
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, double& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, double& value) {
   if (value_ptr->type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     value_ptr->type);
@@ -106,7 +106,7 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   }
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, int& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, int& value) {
   if (value_ptr->type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     value_ptr->type);
@@ -120,7 +120,7 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   }
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, int64_t& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, int64_t& value) {
   if (value_ptr->type != config::types::Type::kNumber) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
                     value_ptr->type);
@@ -134,7 +134,7 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   }
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, bool& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, bool& value) {
   if (value_ptr->type != config::types::Type::kBoolean) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected boolean type, but have '{}' type.",
                     value_ptr->type);
@@ -142,7 +142,7 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   value = value_ptr->value == "true";
 }
 
-void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::string& value) {
+void Reader::convert(const config::types::ValuePtr& value_ptr, std::string& value) {
   if (value_ptr->type != config::types::Type::kString) {
     THROW_EXCEPTION(config::MismatchTypeException, "Expected string type, but have '{}' type.",
                     value_ptr->type);
