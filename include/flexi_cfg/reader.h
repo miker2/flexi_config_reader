@@ -64,6 +64,8 @@ class Reader {
 
   template <typename T>
   static void convert(const config::types::ValuePtr& value_ptr, std::vector<T>& value);
+  template <typename T, size_t N>
+  static void convert(const config::types::ValuePtr& value_ptr, std::array<T, N>& value);
 
   void getValue(const std::string& name, Reader& reader) const;
 
@@ -110,6 +112,28 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   }
 }
 
+template <typename T, size_t N>
+void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr,
+                     std::array<T, N>& value) {
+  logger::debug("In Reader::convert for T = '{}'", typeid(T).name());
+  assert(value_ptr != nullptr && "value_ptr is a nullptr");
+
+  const auto list_ptr = dynamic_pointer_cast<config::types::ConfigList>(value_ptr);
+  assert(list_ptr != nullptr && "Cannot convert from ConfigValue to ConfigList");
+  logger::debug("List values: '[{}]'", fmt::join(list_ptr->data, ", "));
+
+  if (list_ptr->data.size() != N) {
+    THROW_EXCEPTION(std::runtime_error,
+                    "Expected {} entries in '{}', but found {}!",
+                    N, value_ptr, list_ptr->data.size());
+  }
+
+  for (size_t i = 0; i < N; ++i) {
+    const auto list_value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list_ptr->data[i]);
+    convert(list_value_ptr, value[i]);
+  }
+}
+
 template <typename T>
 void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   // Split the key into parts
@@ -142,16 +166,14 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
                     "Expected '{}' to contain a list, but is of type {}",
                     utils::makeName(parent_name_, name), cfg_val->type);
   }
+  logger::debug("Reading array of type: {}", typeid(T).name());
 
-  const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
-  if (list.size() != N) {
+  try {
+    const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+    convert(value_ptr, value);
+  } catch (const std::runtime_error& e) {
     THROW_EXCEPTION(std::runtime_error,
-                    "While reading '{}': Expected {} entries in '{}', but found {}!",
-                    utils::makeName(parent_name_, name), N, cfg_val, list.size());
-  }
-  for (size_t i = 0; i < N; ++i) {
-    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);
-    convert(value_ptr, value[i]);
+    "While reading '{}': {}", utils::makeName(parent_name_, name), e.what());
   }
 }
 
