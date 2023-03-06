@@ -98,10 +98,14 @@ template <typename T>
 void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr,
                      std::vector<T>& value) {
   logger::debug("In Reader::convert for T = '{}'", typeid(T).name());
+
   assert(value_ptr != nullptr && "value_ptr is a nullptr");
 
   const auto list_ptr = dynamic_pointer_cast<config::types::ConfigList>(value_ptr);
-  assert(list_ptr != nullptr && "Cannot convert from ConfigValue to ConfigList");
+  if (list_ptr == nullptr) {
+    THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
+                    config::types::Type::kList, value_ptr->type);
+  }
   logger::debug("List values: '[{}]'", fmt::join(list_ptr->data, ", "));
 
   for (const auto& e : list_ptr->data) {
@@ -119,13 +123,15 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
   assert(value_ptr != nullptr && "value_ptr is a nullptr");
 
   const auto list_ptr = dynamic_pointer_cast<config::types::ConfigList>(value_ptr);
-  assert(list_ptr != nullptr && "Cannot convert from ConfigValue to ConfigList");
+  if (list_ptr == nullptr) {
+    THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
+                    config::types::Type::kList, value_ptr->type);
+  }
   logger::debug("List values: '[{}]'", fmt::join(list_ptr->data, ", "));
 
   if (list_ptr->data.size() != N) {
-    THROW_EXCEPTION(std::runtime_error,
-                    "Expected {} entries in '{}', but found {}!",
-                    N, value_ptr, list_ptr->data.size());
+    THROW_EXCEPTION(std::runtime_error, "Expected {} entries in '{}', but found {}!", N, value_ptr,
+                    list_ptr->data.size());
   }
 
   for (size_t i = 0; i < N; ++i) {
@@ -149,8 +155,14 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   }
   logger::debug("Reading vector of type: {}", typeid(T).name());
 
-  const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
-  convert(value_ptr, value);
+  try {
+    const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+    convert(value_ptr, value);
+  } catch (const std::runtime_error& e) {
+    // Catch and re-throw with extra information to aid in debugging.
+    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
+                    utils::makeName(parent_name_, name), e.what());
+  }
 }
 
 template <typename T, size_t N>
@@ -172,8 +184,9 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
     const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
     convert(value_ptr, value);
   } catch (const std::runtime_error& e) {
-    THROW_EXCEPTION(std::runtime_error,
-    "While reading '{}': {}", utils::makeName(parent_name_, name), e.what());
+    // Catch and re-throw with extra information to aid in debugging.
+    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
+                    utils::makeName(parent_name_, name), e.what());
   }
 }
 
