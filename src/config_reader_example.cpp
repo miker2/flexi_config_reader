@@ -93,6 +93,29 @@ auto main(int argc, char* argv[]) -> int {
       const auto my_nested_list_key = "outer.multi_list";
       const auto out = cfg.getValue<std::vector<std::vector<int>>>(my_nested_list_key);
       fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(out, ", "));
+
+      try {
+        auto arr_var = cfg.getValue<std::array<std::array<int, 3>, 3>>(my_nested_list_key);
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
+
+      const auto arr_vec = cfg.getValue<std::array<std::vector<int>, 3>>(my_nested_list_key);
+      fmt::print("Value of '{}' as array of vectors is : [{}]\n", my_nested_list_key,
+                 fmt::join(arr_vec, ", "));
+    }
+    {
+      // Read a list of lists
+      const auto my_nested_list_key = "outer.multi_array";
+      const auto out = cfg.getValue<std::vector<std::vector<float>>>(my_nested_list_key);
+      fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(out, ", "));
+
+      try {
+        auto arr_var = cfg.getValue<std::array<std::array<double, 3>, 2>>(my_nested_list_key);
+        fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(arr_var, ", "));
+      } catch (std::exception& e) {
+        flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
+      }
     }
     {
       // We can get a sub-struct:
