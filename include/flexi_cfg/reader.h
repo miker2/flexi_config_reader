@@ -55,12 +55,15 @@ class Reader {
       -> std::pair<std::string, const config::types::CfgMap&>;
 
  private:
-  static void convert(const std::string& value_str, config::types::Type type, float& value);
-  static void convert(const std::string& value_str, config::types::Type type, double& value);
-  static void convert(const std::string& value_str, config::types::Type type, int& value);
-  static void convert(const std::string& value_str, config::types::Type type, int64_t& value);
-  static void convert(const std::string& value_str, config::types::Type type, bool& value);
-  static void convert(const std::string& value_str, config::types::Type type, std::string& value);
+  static void convert(const config::types::ValuePtr& value_ptr, float& value);
+  static void convert(const config::types::ValuePtr& value_ptr, double& value);
+  static void convert(const config::types::ValuePtr& value_ptr, int& value);
+  static void convert(const config::types::ValuePtr& value_ptr, int64_t& value);
+  static void convert(const config::types::ValuePtr& value_ptr, bool& value);
+  static void convert(const config::types::ValuePtr& value_ptr, std::string& value);
+
+  template <typename T>
+  static void convert(const config::types::ValuePtr& value_ptr, std::vector<T>& value);
 
   void getValue(const std::string& name, Reader& reader) const;
 
@@ -85,9 +88,26 @@ void Reader::getValue(const std::string& name, T& value) const {
   const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
   const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
-  const auto value_str = value_ptr->value;
-  convert(value_str, value_ptr->type, value);
+  convert(value_ptr, value);
   logger::debug(" -- Type is {}", typeid(T).name());
+}
+
+template <typename T>
+void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr,
+                     std::vector<T>& value) {
+  logger::debug("In Reader::convert for T = '{}'", typeid(T).name());
+  assert(value_ptr != nullptr && "value_ptr is a nullptr");
+
+  const auto list_ptr = dynamic_pointer_cast<config::types::ConfigList>(value_ptr);
+  assert(list_ptr != nullptr && "Cannot convert from ConfigValue to ConfigList");
+  logger::debug("List values: '[{}]'", fmt::join(list_ptr->data, ", "));
+
+  for (const auto& e : list_ptr->data) {
+    const auto list_value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
+    T v{};
+    convert(list_value_ptr, v);
+    value.emplace_back(v);
+  }
 }
 
 template <typename T>
@@ -103,15 +123,10 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
                     "Expected '{}' to contain a list, but is of type {}",
                     utils::makeName(parent_name_, name), cfg_val->type);
   }
+  logger::debug("Reading vector of type: {}", typeid(T).name());
 
-  const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
-  for (const auto& e : list) {
-    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
-    const auto value_str = value_ptr->value;
-    T v{};
-    convert(value_str, value_ptr->type, v);
-    value.emplace_back(v);
-  }
+  const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+  convert(value_ptr, value);
 }
 
 template <typename T, size_t N>
@@ -136,8 +151,7 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
   }
   for (size_t i = 0; i < N; ++i) {
     const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(list[i]);
-    const auto value_str = value_ptr->value;
-    convert(value_str, value_ptr->type, value[i]);
+    convert(value_ptr, value[i]);
   }
 }
 

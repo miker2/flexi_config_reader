@@ -27,6 +27,9 @@ using RefMap = std::map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
 
+class ConfigValue;
+using ValuePtr = std::shared_ptr<ConfigValue>;
+
 enum class Type {
   kValue,
   kString,
@@ -168,9 +171,9 @@ class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
   ConfigValue(ConfigValue&&) = default;
 };
 
-class ConfigList : public ConfigBaseClonable<ConfigBase, ConfigList> {
+class ConfigList : public ConfigBaseClonable<ConfigValue, ConfigList> {
  public:
-  ConfigList() : ConfigBaseClonable(Type::kList){};
+  ConfigList(std::string value_in = "") : ConfigBaseClonable(std::move(value_in), Type::kList){};
 
   void stream(std::ostream& os) const override {
     os << "[";

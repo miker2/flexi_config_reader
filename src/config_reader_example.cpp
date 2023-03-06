@@ -89,6 +89,12 @@ auto main(int argc, char* argv[]) -> int {
       fmt::print("Value of '{}' is: {}\n", int_key, out_f);
     }
     {
+      // Read a list of lists
+      const auto my_nested_list_key = "outer.multi_list";
+      const auto out = cfg.getValue<std::vector<std::vector<int>>>(my_nested_list_key);
+      fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(out, ", "));
+    }
+    {
       // We can get a sub-struct:
       const std::string struct_key = "this.is";
       const auto out = cfg.getValue<flexi_cfg::Reader>(struct_key);
