@@ -93,9 +93,21 @@ void Reader::getValue(const std::string& name, T& value) const {
 }
 
 template <typename T>
-void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::vector<T>& value) {
-  logger::debug("value_ptr: {}", value_ptr);
-  logger::debug("value: {}, type: {}", value_ptr->value, value_ptr->type);
+void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr,
+                     std::vector<T>& value) {
+  logger::debug("In Reader::convert for T = '{}'", typeid(T).name());
+  assert(value_ptr != nullptr && "value_ptr is a nullptr");
+
+  const auto list_ptr = dynamic_pointer_cast<config::types::ConfigList>(value_ptr);
+  assert(list_ptr != nullptr && "Cannot convert from ConfigValue to ConfigList");
+  logger::debug("List values: '[{}]'", fmt::join(list_ptr->data, ", "));
+
+  for (const auto& e : list_ptr->data) {
+    const auto list_value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
+    T v{};
+    convert(list_value_ptr, v);
+    value.emplace_back(v);
+  }
 }
 
 template <typename T>
@@ -111,6 +123,8 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
                     "Expected '{}' to contain a list, but is of type {}",
                     utils::makeName(parent_name_, name), cfg_val->type);
   }
+
+  logger::debug("Reading vector of type: {}", typeid(T).name());
 
   const auto& list = dynamic_pointer_cast<config::types::ConfigList>(cfg_val)->data;
   for (const auto& e : list) {
