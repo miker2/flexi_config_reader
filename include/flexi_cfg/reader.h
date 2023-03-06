@@ -62,8 +62,8 @@ class Reader {
   static void convert(const config::types::ValuePtr& value_ptr, bool& value);
   static void convert(const config::types::ValuePtr& value_ptr, std::string& value);
 
-  // template <typename T>
-  // static void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::vector<T>& value); 
+  template <typename T>
+  static void convert(const config::types::ValuePtr& value_ptr, std::vector<T>& value);
 
   void getValue(const std::string& name, Reader& reader) const;
 
@@ -92,10 +92,11 @@ void Reader::getValue(const std::string& name, T& value) const {
   logger::debug(" -- Type is {}", typeid(T).name());
 }
 
-// template <typename T>
-// void convert(const std::string& value_str, config::types::Type type, std::vector<T>& value) {
-//   logger::debug("value_str: {}, type: {}", value_str, type);
-// }
+template <typename T>
+void convert(const std::shared_ptr<config::types::ConfigValue>& value_ptr, std::vector<T>& value) {
+  logger::debug("value_ptr: {}", value_ptr);
+  logger::debug("value: {}, type: {}", value_ptr->value, value_ptr->type);
+}
 
 template <typename T>
 void Reader::getValue(const std::string& name, std::vector<T>& value) const {
