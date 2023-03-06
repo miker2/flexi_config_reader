@@ -62,6 +62,9 @@ class Reader {
   static void convert(const std::string& value_str, config::types::Type type, bool& value);
   static void convert(const std::string& value_str, config::types::Type type, std::string& value);
 
+  template <typename T>
+  static void convert(const std::string& value_str, config::types::Type type, std::vector<T>& value); 
+
   void getValue(const std::string& name, Reader& reader) const;
 
   // All of the config data!
