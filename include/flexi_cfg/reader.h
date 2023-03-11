@@ -69,7 +69,9 @@ class Reader {
   [[nodiscard]] auto getNestedConfig(const std::string& key) const
       -> std::pair<std::string, const config::types::CfgMap&>;
 
- private:
+  /// \note: This method is here in order to enable the python bindings to more easily parse list types
+  [[nodiscard]] auto getCfgMap() const -> const config::types::CfgMap& { return cfg_data_; }
+
   static void convert(const config::types::ValuePtr& value_ptr, float& value);
   static void convert(const config::types::ValuePtr& value_ptr, double& value);
   static void convert(const config::types::ValuePtr& value_ptr, int& value);
@@ -78,6 +80,7 @@ class Reader {
   static void convert(const config::types::ValuePtr& value_ptr, bool& value);
   static void convert(const config::types::ValuePtr& value_ptr, std::string& value);
 
+ private:
   template <typename T>
   static void convert(const config::types::ValuePtr& value_ptr, std::vector<T>& value);
   template <typename T, size_t N>
