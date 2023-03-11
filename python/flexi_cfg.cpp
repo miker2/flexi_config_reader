@@ -91,15 +91,20 @@ PYBIND11_MODULE(py_flexi_cfg, m) {
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)
       .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
+      // Accessors for single values
       .def("getValue_int", &getValueHelper<int64_t>)
       .def("getValue_uint64", &getValueHelper<uint64_t>)
       .def("getValue_double", &getValueHelper<double>)
       .def("getValue_bool", &getValueHelper<bool>)
       .def("getValue_string", &getValueHelper<std::string>)
-      .def("getValue_reader", &getValueHelper<flexi_cfg::Reader>)
-      .def("getValue_list_str", &getListHelper<std::string>)
-      .def("getValue_list_int", &getListHelper<int>)
-      .def("getValue_list_double", &getListHelper<double>);
+      // Accessors for lists of values
+      .def("getValue_list_int", &getListHelper<int64_t>)
+      .def("getValue_list_uint64", &getListHelper<uint64_t>)
+      .def("getValue_list_double", &getListHelper<double>)
+      .def("getValue_list_bool", &getListHelper<bool>)
+      .def("getValue_list_string", &getListHelper<std::string>)
+      // Accessor for a sub-reader object
+      .def("getValue_reader", &getValueHelper<flexi_cfg::Reader>);
 
   py::class_<Type> type_holder(m, "Type");
   py::enum_<flexi_cfg::config::types::Type>(type_holder, "Type")
