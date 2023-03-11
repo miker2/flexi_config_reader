@@ -69,7 +69,8 @@ class Reader {
   [[nodiscard]] auto getNestedConfig(const std::string& key) const
       -> std::pair<std::string, const config::types::CfgMap&>;
 
-  /// \note: This method is here in order to enable the python bindings to more easily parse list types
+  /// \note: This method is here in order to enable the python bindings to more easily parse list
+  /// types
   [[nodiscard]] auto getCfgMap() const -> const config::types::CfgMap& { return cfg_data_; }
 
   static void convert(const config::types::ValuePtr& value_ptr, float& value);
