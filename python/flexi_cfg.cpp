@@ -12,44 +12,8 @@
 
 namespace py = pybind11;
 
-template <typename T>
-auto toPyType(const std::string& s) -> T {
-  assert(false);
-}
-template <>
-auto toPyType<int>(const std::string& s) -> int {
-  return py::int_(py::str(s));
-}
-template <>
-auto toPyType<uint64_t>(const std::string& s) -> uint64_t {
-  return py::int_(std::stoull(s, nullptr, 0));
-}
-template <>
-auto toPyType<double>(const std::string& s) -> double {
-  return py::float_(py::str(s));
-}
-template <>
-auto toPyType<bool>(const std::string& s) -> bool {
-  return py::bool_(py::str(s));
-}
-template <>
-auto toPyType<std::string>(const std::string& s) -> std::string {
-  return py::str(s);
-}
-
-template <typename T>
-auto listBuilder(const flexi_cfg::config::types::ValuePtr& cfg_val, py::list& py_list) {
-  assert(cfg_val != nullptr && "cfg_val is a nullptr");
-  // Do some smart stuff here!
-  std::cout << cfg_val->value << std::endl;
-
-  py_list.append(toPyType<T>(cfg_val->value));
-}
-
 class ReaderCfgMapAccessor : public flexi_cfg::Reader {
  public:
-  using flexi_cfg::Reader::getCfgMap;
-
   ReaderCfgMapAccessor(const flexi_cfg::Reader& reader) : flexi_cfg::Reader(reader) {}
 
   template <typename T>
@@ -75,6 +39,7 @@ class ReaderCfgMapAccessor : public flexi_cfg::Reader {
     return list;
   }
 
+ protected:
   auto getRawValue(const std::string& key) const -> flexi_cfg::config::types::BasePtr {
     const auto keys = flexi_cfg::utils::split(key, '.');
     return flexi_cfg::config::helpers::getConfigValue(getCfgMap(), keys);
@@ -83,8 +48,6 @@ class ReaderCfgMapAccessor : public flexi_cfg::Reader {
   template <typename T>
   void listBuilder(const flexi_cfg::config::types::ValuePtr& cfg_val, py::list& py_list) const {
     assert(cfg_val != nullptr && "cfg_val is a nullptr");
-    // Do some smart stuff here!
-    std::cout << cfg_val->value << std::endl;
 
     // We have a list. Now we need to walk the list and collect the values, stuffing them into a
     // python list as we go.
@@ -117,36 +80,7 @@ auto getValueHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> T {
 }
 
 template <typename T>
-auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) {
-  const auto& map_accesor = ReaderCfgMapAccessor(cfg);
-  const auto& map = map_accesor.getCfgMap();
-  const auto& cfg_val = map_accesor.getRawValue(key);
-
-  // Ensure this is a list if the user is asking for a list.
-  if (cfg_val->type != flexi_cfg::config::types::Type::kList) {
-    THROW_EXCEPTION(flexi_cfg::config::InvalidTypeException,
-                    "Expected '{}' to contain a list, but is of type {}", key, cfg_val->type);
-  }
-
-  // We have a list. Now we need to walk the list and collect the values, stuffing them into a
-  // python list as we go.
-  const auto& cfg_list_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigList>(cfg_val);
-  if (cfg_list_ptr == nullptr) {
-    THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
-                    flexi_cfg::config::types::Type::kList, cfg_val->type);
-  }
-  py::list list;
-
-  for (const auto& e : cfg_list_ptr->data) {
-    const auto list_value_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(e);
-    listBuilder<T>(list_value_ptr, list);
-  }
-
-  return py::make_tuple(key, map.size(), cfg_val->type, cfg_val->loc(), list);
-}
-
-template <typename T>
-auto getListHelper2(const flexi_cfg::Reader& cfg, const std::string& key) -> py::list {
+auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> py::list {
   const auto& map_accesor = ReaderCfgMapAccessor(cfg);
   return map_accesor.getList<T>(key);
 }
@@ -166,11 +100,9 @@ PYBIND11_MODULE(py_flexi_cfg, m) {
       .def("getValue_bool", &getValueHelper<bool>)
       .def("getValue_string", &getValueHelper<std::string>)
       .def("getValue_reader", &getValueHelper<flexi_cfg::Reader>)
-      .def("getValue_list", &getListHelper<std::string>)
-      .def("getValue_list_str", &getListHelper2<std::string>)
-      .def("getValue_list_int", &getListHelper2<int>)
-      .def("getValue_list_double", &getListHelper2<double>)
-      .def("_cfg_map", &ReaderCfgMapAccessor::getCfgMap);
+      .def("getValue_list_str", &getListHelper<std::string>)
+      .def("getValue_list_int", &getListHelper<int>)
+      .def("getValue_list_double", &getListHelper<double>);
 
   py::class_<Type> type_holder(m, "Type");
   py::enum_<flexi_cfg::config::types::Type>(type_holder, "Type")
