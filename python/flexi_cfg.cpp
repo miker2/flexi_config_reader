@@ -16,9 +16,12 @@ class ReaderCfgMapAccessor : public flexi_cfg::Reader {
  public:
   ReaderCfgMapAccessor(const flexi_cfg::Reader& reader) : flexi_cfg::Reader(reader) {}
 
+  using ListPtr = std::shared_ptr<flexi_cfg::config::types::ConfigList>;
+
   template <typename T>
   auto getList(const std::string& key) const -> py::list {
-    const auto& cfg_val = getRawValue(key);
+    const auto keys = flexi_cfg::utils::split(key, '.');
+    const auto& cfg_val = flexi_cfg::config::helpers::getConfigValue(getCfgMap(), keys);
     // Ensure this is a list if the user is asking for a list.
     if (cfg_val->type != flexi_cfg::config::types::Type::kList) {
       THROW_EXCEPTION(flexi_cfg::config::InvalidTypeException,
@@ -46,24 +49,21 @@ class ReaderCfgMapAccessor : public flexi_cfg::Reader {
   }
 
   template <typename T>
-  void listBuilder(const flexi_cfg::config::types::ValuePtr& cfg_val, py::list& py_list) const {
-    assert(cfg_val != nullptr && "cfg_val is a nullptr");
-
+  void listBuilder(const ListPtr& cfg_list_ptr, py::list& py_list) const {
     // We have a list. Now we need to walk the list and collect the values, stuffing them into a
     // python list as we go.
-    const auto& cfg_list_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigList>(cfg_val);
     if (cfg_list_ptr == nullptr) {
-      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
-                      flexi_cfg::config::types::Type::kList, cfg_val->type);
+      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got nullptr.",
+                      flexi_cfg::config::types::Type::kList);
     }
 
     for (const auto& e : cfg_list_ptr->data) {
-      const auto list_value_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(e);
-      if (list_value_ptr->type == flexi_cfg::config::types::Type::kList) {
+      if (e->type == flexi_cfg::config::types::Type::kList) {
         py::list new_list;
-        listBuilder<T>(list_value_ptr, new_list);
+        listBuilder<T>(dynamic_pointer_cast<flexi_cfg::config::types::ConfigList>(e), new_list);
         py_list.append(new_list);
       } else {
+        const auto list_value_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(e);
         T v{};
         convert(list_value_ptr, v);
         py_list.append(v);
