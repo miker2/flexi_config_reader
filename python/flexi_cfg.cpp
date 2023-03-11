@@ -12,58 +12,53 @@
 
 namespace py = pybind11;
 
-class ReaderCfgMapAccessor : public flexi_cfg::Reader {
+namespace flexi_cfg {
+class ReaderCfgMapAccessor : public Reader {
  public:
-  ReaderCfgMapAccessor(const flexi_cfg::Reader& reader) : flexi_cfg::Reader(reader) {}
+  ReaderCfgMapAccessor(const Reader& reader) : Reader(reader) {}
 
-  using ListPtr = std::shared_ptr<flexi_cfg::config::types::ConfigList>;
+  using ListPtr = std::shared_ptr<config::types::ConfigList>;
 
   template <typename T>
   auto getList(const std::string& key) const -> py::list {
-    const auto keys = flexi_cfg::utils::split(key, '.');
-    const auto& cfg_val = flexi_cfg::config::helpers::getConfigValue(getCfgMap(), keys);
+    const auto keys = utils::split(key, '.');
+    const auto& cfg_val = config::helpers::getConfigValue(getCfgMap(), keys);
     // Ensure this is a list if the user is asking for a list.
-    if (cfg_val->type != flexi_cfg::config::types::Type::kList) {
-      THROW_EXCEPTION(flexi_cfg::config::InvalidTypeException,
+    if (cfg_val->type != config::types::Type::kList) {
+      THROW_EXCEPTION(config::InvalidTypeException,
                       "Expected '{}' to contain a list, but is of type {}", key, cfg_val->type);
     }
 
     // We have a list. Now we need to walk the list and collect the values, stuffing them into a
     // python list as we go.
-    const auto& cfg_list_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigList>(cfg_val);
-    if (cfg_list_ptr == nullptr) {
-      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
-                      flexi_cfg::config::types::Type::kList, cfg_val->type);
-    }
     py::list list;
-
-    listBuilder<T>(cfg_list_ptr, list);
+    listBuilder<T>(dynamic_pointer_cast<config::types::ConfigValue>(cfg_val), list);
 
     return list;
   }
 
  protected:
-  auto getRawValue(const std::string& key) const -> flexi_cfg::config::types::BasePtr {
-    const auto keys = flexi_cfg::utils::split(key, '.');
-    return flexi_cfg::config::helpers::getConfigValue(getCfgMap(), keys);
-  }
-
   template <typename T>
-  void listBuilder(const ListPtr& cfg_list_ptr, py::list& py_list) const {
+  void listBuilder(const config::types::ValuePtr& cfg_val, py::list& py_list) const {
+    const auto& cfg_list_ptr = dynamic_pointer_cast<config::types::ConfigList>(cfg_val);
+    if (cfg_list_ptr == nullptr) {
+      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
+                      config::types::Type::kList, cfg_val->type);
+    }
     // We have a list. Now we need to walk the list and collect the values, stuffing them into a
     // python list as we go.
     if (cfg_list_ptr == nullptr) {
       THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got nullptr.",
-                      flexi_cfg::config::types::Type::kList);
+                      config::types::Type::kList);
     }
 
     for (const auto& e : cfg_list_ptr->data) {
-      if (e->type == flexi_cfg::config::types::Type::kList) {
+      const auto& list_value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(e);
+      if (e->type == config::types::Type::kList) {
         py::list new_list;
-        listBuilder<T>(dynamic_pointer_cast<flexi_cfg::config::types::ConfigList>(e), new_list);
+        listBuilder<T>(list_value_ptr, new_list);
         py_list.append(new_list);
       } else {
-        const auto list_value_ptr = dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(e);
         T v{};
         convert(list_value_ptr, v);
         py_list.append(v);
@@ -71,6 +66,8 @@ class ReaderCfgMapAccessor : public flexi_cfg::Reader {
     }
   }
 };
+
+}  // namespace flexi_cfg
 
 // Helper function avoids the need to be extra verbose with selecting overloads for 'getValue'
 // methods
@@ -81,7 +78,7 @@ auto getValueHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> T {
 
 template <typename T>
 auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> py::list {
-  const auto& map_accesor = ReaderCfgMapAccessor(cfg);
+  const auto& map_accesor = flexi_cfg::ReaderCfgMapAccessor(cfg);
   return map_accesor.getList<T>(key);
 }
 
