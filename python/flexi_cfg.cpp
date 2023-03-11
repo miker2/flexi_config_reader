@@ -26,9 +26,12 @@ PYBIND11_MODULE(py_flexi_cfg, m) {
         .def("exists", &flexi_cfg::Reader::exists)
         .def("keys", &flexi_cfg::Reader::keys)
         .def("find_struc_with_key", &flexi_cfg::Reader::findStructsWithKey)
-        .def("get_int", &getValueHelper<int>)
+        .def("get_int", &getValueHelper<int64_t>)
+        .def("get_uint64", &getValueHelper<uint64_t>)
         .def("get_float", &getValueHelper<double>)
-        .def("get_string", &getValueHelper<std::string>);
+        .def("get_bool", &getValueHelper<bool>)
+        .def("get_string", &getValueHelper<std::string>)
+        .def("get_reader", &getValueHelper<flexi_cfg::Reader>);
 
     py::class_<flexi_cfg::Parser>(m, "Parser")
         .def("parse", py::overload_cast<std::string_view, std::string_view>(
