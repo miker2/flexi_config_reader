@@ -84,8 +84,12 @@ auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> py::
 
 // We need something to associate the enum with aside from the module, so create this empty struct
 struct Type {};
+// We need something to associate the logger with aside from the module.
+struct Logger {};
 
 PYBIND11_MODULE(flexi_cfg_py, m) {
+  m.doc() = "flexi_cfg python bindings";
+
   py::class_<flexi_cfg::Reader>(m, "Reader")
       .def("dump", &flexi_cfg::Reader::dump)
       .def("exists", &flexi_cfg::Reader::exists)
@@ -124,7 +128,17 @@ PYBIND11_MODULE(flexi_cfg_py, m) {
       .export_values();
 
   m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));
-  m.def("parse",
-           py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
-           py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
+  m.def("parse", py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
+        py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
+
+  py::class_<Logger> logger_holder(m, "logger");
+  py::enum_<flexi_cfg::logger::Severity>(logger_holder, "Severity")
+      .value("TRACE", flexi_cfg::logger::Severity::TRACE)
+      .value("DEBUG", flexi_cfg::logger::Severity::DEBUG)
+      .value("INFO", flexi_cfg::logger::Severity::INFO)
+      .value("WARN", flexi_cfg::logger::Severity::WARN)
+      .value("ERROR", flexi_cfg::logger::Severity::ERROR)
+      .value("CRITICAL", flexi_cfg::logger::Severity::CRITICAL);
+  logger_holder.def("setLevel", &flexi_cfg::logger::setLevel);
+  logger_holder.def("logLevel", &flexi_cfg::logger::logLevel);
 }
