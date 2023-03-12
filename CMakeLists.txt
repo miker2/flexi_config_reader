@@ -49,9 +49,10 @@ FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
   GIT_TAG ${FMT_VERSION_REQUIRED}
-  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
+  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib
 )
 FetchContent_MakeAvailable(fmt)
+set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 # range-v3
 FetchContent_Declare(
@@ -80,6 +81,7 @@ endif(ENABLE_CLANG_TIDY)
 
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
+option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
@@ -127,6 +129,18 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/"
   PATTERN "*.h")
 
 add_subdirectory(src)
+
+if (CFG_PYTHON_BINDINGS)
+  # Get pybind11
+  FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG        v2.10.3
+  )
+  FetchContent_MakeAvailable(pybind11)
+
+  add_subdirectory(python)
+endif()
 
 if (CFG_ENABLE_TEST)
   # Get gtest
