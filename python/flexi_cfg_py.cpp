@@ -123,9 +123,8 @@ PYBIND11_MODULE(flexi_cfg_py, m) {
       .value("kUnknown", flexi_cfg::config::types::Type::kUnknown)
       .export_values();
 
-  py::class_<flexi_cfg::Parser>(m, "Parser")
-      .def("parse",
-           py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::Parser::parse),
-           py::arg("source") = "unknown")
-      .def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::Parser::parse));
+  m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));
+  m.def("parse",
+           py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
+           py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
 }

@@ -43,4 +43,12 @@ class Parser {
   config::types::CfgMap cfg_data_;
 };
 
+inline auto parse(const std::filesystem::path& cfg_filename) -> Reader {
+  return Parser::parse(cfg_filename);
+}
+
+inline auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader {
+  return Parser::parse(cfg_string, source);
+}
+
 }  // namespace flexi_cfg
