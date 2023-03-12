@@ -33,9 +33,6 @@ if (CFG_EXAMPLES)
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   )
 
-  add_executable(jsonish_test jsonish_test.cpp)
-  target_link_libraries(jsonish_test PRIVATE taocpp::pegtl)
-
-  install(TARGETS config_reader_example include_file_test jsonish_test
+  install(TARGETS config_reader_example include_file_test
           DESTINATION bin)
 endif(CFG_EXAMPLES)
