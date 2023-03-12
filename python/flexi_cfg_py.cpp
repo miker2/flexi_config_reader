@@ -85,7 +85,7 @@ auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> py::
 // We need something to associate the enum with aside from the module, so create this empty struct
 struct Type {};
 
-PYBIND11_MODULE(py_flexi_cfg, m) {
+PYBIND11_MODULE(flexi_cfg_py, m) {
   py::class_<flexi_cfg::Reader>(m, "Reader")
       .def("dump", &flexi_cfg::Reader::dump)
       .def("exists", &flexi_cfg::Reader::exists)
