@@ -6,6 +6,8 @@
 #include <range/v3/range/conversion.hpp>
 #include <string>
 #include <tao/pegtl.hpp>
+#include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 #include "flexi_cfg/config/actions.h"
@@ -16,6 +18,44 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
+
+namespace {
+
+const std::unordered_map<std::type_index, std::string_view> type_names = {
+    {{typeid(int)}, "int"},           {{typeid(float)}, "float"},
+    {{typeid(double)}, "double"},     {{typeid(uint8_t)}, "uint8_t"},
+    {{typeid(uint16_t)}, "uint16_t"}, {{typeid(uint32_t)}, "uint32_t"},
+    {{typeid(uint64_t)}, "uint64_t"}, {{typeid(int8_t)}, "int8_t"},
+    {{typeid(int16_t)}, "int16_t"},   {{typeid(int32_t)}, "int32_t"},
+    {{typeid(int64_t)}, "int64_t"},   {{typeid(bool)}, "bool"},
+    {{typeid(std::string)}, "string"}};
+
+/// \brief A helper for converting strings to numeric values
+/// \param[in] value_ptr A reference to a ValuePtr object
+/// \param[in/out] value The object in which to read the ValuePtr result
+/// \param[in] type_str String representation of the value type
+/// \param[in] converter The function that will convert from a string to the specified type (e.g.
+/// std::stoi, std::stod, etc)
+template <typename T>
+void numericConversionHelper(const flexi_cfg::config::types::ValuePtr& value_ptr, T& value,
+                             std::function<T(const std::string&, std::size_t*)> converter) {
+  if (value_ptr->type != flexi_cfg::config::types::Type::kNumber) {
+    THROW_EXCEPTION(flexi_cfg::config::MismatchTypeException,
+                    "Expected numeric type, but have '{}' type.", value_ptr->type);
+  }
+
+  std::size_t len{0};
+  value = converter(value_ptr->value, &len);
+
+  if (len != value_ptr->value.size()) {
+    const std::type_index type_idx(typeid(T));
+    const auto& type_str = type_names.contains(type_idx) ? type_names.at(type_idx) : "type_unknown";
+    THROW_EXCEPTION(flexi_cfg::config::MismatchTypeException,
+                    "Error while converting '{}' to type {}. Processed {} of {} characters",
+                    value_ptr->value, type_str, len, value_ptr->value.size());
+  }
+}
+}  // namespace
 
 namespace flexi_cfg {
 
@@ -72,66 +112,35 @@ auto Reader::getNestedConfig(const std::string& key) const
 
   const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
-  // Special handling for the case where 'name' contains a single key (i.e is not a flat key)
+  // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
   const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
 
   return {keys.back(), data};
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, float& value) {
-  if (value_ptr->type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
-                    value_ptr->type);
-  }
-  std::size_t len{0};
-  value = std::stof(value_ptr->value, &len);
-  if (len != value_ptr->value.size()) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-                    "Error while converting '{}' to type float. Processed {} of {} characters",
-                    value_ptr->value, len, value_ptr->value.size());
-  }
+  numericConversionHelper<float>(value_ptr, value,
+                                 [](const auto& str, auto* l) { return std::stof(str, l); });
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, double& value) {
-  if (value_ptr->type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
-                    value_ptr->type);
-  }
-  std::size_t len{0};
-  value = std::stod(value_ptr->value, &len);
-  if (len != value_ptr->value.size()) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-                    "Error while converting '{}' to type double. Processed {} of {} characters",
-                    value_ptr->value, len, value_ptr->value.size());
-  }
+  numericConversionHelper<double>(value_ptr, value,
+                                  [](const auto& str, auto* l) { return std::stod(str, l); });
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, int& value) {
-  if (value_ptr->type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
-                    value_ptr->type);
-  }
-  std::size_t len{0};
-  value = std::stoi(value_ptr->value, &len);
-  if (len != value_ptr->value.size()) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-                    "Error while converting '{}' to type int. Processed {} of {} characters",
-                    value_ptr->value, len, value_ptr->value.size());
-  }
+  numericConversionHelper<int>(value_ptr, value,
+                               [](const auto& str, auto* l) { return std::stoi(str, l, 0); });
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, int64_t& value) {
-  if (value_ptr->type != config::types::Type::kNumber) {
-    THROW_EXCEPTION(config::MismatchTypeException, "Expected numeric type, but have '{}' type.",
-                    value_ptr->type);
-  }
-  std::size_t len{0};
-  value = std::stoll(value_ptr->value, &len);
-  if (len != value_ptr->value.size()) {
-    THROW_EXCEPTION(config::MismatchTypeException,
-                    "Error while converting '{}' to type int64_t. Processed {} of {} characters",
-                    value_ptr->value, len, value_ptr->value.size());
-  }
+  numericConversionHelper<int64_t>(value_ptr, value,
+                                   [](const auto& str, auto* l) { return std::stoll(str, l, 0); });
+}
+
+void Reader::convert(const config::types::ValuePtr& value_ptr, uint64_t& value) {
+  numericConversionHelper<uint64_t>(
+      value_ptr, value, [](const auto& str, auto* l) { return std::stoull(str, l, 0); });
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, bool& value) {
@@ -151,19 +160,19 @@ void Reader::convert(const config::types::ValuePtr& value_ptr, std::string& valu
   value.erase(std::remove(std::begin(value), std::end(value), '\"'), std::end(value));
 }
 
-void Reader::getValue(const std::string& name, Reader& reader) const {
+void Reader::getValue(const std::string& key, Reader& reader) const {
   // Split the key into parts
-  const auto keys = utils::split(name, '.');
+  const auto keys = utils::split(key, '.');
   auto cfg_value = config::helpers::getConfigValue(cfg_data_, keys);
   const auto struct_like = dynamic_pointer_cast<config::types::ConfigStructLike>(cfg_value);
   if (struct_like == nullptr) {
     // throw an exception here
     THROW_EXCEPTION(config::MismatchTypeException,
                     "Expected struct type when reading {}, but have '{}' type.",
-                    utils::makeName(parent_name_, name), cfg_value->type);
+                    utils::makeName(parent_name_, key), cfg_value->type);
   }
 
-  reader = Reader(struct_like->data, name);
+  reader = Reader(struct_like->data, key);
 }
 
 }  // namespace flexi_cfg

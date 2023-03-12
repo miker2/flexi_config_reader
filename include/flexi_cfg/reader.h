@@ -30,24 +30,39 @@ class Reader {
   Reader(Reader&&) = default;
   auto operator=(Reader&&) -> Reader& = default;
 
+  /// \brief Prints the full config to the console
   void dump() const;
 
+  /// \brief Checks if an entry with the provided key exists
+  /// \param[in] key The name of the key of interest
+  /// \return True if the key exists
   [[nodiscard]] auto exists(const std::string& key) const -> bool;
 
+  /// \brief Provides the keys for the first level of the config structure
+  /// \return A vector keys
   [[nodiscard]] auto keys() const -> std::vector<std::string>;
 
+  /// \brief Accessor to the value of the given key (if it exists)
+  /// \param[in] key The name of the key of interest
+  /// \return The value of the key
   template <typename T>
-  auto getValue(const std::string& name) const -> T;
+  auto getValue(const std::string& key) const -> T;
+
+  /// \brief Accessor to the value of the given key (if it exists)
+  /// \param[in] key The name of the key of interest
+  /// \param[out] value The value of the key
+  template <typename T>
+  void getValue(const std::string& key, T& value) const;
 
   template <typename T>
-  void getValue(const std::string& name, T& value) const;
-
-  template <typename T>
-  void getValue(const std::string& name, std::vector<T>& value) const;
+  void getValue(const std::string& key, std::vector<T>& value) const;
 
   template <typename T, size_t N>
-  void getValue(const std::string& name, std::array<T, N>& value) const;
+  void getValue(const std::string& key, std::array<T, N>& value) const;
 
+  /// \brief Provides a list of all structs containing the specified key
+  /// \param[in] key The name of the key to search for recursively within all structs
+  /// \return A vector of keys for all structs containing 'key'
   [[nodiscard]] auto findStructsWithKey(const std::string& key) const -> std::vector<std::string>;
 
  protected:
@@ -59,6 +74,7 @@ class Reader {
   static void convert(const config::types::ValuePtr& value_ptr, double& value);
   static void convert(const config::types::ValuePtr& value_ptr, int& value);
   static void convert(const config::types::ValuePtr& value_ptr, int64_t& value);
+  static void convert(const config::types::ValuePtr& value_ptr, uint64_t& value);
   static void convert(const config::types::ValuePtr& value_ptr, bool& value);
   static void convert(const config::types::ValuePtr& value_ptr, std::string& value);
 
@@ -67,7 +83,7 @@ class Reader {
   template <typename T, size_t N>
   static void convert(const config::types::ValuePtr& value_ptr, std::array<T, N>& value);
 
-  void getValue(const std::string& name, Reader& reader) const;
+  void getValue(const std::string& key, Reader& reader) const;
 
   // All of the config data!
   config::types::CfgMap cfg_data_;
@@ -76,22 +92,28 @@ class Reader {
 };
 
 template <typename T>
-auto Reader::getValue(const std::string& name) const -> T {
+auto Reader::getValue(const std::string& key) const -> T {
   T value{};
-  getValue(name, value);
+  getValue(key, value);
   return value;
 }
 
 template <typename T>
-void Reader::getValue(const std::string& name, T& value) const {
+void Reader::getValue(const std::string& key, T& value) const {
   // Split the key into parts
-  const auto keys = utils::split(name, '.');
+  const auto keys = utils::split(key, '.');
 
   const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
-  const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
-  convert(value_ptr, value);
-  logger::debug(" -- Type is {}", typeid(T).name());
+  try {
+    const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
+    convert(value_ptr, value);
+    logger::debug(" -- Type is {}", typeid(T).name());
+  } catch (const std::runtime_error& e) {
+    // Catch and re-throw with extra information to aid in debugging.
+    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
+                    utils::makeName(parent_name_, key), e.what());
+  }
 }
 
 template <typename T>
@@ -141,9 +163,9 @@ void Reader::convert(const std::shared_ptr<config::types::ConfigValue>& value_pt
 }
 
 template <typename T>
-void Reader::getValue(const std::string& name, std::vector<T>& value) const {
+void Reader::getValue(const std::string& key, std::vector<T>& value) const {
   // Split the key into parts
-  const auto keys = utils::split(name, '.');
+  const auto keys = utils::split(key, '.');
 
   const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
@@ -151,7 +173,7 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   if (cfg_val->type != config::types::Type::kList) {
     THROW_EXCEPTION(config::InvalidTypeException,
                     "Expected '{}' to contain a list, but is of type {}",
-                    utils::makeName(parent_name_, name), cfg_val->type);
+                    utils::makeName(parent_name_, key), cfg_val->type);
   }
   logger::debug("Reading vector of type: {}", typeid(T).name());
 
@@ -161,14 +183,14 @@ void Reader::getValue(const std::string& name, std::vector<T>& value) const {
   } catch (const std::runtime_error& e) {
     // Catch and re-throw with extra information to aid in debugging.
     THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
-                    utils::makeName(parent_name_, name), e.what());
+                    utils::makeName(parent_name_, key), e.what());
   }
 }
 
 template <typename T, size_t N>
-void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
+void Reader::getValue(const std::string& key, std::array<T, N>& value) const {
   // Split the key into parts
-  const auto keys = utils::split(name, '.');
+  const auto keys = utils::split(key, '.');
 
   const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
 
@@ -176,7 +198,7 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
   if (cfg_val->type != config::types::Type::kList) {
     THROW_EXCEPTION(config::InvalidTypeException,
                     "Expected '{}' to contain a list, but is of type {}",
-                    utils::makeName(parent_name_, name), cfg_val->type);
+                    utils::makeName(parent_name_, key), cfg_val->type);
   }
   logger::debug("Reading array of type: {}", typeid(T).name());
 
@@ -186,7 +208,7 @@ void Reader::getValue(const std::string& name, std::array<T, N>& value) const {
   } catch (const std::runtime_error& e) {
     // Catch and re-throw with extra information to aid in debugging.
     THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
-                    utils::makeName(parent_name_, name), e.what());
+                    utils::makeName(parent_name_, key), e.what());
   }
 }
 

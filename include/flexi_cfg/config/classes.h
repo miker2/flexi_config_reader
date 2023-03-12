@@ -415,7 +415,7 @@ struct fmt::formatter<
   // parse is inherited from formatter<string_view>
   template <typename FormatContext>
   auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg,
-              FormatContext& ctx) {
+              FormatContext& ctx) const {
     std::stringstream ss;
     if (cfg != nullptr) {
       cfg->stream(ss);
@@ -434,7 +434,7 @@ struct fmt::formatter<flexi_cfg::config::types::CfgMap::value_type> {
   }
 
   template <typename FormatContext>
-  auto format(const flexi_cfg::config::types::CfgMap::value_type& kv, FormatContext& ctx) {
+  auto format(const flexi_cfg::config::types::CfgMap::value_type& kv, FormatContext& ctx) const {
     return format_to(ctx.out(), "{} = {}", kv.first, kv.second);
   }
 };

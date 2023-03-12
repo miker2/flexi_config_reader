@@ -37,7 +37,7 @@ else(magic_enum_FOUND)
   FetchContent_Declare(
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-    GIT_TAG        v0.8.1
+    GIT_TAG        v0.8.2
     )
   FetchContent_MakeAvailable(magic_enum)
   set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
@@ -49,7 +49,7 @@ FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
   GIT_TAG ${FMT_VERSION_REQUIRED}
-  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib
+  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
 )
 FetchContent_MakeAvailable(fmt)
 
@@ -110,6 +110,7 @@ target_include_directories(flexi_cfg PUBLIC
   $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>
   ${magic_enum_INCLUDE_DIR})
 target_compile_features(flexi_cfg INTERFACE cxx_std_20)
+set_target_properties(flexi_cfg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 target_link_libraries(flexi_cfg
   taocpp::pegtl
@@ -132,7 +133,7 @@ if (CFG_ENABLE_TEST)
   FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        release-1.11.0
+    GIT_TAG        v1.13.0
     )
   FetchContent_MakeAvailable(googletest)
 
