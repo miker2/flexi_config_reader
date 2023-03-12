@@ -81,7 +81,7 @@ endif(ENABLE_CLANG_TIDY)
 
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
-option(CFG_PYTHON_BINDINGS "Build python bindings." ON)
+option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 

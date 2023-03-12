@@ -20,7 +20,7 @@ class ReaderCfgMapAccessor : public Reader {
   using ListPtr = std::shared_ptr<config::types::ConfigList>;
 
   template <typename T>
-  auto getList(const std::string& key) const -> py::list {
+  [[nodiscard]] auto getList(const std::string& key) const -> py::list {
     const auto keys = utils::split(key, '.');
     const auto& cfg_val = config::helpers::getConfigValue(getCfgMap(), keys);
     // Ensure this is a list if the user is asking for a list.
