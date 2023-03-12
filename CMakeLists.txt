@@ -49,9 +49,10 @@ FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
   GIT_TAG ${FMT_VERSION_REQUIRED}
-  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE
+  CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib
 )
 FetchContent_MakeAvailable(fmt)
+set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 # range-v3
 FetchContent_Declare(
