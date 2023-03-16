@@ -94,6 +94,7 @@ PYBIND11_MODULE(flexi_cfg_py, m) {
       .def("dump", &flexi_cfg::Reader::dump)
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)
+      .def("getType", &flexi_cfg::Reader::getType)
       .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
       // Accessors for single values
       .def("getValue_int", &getValueHelper<int64_t>)

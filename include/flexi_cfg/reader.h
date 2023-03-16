@@ -42,6 +42,11 @@ class Reader {
   /// \return A vector keys
   [[nodiscard]] auto keys() const -> std::vector<std::string>;
 
+  /// \brief Provides the type of the value associated with the given key
+  /// \param[in] key The name of the key of interest
+  /// \return The type of the value associated with the key
+  [[nodiscard]] auto getType(const std::string& key) const -> config::types::Type;
+
   /// \brief Accessor to the value of the given key (if it exists)
   /// \param[in] key The name of the key of interest
   /// \return The value of the key

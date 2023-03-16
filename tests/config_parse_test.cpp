@@ -37,7 +37,7 @@ TEST_P(InputString, Parse) {
   EXPECT_TRUE(ret);
 }
 
-TEST_P(InputString, ConfigReaderParse) {
+TEST_P(InputString, Reader) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
   flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
                                   // capture the output of 'parse' from within the "try/catch" block
@@ -45,16 +45,31 @@ TEST_P(InputString, ConfigReaderParse) {
   EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");
+  EXPECT_EQ(cfg.getType("test1.key1"), flexi_cfg::config::types::Type::kString);
   EXPECT_TRUE(cfg.exists("test1.key2"));
   EXPECT_FLOAT_EQ(cfg.getValue<float>("test1.key2"), 1.342F);
+  EXPECT_EQ(cfg.getType("test1.key2"), flexi_cfg::config::types::Type::kNumber);
   EXPECT_TRUE(cfg.exists("test1.key3"));
   EXPECT_EQ(cfg.getValue<int>("test1.key3"), 10);
+  EXPECT_EQ(cfg.getType("test1.key3"), flexi_cfg::config::types::Type::kNumber);
   EXPECT_TRUE(cfg.exists("test1.f"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.f"), "none");
+  EXPECT_EQ(cfg.getType("test1.f"), flexi_cfg::config::types::Type::kString);
   EXPECT_TRUE(cfg.exists("test2.my_key"));
   EXPECT_EQ(cfg.getValue<std::string>("test2.my_key"), "foo");
+  EXPECT_EQ(cfg.getType("test2.my_key"), flexi_cfg::config::types::Type::kString);
   EXPECT_TRUE(cfg.exists("test2.n_key"));
   EXPECT_EQ(cfg.getValue<bool>("test2.n_key"), true);
+  EXPECT_EQ(cfg.getType("test2.n_key"), flexi_cfg::config::types::Type::kBoolean);
+  EXPECT_TRUE(cfg.exists("test2.inner.list"));
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.list"), std::vector<int>({1, 2, 3, 4}));
+  EXPECT_EQ(cfg.getType("test2.inner.list"), flexi_cfg::config::types::Type::kList);
+  EXPECT_TRUE(cfg.exists("test2"));
+  EXPECT_EQ(cfg.getType("test2"), flexi_cfg::config::types::Type::kStruct);
+  EXPECT_TRUE(cfg.exists("test1"));
+  EXPECT_EQ(cfg.getType("test1"), flexi_cfg::config::types::Type::kStruct);
+  EXPECT_TRUE(cfg.exists("test2.inner"));
+  EXPECT_EQ(cfg.getType("test2.inner"), flexi_cfg::config::types::Type::kStruct);
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string("\n\
@@ -68,6 +83,10 @@ struct test1 {\n\
 struct test2 {\n\
     my_key = \"foo\"  \n\
     n_key = true\n\
+\n\
+    struct inner {\n\
+        list = [1, 2, 3, 4]\n\
+    }\n\
 }\n\
 ")));
 

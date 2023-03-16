@@ -81,6 +81,15 @@ auto Reader::keys() const -> std::vector<std::string> {
   return cfg_data_ | ranges::views::keys | ranges::to<std::vector<std::string>>;
 }
 
+auto Reader::getType(const std::string& key) const -> config::types::Type {
+  // Split the key into parts
+  const auto keys = utils::split(key, '.');
+
+  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
+
+  return cfg_val->type;
+}
+
 auto Reader::findStructsWithKey(const std::string& key) const -> std::vector<std::string> {
   std::vector<std::string> structs{};
 
