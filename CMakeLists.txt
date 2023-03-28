@@ -43,8 +43,8 @@ else(magic_enum_FOUND)
   set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
 endif(magic_enum_FOUND)
 
-# FMT tag 9.0.0
-set(FMT_VERSION_REQUIRED 9.0.0)
+# FMT tag 8.1.1
+set(FMT_VERSION_REQUIRED 8.1.1)
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
