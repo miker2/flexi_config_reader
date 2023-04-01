@@ -6,7 +6,7 @@
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define THROW_EXCEPTION(E_TYPE, MSG_F, ...) \
-  throw E_TYPE(fmt::format("At {}:{} \n" MSG_F, __FILE__, __LINE__, ##__VA_ARGS__));
+  throw E_TYPE(fmt::format("{} at {}:{}\n" MSG_F, #E_TYPE, __FILE__, __LINE__, ##__VA_ARGS__));
 
 namespace flexi_cfg::config {
 

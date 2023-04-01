@@ -112,16 +112,16 @@ void Reader::getValue(const std::string& key, T& value) const {
   // Split the key into parts
   const auto keys = utils::split(key, '.');
 
-  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
-
   try {
+    const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
+
     const auto value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
     convert(value_ptr, value);
     logger::debug(" -- Type is {}", typeid(T).name());
   } catch (const std::runtime_error& e) {
     // Catch and re-throw with extra information to aid in debugging.
-    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
-                    utils::makeName(parent_name_, key), e.what());
+    LOG_E("While reading '{}':", utils::makeName(parent_name_, key));
+    throw;
   }
 }
 
@@ -176,23 +176,23 @@ void Reader::getValue(const std::string& key, std::vector<T>& value) const {
   // Split the key into parts
   const auto keys = utils::split(key, '.');
 
-  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
-
-  // Ensure this is a list if the user is asking for a list.
-  if (cfg_val->type != config::types::Type::kList) {
-    THROW_EXCEPTION(config::InvalidTypeException,
-                    "Expected '{}' to contain a list, but is of type {}",
-                    utils::makeName(parent_name_, key), cfg_val->type);
-  }
-  logger::debug("Reading vector of type: {}", typeid(T).name());
-
   try {
+    const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
+
+    // Ensure this is a list if the user is asking for a list.
+    if (cfg_val->type != config::types::Type::kList) {
+      THROW_EXCEPTION(config::InvalidTypeException,
+                      "Expected '{}' to contain a list, but is of type {}",
+                      utils::makeName(parent_name_, key), cfg_val->type);
+    }
+    logger::debug("Reading vector of type: {}", typeid(T).name());
+
     const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
     convert(value_ptr, value);
   } catch (const std::runtime_error& e) {
     // Catch and re-throw with extra information to aid in debugging.
-    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
-                    utils::makeName(parent_name_, key), e.what());
+    LOG_E("While reading '{}':", utils::makeName(parent_name_, key));
+    throw;
   }
 }
 
@@ -201,23 +201,22 @@ void Reader::getValue(const std::string& key, std::array<T, N>& value) const {
   // Split the key into parts
   const auto keys = utils::split(key, '.');
 
-  const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
-
-  // Ensure this is a list if the user is asking for a list.
-  if (cfg_val->type != config::types::Type::kList) {
-    THROW_EXCEPTION(config::InvalidTypeException,
-                    "Expected '{}' to contain a list, but is of type {}",
-                    utils::makeName(parent_name_, key), cfg_val->type);
-  }
-  logger::debug("Reading array of type: {}", typeid(T).name());
-
   try {
+    const auto cfg_val = config::helpers::getConfigValue(cfg_data_, keys);
+
+    // Ensure this is a list if the user is asking for a list.
+    if (cfg_val->type != config::types::Type::kList) {
+      THROW_EXCEPTION(config::InvalidTypeException,
+                      "Expected '{}' to contain a list, but is of type {}",
+                      utils::makeName(parent_name_, key), cfg_val->type);
+    }
+    logger::debug("Reading array of type: {}", typeid(T).name());
+
     const auto& value_ptr = dynamic_pointer_cast<config::types::ConfigValue>(cfg_val);
     convert(value_ptr, value);
   } catch (const std::runtime_error& e) {
-    // Catch and re-throw with extra information to aid in debugging.
-    THROW_EXCEPTION(std::runtime_error, "While reading '{}': {}",
-                    utils::makeName(parent_name_, key), e.what());
+    LOG_E("While reading '{}':", utils::makeName(parent_name_, key));
+    throw;
   }
 }
 

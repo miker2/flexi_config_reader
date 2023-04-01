@@ -119,12 +119,19 @@ auto Reader::getNestedConfig(const std::string& key) const
   // Split the key into parts
   const auto keys = utils::split(key, '.');
 
-  const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
+  try {
+    const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
-  // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
-  const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
+    // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
+    const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
 
-  return {keys.back(), data};
+    return {keys.back(), data};
+  } catch (const std::exception& e) {
+    LOG_E("Error while getting key '{}':", key);
+    throw;
+  }
+
+  return {keys.back(), {}};
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, float& value) {
