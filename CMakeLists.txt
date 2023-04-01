@@ -43,8 +43,8 @@ else(magic_enum_FOUND)
   set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
 endif(magic_enum_FOUND)
 
-# FMT tag 8.1.1
-set(FMT_VERSION_REQUIRED 8.1.1)
+# FMT tag 9.0.0
+set(FMT_VERSION_REQUIRED 9.0.0)
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
@@ -127,6 +127,27 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/"
   DESTINATION include
   FILES_MATCHING
   PATTERN "*.h")
+
+install(CODE [[
+  file(GET_RUNTIME_DEPENDENCIES
+    LIBRARIES $<TARGET_FILE:flexi_cfg>
+    RESOLVED_DEPENDENCIES_VAR _r_deps
+    UNRESOLVED_DEPENDENCIES_VAR _u_deps
+    DIRECTORIES ${CMAKE_SOURCE_DIR}
+  )
+  foreach(_file ${_r_deps})
+    file(INSTALL
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+      TYPE SHARED_LIBRARY
+      FOLLOW_SYMLINK_CHAIN
+      FILES "${_file}"
+    )
+  endforeach()
+  list(LENGTH _u_deps _u_length)
+  if("${_u_length}" GREATER 0)
+    message(WARNING "Unresolved dependencies detected!")
+  endif()
+]])
 
 add_subdirectory(src)
 
