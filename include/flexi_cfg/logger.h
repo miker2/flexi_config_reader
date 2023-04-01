@@ -114,6 +114,17 @@ static void critical(std::string_view msg) { Logger::instance().log(Severity::CR
 
 }  // namespace flexi_cfg::logger
 
+#define LOG(SEVERITY, MSG_F, ...)  \
+  flexi_cfg::logger::log(SEVERITY, \
+                         fmt::format("{}:{} - " MSG_F, __FILE__, __LINE__, ##__VA_ARGS__));
+
+#define LOG_T(MSG_F, ...) LOG(flexi_cfg::logger::Severity::TRACE, MSG_F, ##__VA_ARGS__)
+#define LOG_D(MSG_F, ...) LOG(flexi_cfg::logger::Severity::DEBUG, MSG_F, ##__VA_ARGS__)
+#define LOG_I(MSG_F, ...) LOG(flexi_cfg::logger::Severity::INFO, MSG_F, ##__VA_ARGS__)
+#define LOG_W(MSG_F, ...) LOG(flexi_cfg::logger::Severity::WARN, MSG_F, ##__VA_ARGS__)
+#define LOG_E(MSG_F, ...) LOG(flexi_cfg::logger::Severity::ERROR, MSG_F, ##__VA_ARGS__)
+#define LOG_C(MSG_F, ...) LOG(flexi_cfg::logger::Severity::CRITICAL, MSG_F, ##__VA_ARGS__)
+
 template <>
 struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
