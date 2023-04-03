@@ -109,16 +109,18 @@ jobs:
         fi
       shell: bash
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
-
+    # This must happen before the "Configure CMake" step otherwise the python version used to compile
+    # will be different than the one installed here.
     - uses: actions/setup-python@v3
       with:
         python-version: '3.10'
         cache: 'pip'
     - run: pip install -r requirements.txt
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
 
     - name: Build
       # Build your program with the given configuration
@@ -138,6 +140,5 @@ jobs:
     - name: Run python tests
       run: |
         pushd ${{github.workspace}}/build/python
-        ls -al
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
