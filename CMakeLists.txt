@@ -132,6 +132,7 @@ add_subdirectory(src)
 
 if (CFG_PYTHON_BINDINGS)
   # Get pybind11
+  message(STATUS "Before pybind11 fetch content")
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
@@ -139,7 +140,8 @@ if (CFG_PYTHON_BINDINGS)
   )
   FetchContent_MakeAvailable(pybind11)
 
-  add_subdirectory(python)
+  message(STATUS "Adding python directory")
+  add_subdirectory(python/flexi_cfg)
 endif()
 
 if (CFG_ENABLE_TEST)

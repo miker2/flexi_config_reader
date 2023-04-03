@@ -87,7 +87,7 @@ struct Type {};
 // We need something to associate the logger with aside from the module.
 struct Logger {};
 
-PYBIND11_MODULE(flexi_cfg_py, m) {
+PYBIND11_MODULE(flexi_cfg, m) {
   m.doc() = "flexi_cfg python bindings";
 
   py::class_<flexi_cfg::Reader>(m, "Reader")
