@@ -16,6 +16,13 @@ target_link_libraries(flexi_cfg_py PUBLIC flexi_cfg)
 set_target_properties(flexi_cfg_py PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 set_target_properties(flexi_cfg_py PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
+add_test(NAME test_flexi_cfg
+  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	)
+set_tests_properties(test_flexi_cfg
+	PROPERTIES ENVIRONMENT "EXAMPLES_DIR=${PROJECT_SRC_DIR}/examples")
+
 install(TARGETS flexi_cfg_py
         COMPONENT python
         LIBRARY DESTINATION "${CFG_PYTHON_INSTALL_DIR}")

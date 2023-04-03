@@ -119,11 +119,6 @@ jobs:
         python-version: '3.10'
         cache: 'pip'
     - run: pip install -r requirements.txt
-    - name: Run python tests
-      run: |
-        pushd ${{github.workspace}}/python
-        python3 -m unittest discover -v
-        popd
 
     - name: Build
       # Build your program with the given configuration
@@ -139,3 +134,9 @@ jobs:
         for i in `seq 1 11`; do
           ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
+
+    - name: Run python tests
+      run: |
+        pushd ${{github.workspace}}/python
+        python3 -m unittest discover -v
+        popd
