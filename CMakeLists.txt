@@ -82,6 +82,8 @@ endif(ENABLE_CLANG_TIDY)
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
 option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
+option(CFG_PYTHON_INSTALL_DIR "Installation directory of python bindings." "")
+
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
@@ -132,7 +134,6 @@ add_subdirectory(src)
 
 if (CFG_PYTHON_BINDINGS)
   # Get pybind11
-  message(STATUS "Before pybind11 fetch content")
   FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
@@ -140,8 +141,8 @@ if (CFG_PYTHON_BINDINGS)
   )
   FetchContent_MakeAvailable(pybind11)
 
-  message(STATUS "Adding python directory")
-  add_subdirectory(python/flexi_cfg)
+  message(STATUS "Building python bindings")
+  add_subdirectory(python)
 endif()
 
 if (CFG_ENABLE_TEST)
