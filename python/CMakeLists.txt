@@ -17,7 +17,7 @@ set_target_properties(flexi_cfg_py PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 set_target_properties(flexi_cfg_py PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 add_test(NAME test_flexi_cfg
-  COMMAND ${PYTHON_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 	)
 set_tests_properties(test_flexi_cfg

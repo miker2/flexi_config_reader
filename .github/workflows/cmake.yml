@@ -137,6 +137,7 @@ jobs:
 
     - name: Run python tests
       run: |
-        pushd ${{github.workspace}}/python
-        python3 -m unittest discover -v
+        pushd ${{github.workspace}}/build/python
+        ls -al
+        EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
