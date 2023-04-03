@@ -82,6 +82,8 @@ endif(ENABLE_CLANG_TIDY)
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
 option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
+option(CFG_PYTHON_INSTALL_DIR "Installation directory of python bindings." "")
+
 
 add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
@@ -139,6 +141,7 @@ if (CFG_PYTHON_BINDINGS)
   )
   FetchContent_MakeAvailable(pybind11)
 
+  message(STATUS "Building python bindings")
   add_subdirectory(python)
 endif()
 
