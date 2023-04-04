@@ -160,6 +160,12 @@ auto main(int argc, char* argv[]) -> int {
       fmt::print("Found the following that contain '{}': \n\t{}\n", key,
                  fmt::join(structs, "\n\t"));
     }
+    {
+      const std::string test_key = "this.is.a.flat.key.no_exist";
+      if (!cfg.exists(test_key)) {
+        flexi_cfg::logger::warn("Key '{}' does not exist", test_key);
+      }
+    }
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
     return EXIT_FAILURE;
