@@ -126,8 +126,8 @@ auto Reader::getNestedConfig(const std::string& key) const
     const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
 
     return {keys.back(), data};
-  } catch (const std::exception& e) {
-    LOG_E("Error while getting key '{}':", key);
+  } catch (config::Exception& e) {
+    e.prepend(fmt::format("[Error] While getting key '{}':\n", key));
     throw;
   }
 
