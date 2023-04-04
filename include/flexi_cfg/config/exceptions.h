@@ -10,55 +10,68 @@
 
 namespace flexi_cfg::config {
 
-class InvalidTypeException : public std::runtime_error {
+class Exception : public std::runtime_error {
  public:
-  explicit InvalidTypeException(const std::string& message) : std::runtime_error(message){};
+  explicit Exception(const std::string& message) : std::runtime_error(message), message_(message){};
+
+  auto what() const noexcept -> const char* override { return message_.c_str(); }
+
+  void append(std::string_view msg) { message_.append(msg); }
+
+  void prepend(std::string_view msg) { message_.insert(0, msg); }
+
+ protected:
+  std::string message_;
 };
 
-class InvalidStateException : public std::runtime_error {
+class InvalidTypeException : public Exception {
  public:
-  explicit InvalidStateException(const std::string& message) : std::runtime_error(message){};
+  explicit InvalidTypeException(const std::string& message) : Exception(message){};
 };
 
-class InvalidConfigException : public std::runtime_error {
+class InvalidStateException : public Exception {
  public:
-  explicit InvalidConfigException(const std::string& message) : std::runtime_error(message){};
+  explicit InvalidStateException(const std::string& message) : Exception(message){};
 };
 
-class InvalidKeyException : public std::runtime_error {
+class InvalidConfigException : public Exception {
  public:
-  explicit InvalidKeyException(const std::string& message) : std::runtime_error(message){};
+  explicit InvalidConfigException(const std::string& message) : Exception(message){};
 };
 
-class DuplicateKeyException : public std::runtime_error {
+class InvalidKeyException : public Exception {
  public:
-  explicit DuplicateKeyException(const std::string& message) : std::runtime_error(message){};
+  explicit InvalidKeyException(const std::string& message) : Exception(message){};
 };
 
-class MismatchKeyException : public std::runtime_error {
+class DuplicateKeyException : public Exception {
  public:
-  explicit MismatchKeyException(const std::string& message) : std::runtime_error(message){};
+  explicit DuplicateKeyException(const std::string& message) : Exception(message){};
 };
 
-class MismatchTypeException : public std::runtime_error {
+class MismatchKeyException : public Exception {
  public:
-  explicit MismatchTypeException(const std::string& message) : std::runtime_error(message){};
+  explicit MismatchKeyException(const std::string& message) : Exception(message){};
 };
 
-class UndefinedReferenceVarException : public std::runtime_error {
+class MismatchTypeException : public Exception {
  public:
-  explicit UndefinedReferenceVarException(const std::string& message)
-      : std::runtime_error(message){};
+  explicit MismatchTypeException(const std::string& message) : Exception(message){};
 };
 
-class UndefinedProtoException : public std::runtime_error {
+class UndefinedReferenceVarException : public Exception {
  public:
-  explicit UndefinedProtoException(const std::string& message) : std::runtime_error(message){};
+  explicit UndefinedReferenceVarException(const std::string& message) : Exception(message){};
 };
 
-class CyclicReferenceException : public std::runtime_error {
+class UndefinedProtoException : public Exception {
  public:
-  explicit CyclicReferenceException(const std::string& message) : std::runtime_error(message){};
+  explicit UndefinedProtoException(const std::string& message) : Exception(message){};
+};
+
+class CyclicReferenceException : public Exception {
+ public:
+  explicit CyclicReferenceException(const std::string& message) : Exception(message){};
 };
 
 }  // namespace flexi_cfg::config
