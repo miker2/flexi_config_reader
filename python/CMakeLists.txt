@@ -23,6 +23,29 @@ add_test(NAME test_flexi_cfg
 set_tests_properties(test_flexi_cfg
 	PROPERTIES ENVIRONMENT "EXAMPLES_DIR=${PROJECT_SRC_DIR}/examples")
 
+
+
+# detect virtualenv and set Pip args accordingly
+if(DEFINED ENV{VIRTUAL_ENV} OR DEFINED ENV{CONDA_PREFIX})
+  set(_pip_args)
+else()
+  set(_pip_args "--user")
+endif()
+
+
+if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
+  # install pybind11-stubgen via pip
+  execute_process(COMMAND ${Python_EXECUTABLE} -m pip install ${_pip_args} "pybind11-stubgen")
+  add_custom_command(OUTPUT stubs/${PROJECT_NAME}/__init__.pyi
+    COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR}/stubs flexi_cfg
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS flexi_cfg_py
+  )
+
+  add_custom_target(flexi_cfg_py_stubs ALL DEPENDS stubs/${PROJECT_NAME}/__init__.pyi)
+endif()
+
 install(TARGETS flexi_cfg_py
         COMPONENT python
         LIBRARY DESTINATION "${CFG_PYTHON_INSTALL_DIR}")
