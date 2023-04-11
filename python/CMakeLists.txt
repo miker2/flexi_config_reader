@@ -32,16 +32,19 @@ else()
   set(_pip_args "--user")
 endif()
 
-# install pybind11-stubgen via pip
-execute_process(COMMAND ${Python_EXECUTABLE} -m pip install ${_pip_args} "pybind11-stubgen")
-add_custom_command(OUTPUT stubs/${PROJECT_NAME}/__init__.pyi
-  COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
-  COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR}/stubs flexi_cfg
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  DEPENDS flexi_cfg_py
-)
 
-add_custom_target(flexi_cfg_py_stubs ALL DEPENDS stubs/${PROJECT_NAME}/__init__.pyi)
+if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
+  # install pybind11-stubgen via pip
+  execute_process(COMMAND ${Python_EXECUTABLE} -m pip install ${_pip_args} "pybind11-stubgen")
+  add_custom_command(OUTPUT stubs/${PROJECT_NAME}/__init__.pyi
+    COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR}/stubs flexi_cfg
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS flexi_cfg_py
+  )
+
+  add_custom_target(flexi_cfg_py_stubs ALL DEPENDS stubs/${PROJECT_NAME}/__init__.pyi)
+endif()
 
 install(TARGETS flexi_cfg_py
         COMPONENT python
