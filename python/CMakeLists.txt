@@ -38,6 +38,7 @@ add_custom_command(OUTPUT stubs/${PROJECT_NAME}/__init__.pyi
   COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
   COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR}/stubs flexi_cfg
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  DEPENDS flexi_cfg_py
 )
 
 add_custom_target(flexi_cfg_py_stubs ALL DEPENDS stubs/${PROJECT_NAME}/__init__.pyi)

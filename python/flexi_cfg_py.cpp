@@ -16,7 +16,7 @@ namespace py = pybind11;
 namespace flexi_cfg {
 class ReaderCfgMapAccessor : public Reader {
  public:
-  ReaderCfgMapAccessor(const Reader& reader) : Reader(reader) {}
+  explicit ReaderCfgMapAccessor(const Reader& reader) : Reader(reader) {}
 
   using ListPtr = std::shared_ptr<config::types::ConfigList>;
 
