@@ -1,4 +1,5 @@
 #include <flexi_cfg/config/classes.h>
+#include <flexi_cfg/config/exceptions.h>
 #include <flexi_cfg/config/helpers.h>
 #include <flexi_cfg/parser.h>
 #include <flexi_cfg/reader.h>
@@ -42,13 +43,13 @@ class ReaderCfgMapAccessor : public Reader {
   void listBuilder(const config::types::ValuePtr& cfg_val, py::list& py_list) const {
     const auto& cfg_list_ptr = dynamic_pointer_cast<config::types::ConfigList>(cfg_val);
     if (cfg_list_ptr == nullptr) {
-      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got '{}' type.",
+      THROW_EXCEPTION(config::InvalidTypeException, "Expected '{}' type but got '{}' type.",
                       config::types::Type::kList, cfg_val->type);
     }
     // We have a list. Now we need to walk the list and collect the values, stuffing them into a
     // python list as we go.
     if (cfg_list_ptr == nullptr) {
-      THROW_EXCEPTION(std::runtime_error, "Expected '{}' type but got nullptr.",
+      THROW_EXCEPTION(config::InvalidStateException, "Expected '{}' type but got nullptr.",
                       config::types::Type::kList);
     }
 
@@ -82,6 +83,53 @@ auto getListHelper(const flexi_cfg::Reader& cfg, const std::string& key) -> py::
   return map_accesor.getList<T>(key);
 }
 
+auto getValueGeneric(const flexi_cfg::Reader& cfg, const std::string& key) -> py::object {
+  const auto key_type = cfg.getType(key);
+  switch (key_type) {
+    case flexi_cfg::config::types::Type::kString:
+      return py::cast(cfg.getValue<std::string>(key));
+    case flexi_cfg::config::types::Type::kBoolean:
+      return py::cast(cfg.getValue<bool>(key));
+    case flexi_cfg::config::types::Type::kNumber:
+      try {
+        return py::cast(cfg.getValue<uint64_t>(key));
+      } catch (const flexi_cfg::config::MismatchTypeException& e) {
+        // Ignore and try the next type
+        try {
+          return py::cast(cfg.getValue<int64_t>(key));
+        } catch (const flexi_cfg::config::MismatchTypeException& e) {
+          return py::cast(cfg.getValue<double>(key));
+        }
+      }
+    case flexi_cfg::config::types::Type::kList:
+      try {
+        return getListHelper<std::string>(cfg, key);
+      } catch (const flexi_cfg::config::MismatchTypeException& e) {
+        // Ignore and try the next type
+        try {
+          return getListHelper<bool>(cfg, key);
+        } catch (const flexi_cfg::config::MismatchTypeException& e) {
+          // Ignore and try the next type
+          try {
+            return getListHelper<uint64_t>(cfg, key);
+          } catch (const flexi_cfg::config::MismatchTypeException& e) {
+            // Ignore and try the next type
+            try {
+              return getListHelper<int64_t>(cfg, key);
+            } catch (const flexi_cfg::config::MismatchTypeException& e) {
+              return getListHelper<double>(cfg, key);
+            }
+          }
+        }
+      }
+    case flexi_cfg::config::types::Type::kStruct:
+      return py::cast(cfg.getValue<flexi_cfg::Reader>(key));
+    default:
+      THROW_EXCEPTION(flexi_cfg::config::InvalidTypeException,
+                      "Unsupported type '{}' generic 'getValue'", key_type);
+  }
+}
+
 // We need something to associate the enum with aside from the module, so create this empty struct
 struct Type {};
 // We need something to associate the logger with aside from the module.
@@ -89,27 +137,6 @@ struct Logger {};
 
 PYBIND11_MODULE(flexi_cfg, m) {
   m.doc() = "flexi_cfg python bindings";
-
-  py::class_<flexi_cfg::Reader>(m, "Reader")
-      .def("dump", &flexi_cfg::Reader::dump)
-      .def("exists", &flexi_cfg::Reader::exists)
-      .def("keys", &flexi_cfg::Reader::keys)
-      .def("getType", &flexi_cfg::Reader::getType)
-      .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
-      // Accessors for single values
-      .def("getValue_int", &getValueHelper<int64_t>)
-      .def("getValue_uint64", &getValueHelper<uint64_t>)
-      .def("getValue_double", &getValueHelper<double>)
-      .def("getValue_bool", &getValueHelper<bool>)
-      .def("getValue_string", &getValueHelper<std::string>)
-      // Accessors for lists of values
-      .def("getValue_list_int", &getListHelper<int64_t>)
-      .def("getValue_list_uint64", &getListHelper<uint64_t>)
-      .def("getValue_list_double", &getListHelper<double>)
-      .def("getValue_list_bool", &getListHelper<bool>)
-      .def("getValue_list_string", &getListHelper<std::string>)
-      // Accessor for a sub-reader object
-      .def("getValue_reader", &getValueHelper<flexi_cfg::Reader>);
 
   py::class_<Type> type_holder(m, "Type");
   py::enum_<flexi_cfg::config::types::Type>(type_holder, "Type")
@@ -127,6 +154,29 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .value("kReference", flexi_cfg::config::types::Type::kReference)
       .value("kUnknown", flexi_cfg::config::types::Type::kUnknown)
       .export_values();
+
+  py::class_<flexi_cfg::Reader>(m, "Reader")
+      .def("dump", &flexi_cfg::Reader::dump)
+      .def("exists", &flexi_cfg::Reader::exists)
+      .def("keys", &flexi_cfg::Reader::keys)
+      .def("getType", &flexi_cfg::Reader::getType)
+      .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
+      // Accessors for single values
+      .def("getInt", &getValueHelper<int64_t>)
+      .def("getUint64", &getValueHelper<uint64_t>)
+      .def("getFloat", &getValueHelper<double>)
+      .def("getBool", &getValueHelper<bool>)
+      .def("getString", &getValueHelper<std::string>)
+      // Accessors for lists of values
+      .def("getIntList", &getListHelper<int64_t>)
+      .def("getUint64List", &getListHelper<uint64_t>)
+      .def("getFloatList", &getListHelper<double>)
+      .def("getBoolList", &getListHelper<bool>)
+      .def("getStringList", &getListHelper<std::string>)
+      // Accessor for a sub-reader object
+      .def("getReader", &getValueHelper<flexi_cfg::Reader>)
+      // Generic accessor
+      .def("getValue", &getValueGeneric);
 
   m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));
   m.def("parse", py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
