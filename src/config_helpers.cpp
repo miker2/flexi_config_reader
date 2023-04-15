@@ -65,6 +65,7 @@ auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const 
 auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> types::CfgMap {
   const auto common_keys =
       ranges::views::set_intersection(cfg1 | ranges::views::keys, cfg2 | ranges::views::keys);
+  logger::trace("Common keys: {}", common_keys | ranges::views::all);
 
   for (const auto& k : common_keys) {
     checkForErrors(cfg1, cfg2, k);
@@ -75,6 +76,11 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
   types::CfgMap cfg_out{};
   std::copy(std::begin(cfg1), std::end(cfg1), std::inserter(cfg_out, cfg_out.end()));
   std::copy(std::begin(cfg2), std::end(cfg2), std::inserter(cfg_out, cfg_out.end()));
+  logger::trace("Merged top-level keys: {}", cfg_out | ranges::views::keys);
+  std::vector<std::string> tmp_keys;
+  std::transform(std::begin(cfg_out), std::end(cfg_out), std::back_inserter(tmp_keys),
+                 [](const auto& el) { return el.first; });
+  logger::trace("Merged top-level keys: {}", tmp_keys);
   for (auto& el : cfg_out) {
     const auto& key = el.first;
     if (ranges::find(std::begin(common_keys), std::end(common_keys), key) !=
