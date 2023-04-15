@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/view/drop_last.hpp>
