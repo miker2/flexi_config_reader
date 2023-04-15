@@ -78,7 +78,11 @@ class TestMyConfig(unittest.TestCase):
                         'test2': {'my_key': 'foo',
                                   'n_key': 0x1234,
                                   'var_ref': None},
-                        'solo_key': 10.1}
+                        'solo_key': 10.1,
+                        'int_list': [0, 1, 3, -5],
+                        'uint_list': [0x0, 0x1, 0x3, 0x5],
+                        'float_list': [0.0, 1.0, 3.0, -5.0],
+                        'uint64': -5}
         expected_cfg['test2']['var_ref'] = expected_cfg['test1']['key3']
         
         cfg = flexi_cfg.parse(cfg_file_path)
@@ -89,7 +93,35 @@ class TestMyConfig(unittest.TestCase):
 
         self.assertEqual(cfg.getType('test1.f'), flexi_cfg.Type.kList)
         self.assertEqual(cfg.getStringList('test1.f'), expected_cfg['test1']['f'])
-        
+
+        # Check that parsing a signed integer as an unsigned integer produces an exception.
+        excepted = False
+        try:
+            cfg.getUint64('uint64')
+        except flexi_cfg.MismatchTypeException:
+            excepted = True
+        except:
+            self.assertTrue(False)
+        self.assertTrue(excepted)
+
+        # Check various list types:
+        self.assertEqual(cfg.getIntList('int_list'), expected_cfg['int_list'])
+        self.assertEqual(cfg.getUint64List('uint_list'), expected_cfg['uint_list'])
+        self.assertEqual(cfg.getFloatList('float_list'), expected_cfg['float_list'])
+
+        # Check the generic getValue() method:
+        self.assertEqual(cfg.getValue('test1.key1'), expected_cfg['test1']['key1'])
+        self.assertEqual(cfg.getValue('test1.key2'), expected_cfg['test1']['key2'])
+        self.assertAlmostEqual(cfg.getValue('test1.key3'), expected_cfg['test1']['key3'], places=6)
+        self.assertEqual(cfg.getValue('test2.my_key'), expected_cfg['test2']['my_key'])
+        self.assertEqual(cfg.getValue('test2.n_key'), expected_cfg['test2']['n_key'])
+        self.assertAlmostEqual(cfg.getValue('test2.var_ref'), expected_cfg['test2']['var_ref'], places=6)
+        self.assertEqual(cfg.getValue('solo_key'), expected_cfg['solo_key'])
+        self.assertEqual(cfg.getValue('int_list'), expected_cfg['int_list'])
+        self.assertEqual(cfg.getValue('uint_list'), expected_cfg['uint_list'])
+        self.assertEqual(cfg.getValue('float_list'), expected_cfg['float_list'])
+        self.assertEqual(cfg.getValue('uint64'), expected_cfg['uint64'])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
