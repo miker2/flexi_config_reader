@@ -155,6 +155,29 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .value("kUnknown", flexi_cfg::config::types::Type::kUnknown)
       .export_values();
 
+  auto pyFlexiCfgException =
+      py::register_exception<flexi_cfg::config::Exception>(m, "Exception", PyExc_RuntimeError);
+  py::register_exception<flexi_cfg::config::InvalidTypeException>(m, "InvalidTypeException",
+                                                                  pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::InvalidStateException>(m, "InvalidStateException",
+                                                                   pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::InvalidConfigException>(m, "InvalidConfigException",
+                                                                    pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::InvalidKeyException>(m, "InvalidKeyException",
+                                                                 pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::DuplicateKeyException>(m, "DuplicateKeyException",
+                                                                   pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::MismatchKeyException>(m, "MismatchKeyException",
+                                                                  pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::MismatchTypeException>(m, "MismatchTypeException",
+                                                                   pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::UndefinedReferenceVarException>(
+      m, "UndefinedReferenceVarException", pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::UndefinedProtoException>(m, "UndefinedProtoException",
+                                                                     pyFlexiCfgException);
+  py::register_exception<flexi_cfg::config::CyclicReferenceException>(m, "CyclicReferenceException",
+                                                                      pyFlexiCfgException);
+
   py::class_<flexi_cfg::Reader>(m, "Reader")
       .def("dump", &flexi_cfg::Reader::dump)
       .def("exists", &flexi_cfg::Reader::exists)
@@ -177,6 +200,13 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("getReader", &getValueHelper<flexi_cfg::Reader>)
       // Generic accessor
       .def("getValue", &getValueGeneric);
+
+  py::class_<flexi_cfg::Parser>(m, "Parser")
+      .def_static("parse",
+                  py::overload_cast<const std::filesystem::path&>(&flexi_cfg::Parser::parse))
+      .def_static("parse",
+                  py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::Parser::parse),
+                  py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
 
   m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));
   m.def("parse", py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
