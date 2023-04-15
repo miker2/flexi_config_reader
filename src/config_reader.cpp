@@ -155,8 +155,14 @@ void Reader::convert(const config::types::ValuePtr& value_ptr, int64_t& value) {
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, uint64_t& value) {
-  numericConversionHelper<uint64_t>(
-      value_ptr, value, [](const auto& str, auto* l) { return std::stoull(str, l, 0); });
+  auto strict_stoull = [](const auto& str, auto* l) {
+    if (str[0] == '-') {
+      THROW_EXCEPTION(config::MismatchTypeException,
+                      "Expected unsigned type, but found negative number: {}", str);
+    }
+    return std::stoull(str, l, 0);
+  };
+  numericConversionHelper<uint64_t>(value_ptr, value, strict_stoull);
 }
 
 void Reader::convert(const config::types::ValuePtr& value_ptr, bool& value) {
