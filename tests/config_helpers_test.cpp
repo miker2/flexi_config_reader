@@ -5,6 +5,7 @@
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
 
 namespace {
 template <typename T, typename... Args>
@@ -175,7 +176,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     cfg1_struct->data = std::move(cfg1_inner);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
-    // cfg1 is:
+    // cfg2 is:
     //  struct key
     //    key3 = ""
     //    key2 = ""  <-- Duplicate key here, will fail.
@@ -189,7 +190,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
     flexi_cfg::config::types::CfgMap cfg_out{};
-    ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
+    EXPECT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
                  flexi_cfg::config::DuplicateKeyException);
   }
   {
@@ -616,4 +617,34 @@ TEST(ConfigHelpers, resolveVarRefs) {
     EXPECT_THROW(flexi_cfg::config::helpers::resolveVarRefs(cfg, cfg),
                  flexi_cfg::config::CyclicReferenceException);
   }
+}
+
+TEST(ConfigHelpers, mergeNestedMapsWithDifferentKeyOrder) {
+  // Create two structs with the same keys but in different orders
+  const std::string key = "foo";
+  const std::vector<std::string> keys = {"key1", "key2", "key3", "key4"};
+
+  // cfg1 has keys in order: key1, key2, key3, key4
+  flexi_cfg::config::types::CfgMap cfg1_inner = {
+      {keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("value1", kValue)},
+      {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("value2", kValue)},
+      {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("value3", kValue)},
+      {keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("value4", kValue)}};
+  auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+  cfg1_struct->data = std::move(cfg1_inner);
+  flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
+
+  // cfg2 has keys in order: key4, key3, key2, key1
+  flexi_cfg::config::types::CfgMap cfg2_inner = {
+      {keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("value4", kValue)},
+      {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("value3", kValue)},
+      {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("value2", kValue)},
+      {keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("value1", kValue)}};
+  auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+  cfg2_struct->data = std::move(cfg2_inner);
+  flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
+
+  // Merge the configs
+  flexi_cfg::config::types::CfgMap cfg_out{};
+  ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2), flexi_cfg::config::DuplicateKeyException);
 }

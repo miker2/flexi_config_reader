@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <map>
 #include <vector>
 
 #include "flexi_cfg/logger.h"
@@ -26,12 +27,13 @@
 
 namespace flexi_cfg::math {
 
+using VarRefMap = std::map<std::string, double>;
+
 struct ActionData {
   math::Stacks s{};
 
-  // This could be a `config::types::CfgMap` object, but rather than introduce that dependency,
-  // we'll make it a simple map from strings to values.
-  std::map<std::string, double> var_ref_map{};
+  // Mapping from variable names within expressions to their values.
+  VarRefMap var_ref_map{};
 
   // Track open/close brackets to know when to finalize the result.
   size_t bracket_cnt{0};

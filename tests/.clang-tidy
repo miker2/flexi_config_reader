@@ -1,5 +1,7 @@
 InheritParentConfig: true
 
-Checks: '-bugprone-suspicious-include,
-         -modernize-use-trailing-return-type
+Checks: '-cppcoreguidelines-avoid-magic-numbers,
+         -readability-magic-numbers,
+         -bugprone-suspicious-include,
+         -modernize-use-trailing-return-type,
          cppcoreguidelines-avoid-goto'
