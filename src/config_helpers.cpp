@@ -63,6 +63,10 @@ auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const 
  * Any key/value pairs that already exist in the leaves of cfg1 will be overwritten by the same
  * key/value pairs from cfg2. */
 auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> types::CfgMap {
+  logger::setLevel(logger::Severity::TRACE);
+  logger::debug("Being mergeNestedMaps ---------------------");
+  logger::trace("cfg1 keys: {}", cfg1 | ranges::views::keys);
+  logger::trace("cfg2 keys: {}", cfg2 | ranges::views::keys);
   const auto common_keys =
       ranges::views::set_intersection(cfg1 | ranges::views::keys, cfg2 | ranges::views::keys);
   logger::trace("Common keys: {}", common_keys | ranges::views::all);
@@ -97,7 +101,7 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
       }
     }
   }
-
+  logger::warn("End mergeNestedMaps ---------------------");
   return cfg_out;
 }
 
