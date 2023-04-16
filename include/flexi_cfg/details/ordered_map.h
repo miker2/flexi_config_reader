@@ -108,6 +108,17 @@ class ordered_map {
       return tmp;
     }
 
+    iterator_base operator--() {
+      --index_;
+      return *this;
+    }
+
+    iterator_base operator--(int) {
+      auto tmp = *this;
+      --index_;
+      return tmp;
+    }
+
     bool operator==(const iterator_base& other) const { return index_ == other.index_; }
     bool operator!=(const iterator_base& other) const { return index_ != other.index_; }
 
@@ -159,10 +170,51 @@ class ordered_map {
   const_iterator end() const noexcept { return {map_, keys_, keys_.size()}; }
   const_iterator cend() const noexcept { return end(); }
 
+  std::pair<iterator, bool> insert(const value_type& x) {
+    if (map_.contains(x.first)) {
+      // TODO: Make this return the iterator to the correct element
+      return {find(x.first), false};
+    }
+    auto it = end();
+    keys_.emplace_back(x.first);
+    map_.insert(x);
+    return {it, true};
+  }
+
+  std::pair<iterator, bool> insert(value_type&& x) {
+    if (map_.contains(x.first)) {
+      // TODO: Make this return the iterator to the correct element
+      return {find(x.first), false};
+    }
+    auto it = end();
+    keys_.emplace_back(x.first);
+    map_.insert(std::move(x));
+    return {it, true};
+  }
+
+  template <typename Pair>
+  std::enable_if_t<std::is_convertible_v<value_type, Pair>, std::pair<iterator, bool>> insert(
+      Pair&& x) {
+    if (map_.contains(x.first)) {
+      // TODO: Make this return the iterator to the correct element
+      return {find(x.first), false};
+    }
+    auto it = end();
+    keys_.emplace_back(x.first);
+    map_.emplace(std::forward<Pair>(x));
+    return {it, true};
+  }
+
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
 
  protected:
+  iterator find(const Key& key) {
+    const auto key_it = std::find(std::begin(keys_), std::end(keys_), key);
+    const auto idx = std::distance(std::begin(keys_), key_it);
+    assert(idx >= 0 && "Expected element idx to be non-negative");
+    return {map_, keys_, static_cast<size_t>(idx)};
+  }
 };
 
 }  // namespace flexi_cfg::details
