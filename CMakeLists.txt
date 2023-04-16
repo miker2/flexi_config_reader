@@ -62,6 +62,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(range-v3)
 
+# tsl::ordered_map
+FetchContent_Declare(
+  tsl-ordered-map
+  GIT_REPOSITORY "https://github.com/Tessil/ordered-map.git"
+  GIT_TAG v1.1.0
+)
+FetchContent_MakeAvailable(tsl-ordered-map)
+
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
 if(ENABLE_CLANG_TIDY)
   if(NOT CMAKE_CROSSCOMPILING) # adds invalid paths
@@ -96,6 +104,7 @@ set(CFG_HEADERS
   include/flexi_cfg/config/grammar.h
   include/flexi_cfg/config/helpers.h
   include/flexi_cfg/config/selector.h
+  include/details/ordered_map.h
   include/flexi_cfg/logger.h
   include/flexi_cfg/math/actions.h
   include/flexi_cfg/math/grammar.h
@@ -120,6 +129,7 @@ target_link_libraries(flexi_cfg
   taocpp::pegtl
   fmt::fmt
   range-v3::range-v3
+  tsl::ordered_map
 )
 add_clang_format(flexi_cfg)
 

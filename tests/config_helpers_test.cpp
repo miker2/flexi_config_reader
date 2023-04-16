@@ -5,6 +5,7 @@
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
 
 namespace {
 template <typename T, typename... Args>
@@ -175,7 +176,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     cfg1_struct->data = std::move(cfg1_inner);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
-    // cfg1 is:
+    // cfg2 is:
     //  struct key
     //    key3 = ""
     //    key2 = ""  <-- Duplicate key here, will fail.
@@ -189,7 +190,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
     flexi_cfg::config::types::CfgMap cfg_out{};
-    ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
+    EXPECT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
                  flexi_cfg::config::DuplicateKeyException);
   }
   {
@@ -342,11 +343,12 @@ TEST(ConfigHelpers, structFromReference) {
 
     // We want to ensure that if we modify a value in the struct that came from the proto, the proto
     // value isn't modified.
-    for (auto& kv : struct_out->data) {
+    for (auto it = struct_out->data.begin(); it != struct_out->data.end(); ++it) {
+      const auto& kv = *it;
       if (kv.second->type == flexi_cfg::config::types::Type::kVar) {
         auto var = dynamic_pointer_cast<flexi_cfg::config::types::ConfigVar>(kv.second);
         if (reference->ref_vars.contains(var->name)) {
-          kv.second = reference->ref_vars[var->name];
+          it.value() = reference->ref_vars[var->name];
         }
       }
     }
