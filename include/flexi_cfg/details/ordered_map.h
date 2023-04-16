@@ -73,8 +73,137 @@ class ordered_map {
     return *this;
   }
 
+  allocator_type get_allocator() const noexcept {
+    return map_.get_allocator();
+  }
+
+  [[nodiscard]] bool empty() const noexcept { return map_.empty; }
+
+  [[nodiscard]] size_type size() const noexcept { return map_.size(); }
+
+  [[nodiscard]] size_type max_size() const noexcept { return min(map_.max_size(), keys_.max_size()); }
+
+  // Iterators
+  // TODO: Create a custom iterator type that iterates over the keys in the order they were inserted
+  //iterator begin() noexcept {}
+  //const_iterator begin() const noexcept {}
+  //const_iterator cbegin() const noexcept {}
+  //iterator end() noexcept {}
+  //const_iterator end() const noexcept {}
+  //const_iterator cend() const noexcept {}
+
+  // TODO: Implement emplace, emplace_hint (if necessary, nothing currently uses it)
+
+  // Custom iterator for the ordered_map object.
+  // This iterator should iterate over the keys in the order they were inserted
+  class iterator_ {
+    public:
+      using iterator_category = std::forward_iterator_tag;
+      using difference_type = std::ptrdiff_t;
+      using value_type = Map::value_type;
+      using pointer = value_type*;
+      using reference = value_type&;
+
+    iterator_(Map& map, OrderedKeys& keys, size_type index) : map_(map), keys_(keys), index_(index) {
+        // Check that the offset is within bounds
+        if (index_ >= keys_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+    }
+
+    
+    reference operator*() const {
+        return *map_.find(keys_[index_]);
+    }
+
+    pointer operator->() const {
+        return map_[keys_[index_]];
+    }
+
+    // Prefix increment
+    iterator_& operator++() {
+        ++index_;
+        return *this;
+    }
+
+    // Postfix increment
+    iterator_ operator++(int) {
+        auto tmp = *this;
+        ++index_;
+        return tmp;
+    }
+
+    bool operator==(const iterator_& other) const {
+        return index_ == other.index_;
+    }
+    bool operator!=(const iterator_& other) const {
+        return index_ != other.index_;
+    }
+    private:
+    Map& map_;
+    OrderedKeys& keys_;
+    size_type index_;
+
+  };
+
+  // Custom iterator for the ordered_map object.
+  // This iterator should iterate over the keys in the order they were inserted
+  class const_iterator_ {
+    public:
+      using iterator_category = std::forward_iterator_tag;
+      using difference_type = std::ptrdiff_t;
+      using value_type = Map::value_type;
+      using const_pointer = const value_type*;
+      using const_reference = const value_type&;
+
+    const_iterator_(const Map& map, const OrderedKeys& keys, size_type index) : map_(map), keys_(keys), index_(index) {
+        // Check that the offset is within bounds
+        if (index_ >= keys_.size()) {
+            throw std::out_of_range("Index out of range");
+        }
+    }
+
+    
+    const_reference operator*() const {
+        return *map_.find(keys_[index_]);
+    }
+
+    const_pointer operator->() const {
+        return map_[keys_[index_]];
+    }
+
+    // Prefix increment
+    const_iterator_& operator++() {
+        ++index_;
+        return *this;
+    }
+
+    // Postfix increment
+    const_iterator_ operator++(int) {
+        auto tmp = *this;
+        ++index_;
+        return tmp;
+    }
+
+    bool operator==(const const_iterator_& other) const {
+        return index_ == other.index_;
+    }
+    bool operator!=(const const_iterator_& other) const {
+        return index_ != other.index_;
+    }
+    private:
+    const Map& map_;
+    const OrderedKeys& keys_;
+    size_type index_;
+
+  };
+
+
+
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
+
+
 
  protected:
 };
