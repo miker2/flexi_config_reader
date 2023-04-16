@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <tsl/ordered_map.h>
 
 #include <any>
 #include <iosfwd>
@@ -24,8 +25,8 @@ constexpr std::size_t tw{4};  // The width of the indentation
 class ConfigBase;
 using BasePtr = std::shared_ptr<ConfigBase>;
 
-using CfgMap = std::unordered_map<std::string, BasePtr>;
-using RefMap = std::unordered_map<std::string, BasePtr>;
+using CfgMap = tsl::ordered_map<std::string, BasePtr>;
+using RefMap = tsl::ordered_map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::unordered_map<std::string, std::shared_ptr<ConfigProto>>;
 
@@ -121,6 +122,22 @@ inline auto operator<<(std::ostream& os, const std::unordered_map<Key, Value>& d
   return os;
 }
 
+template <typename Key, typename Value>
+inline auto operator<<(std::ostream& os, const tsl::ordered_map<Key, Value>& data) -> std::ostream& {
+  for (const auto& kv : data) {
+    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
+      os << kv.second << "\n";
+    } else {
+      os << kv.first << " = " << kv.second
+#if PRINT_SRC
+         << "  # " << kv.second->loc()
+#endif
+         << "\n";
+    }
+  }
+  return os;
+}
+
 // See here for a potentially better solution:
 //    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
 template <typename Key, typename Value>
@@ -140,6 +157,25 @@ inline void pprint(std::ostream& os, const std::unordered_map<Key, std::shared_p
     }
   }
 }
+
+template <typename Key, typename Value>
+inline void pprint(std::ostream& os, const tsl::ordered_map<Key, std::shared_ptr<Value>>& data,
+                   std::size_t depth) {
+  const auto ws = std::string(depth * tw, ' ');
+  for (const auto& kv : data) {
+    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
+      // Don't add extra whitespace, as this is handled entirely by the StructLike objects
+      os << kv.second << "\n";
+    } else {
+      os << ws << kv.first << " = " << kv.second
+#if PRINT_SRC
+         << "  # " << kv.second->loc()
+#endif
+         << "\n";
+    }
+  }
+}
+
 
 template <typename Key, typename Value>
 inline void pprint(std::ostream& os, const std::unordered_map<Key, Value>& data, std::size_t depth) {

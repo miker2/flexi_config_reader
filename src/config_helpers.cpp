@@ -114,7 +114,10 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   }
 
   // Next, move the data from the reference to the struct:
-  struct_out->data.merge(ref->data);
+  // struct_out->data.merge(ref->data);
+  struct_out->data.insert(std::make_move_iterator(std::begin(ref->data)), 
+                          std::make_move_iterator(std::end(ref->data)));
+  ref->data.clear();
   if (CONFIG_HELPERS_DEBUG) {
     logger::debug("Data added: \n{}", struct_out);
   }
