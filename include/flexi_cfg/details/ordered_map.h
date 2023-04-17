@@ -139,6 +139,9 @@ class ordered_map {
     reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
 
     pointer operator->() const { return this->map_[this->keys_[this->index_]]; }
+
+   protected:
+    friend class const_iterator_;
   };
 
   // Custom iterator for the ordered_map object.
@@ -150,6 +153,8 @@ class ordered_map {
 
     const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
+    // Construct a const_iterator from a non-const iterator
+    const_iterator_(const iterator_& it) : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index) {}
 
     const_reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
 
@@ -205,15 +210,39 @@ class ordered_map {
     return {it, true};
   }
 
+  void clear() noexcept {
+    map_.clear();
+    keys_.clear();
+  }
+
+  // TODO: IMPLEMENT MERGE
+  /*
+  void merge(...) {
+
+  }
+  */
+
+  iterator find(const Key& key) {
+    return {map_, keys_, index_helper(key)};
+  }
+
+  const_iterator find(const Key& key) const {
+    return {map_, keys_, index_helper(key)};
+  }
+
+  bool contains(const Key& key) const {
+    return map_.contains(key);
+  }
+
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
 
  protected:
-  iterator find(const Key& key) {
+  size_t index_helper(const Key& key) const {
     const auto key_it = std::find(std::begin(keys_), std::end(keys_), key);
     const auto idx = std::distance(std::begin(keys_), key_it);
     assert(idx >= 0 && "Expected element idx to be non-negative");
-    return {map_, keys_, static_cast<size_t>(idx)};
+    return static_cast<size_t>(idx);
   }
 };
 
