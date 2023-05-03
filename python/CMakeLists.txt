@@ -14,7 +14,7 @@ endif ()
 # NOTE: Everything in the python directory should end up in a 'flexi_cfg' directory
 #       for easier installation of the python package
 
-add_custom_target(flexi_cfg_init ALL DEPENDS ${PROJECT_NAME}/__init__.py)
+add_custom_target(flexi_cfg_init ALL DEPENDS __init__.py)
 add_custom_command(TARGET flexi_cfg_init
                    COMMAND ${CMAKE_COMMAND} -E copy
                    ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
@@ -36,7 +36,6 @@ set_tests_properties(test_flexi_cfg
 	PROPERTIES ENVIRONMENT "EXAMPLES_DIR=${PROJECT_SRC_DIR}/examples")
 
 
-
 # detect virtualenv and set Pip args accordingly
 if(DEFINED ENV{VIRTUAL_ENV} OR DEFINED ENV{CONDA_PREFIX})
   set(_pip_args)
@@ -48,15 +47,17 @@ endif()
 if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
   # install pybind11-stubgen via pip
   execute_process(COMMAND ${Python_EXECUTABLE} -m pip install ${_pip_args} "pybind11-stubgen")
-  add_custom_command(OUTPUT __init__.pyi
+  add_custom_command(
+    OUTPUT ${PROJECT_NAME}/__init__.pyi
     COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
     COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR} flexi_cfg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS flexi_cfg_py
   )
 
-  add_custom_target(flexi_cfg_py_stubs ALL DEPENDS ${PROJECT_NAME}/__init__.pyi)
+  add_custom_target(flexi_cfg_py_stubgen ALL DEPENDS ${PROJECT_NAME}/__init__.pyi)
 endif()
+
 
 install(TARGETS flexi_cfg_py
         COMPONENT python
