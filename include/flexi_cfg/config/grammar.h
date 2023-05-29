@@ -162,7 +162,7 @@ struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, V
 // A special type of list for lists containing VAR elements.
 struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct PROTO_LIST : peg::seq<SBo, WS_, peg::list<PROTO_LIST_ELEMENT, COMMA, peg::space>, WS_, SBc> {
+struct PROTO_LIST : peg::seq<SBo, WS_, peg::list_must<PROTO_LIST_ELEMENT, COMMA, peg::space>, WS_, SBc> {
   using begin = SBo;
   using end = SBc;
   using element = PROTO_LIST_ELEMENT;
