@@ -724,7 +724,7 @@ struct action<REFERENCE> {
 };
 
 template <>
-struct action<END> {
+struct action<CBc> {
   static void apply0(ActionData& out) {
     out.depth--;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);

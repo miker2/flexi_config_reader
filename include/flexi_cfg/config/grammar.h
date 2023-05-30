@@ -35,48 +35,6 @@ struct expression;
 
 namespace config {
 
-// TODO(miker2): Update this
-// clang-format off
-/*
-grammar my_config
-  map        <-  _ (struct / proto / reference / COMMENT)+
-  struct     <-  STRUCTs KEY TAIL STRUCTc END _
-  proto      <-  PROTOs KEY TAIL STRUCTc END _
-  reference  <-  REFs FLAT_KEY _ "as" _ KEY TAIL REFc END _
-  STRUCTs    <-  "struct" SP
-  PROTOs     <-  "proto" SP
-  REFs       <-  "reference" SP
-  END        <-  "end" SP KEY
-  STRUCTc    <-  (struct / PAIR / reference / proto)+
-  REFc       <-  (REF_VARDEF / REF_ADDKVP)+
-  PAIR       <-  KEY KVs (value / VALUE_LOOKUP) TAIL
-  REF_VARDEF <-  VAR KVs value TAIL
-  REF_ADDKVP <-  "+" KEY KVs value TAIL
-  FLAT_KEY   <-  KEY ("." KEY)+   # Flattened struct/reference syntax
-  KEY        <-  [a-z] [a-zA-Z0-9_]*
-  value      <-  list / HEX / number / string
-  string     <-  '"' [^"]* '"' %make_string
-  list       <-  SBo value (COMMA value)* SBc
-  number     <-  (!HEX) [+-]? [0-9]+ ("." [0-9]*)? ("e" [+-]? [0-9]+)?
-  VARc       <-  [A-Z] [A-Z0-9_]*
-  VAR        <-  "$" ("{" VARc "}" / VARc)
-  VALUE_LOOKUP <-  "$(" FLAT_KEY ")"
-  HEX        <-  "0" [xX] [0-9a-fA-F]+
-  KVs        <-  oSP "=" oSP
-  CBo        <-  "{" oSP
-  CBc        <- oSP "}" _
-  SBo        <-  "[" oSP
-  SBc        <-  oSP "]"
-  COMMA      <-  oSP "," oSP
-  TAIL       <-  _ (COMMENT)*
-  COMMENT    <-  "#" [^\n\r]* _
-  oSP        <-  [ \t]*      # optional space
-  SP         <-  [ \t]+      # mandatory space
-  NL         <-  [\r\n]+     # (required) new line
-  _          <-  [ \t\r\n]*  # All whitespace
-*/
-// clang-format on
-
 struct WS_ : peg::star<peg::space> {};
 struct SP : peg::plus<peg::blank> {};
 struct COMMENT : peg::seq<peg::one<'#'>, peg::until<peg::eol>, WS_> {};
@@ -184,11 +142,9 @@ struct PAIR : peg::seq<KEY, KVs, KV_NOMINAL, TAIL> {};
 struct PROTO_PAIR
     : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR, PROTO_LIST>, TAIL> {};
 
-struct END : CBc {};
-
 // A rule for defining struct-like objects
 template <typename Start, typename Content>
-struct STRUCT_LIKE : peg::seq<Start, peg::if_must<CBo, TAIL, Content, END, TAIL>> {};
+struct STRUCT_LIKE : peg::seq<Start, peg::if_must<CBo, TAIL, Content, CBc, TAIL>> {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY> {};
 struct REFc : peg::star<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
@@ -237,7 +193,7 @@ struct grammar : peg::seq<CONFIG, peg::eolf> {};
 // Custom error messages for rules
 template <typename > inline constexpr const char* error_message = nullptr;
 
-template <> inline constexpr auto error_message<END> = "expected a closing '}'";
+template <> inline constexpr auto error_message<CBc> = "expected a closing '}'";
 template <> inline constexpr auto error_message<PROTO_LIST> = "invalid list in 'proto'";
 template <> inline constexpr auto error_message<PROTO_LIST_CONTENT> = "invalid list in 'proto'";
 template <> inline constexpr auto error_message<PROTO_LIST_ELEMENT> = "invalid element in proto list";
