@@ -188,7 +188,7 @@ struct END : CBc {};
 
 // A rule for defining struct-like objects
 template <typename Start, typename Content>
-struct STRUCT_LIKE : peg::seq<Start, CBo, TAIL, Content, END, TAIL> {};
+struct STRUCT_LIKE : peg::seq<Start, peg::if_must<CBo, TAIL, Content, END, TAIL>> {};
 
 struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY> {};
 struct REFc : peg::star<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
