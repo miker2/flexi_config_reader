@@ -164,7 +164,7 @@ struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, V
 struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
 struct PROTO_LIST_CONTENT : peg::list_must<PROTO_LIST_ELEMENT, COMMA, peg::space> {};
 // Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
-struct PROTO_LIST : peg::seq<SBo, WS_, PROTO_LIST_CONTENT, WS_, SBc> {
+struct PROTO_LIST : peg::if_must<SBo, WS_, PROTO_LIST_CONTENT, WS_, SBc> {
   using begin = SBo;
   using end = SBc;
   using element = PROTO_LIST_ELEMENT;
@@ -188,18 +188,18 @@ struct END : CBc {};
 
 // A rule for defining struct-like objects
 template <typename Start, typename Content>
-struct STRUCT_LIKE : peg::seq<Start, Content, END, TAIL> {};
+struct STRUCT_LIKE : peg::seq<Start, CBo, TAIL, Content, END, TAIL> {};
 
-struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY, CBo, TAIL> {};
+struct REFs : peg::seq<REFk, SP, FLAT_KEY, SP, ASk, SP, KEY> {};
 struct REFc : peg::star<peg::sor<REF_VARDEF, REF_ADDKVP>> {};
 struct REFERENCE : STRUCT_LIKE<REFs, REFc> {};
 
 struct PROTOc;
-struct PROTOs : peg::seq<PROTOk, SP, KEY, CBo, TAIL> {};
+struct PROTOs : peg::seq<PROTOk, SP, KEY> {};
 struct PROTO : STRUCT_LIKE<PROTOs, PROTOc> {};
 
 struct STRUCTc;
-struct STRUCTs : peg::seq<STRUCTk, SP, KEY, CBo, TAIL> {};
+struct STRUCTs : peg::seq<STRUCTk, SP, KEY> {};
 struct STRUCT : STRUCT_LIKE<STRUCTs, STRUCTc> {};
 
 // Special definition of a struct contained in a proto

@@ -32,7 +32,8 @@ template <typename INPUT>
 auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
   bool success = true;
   try {
-    success = peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(input, output);
+    success =
+        peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
     // 'output.cfg_res').
     success &= output.keys.empty();
