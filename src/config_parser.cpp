@@ -32,8 +32,8 @@ template <typename INPUT>
 auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
   bool success = true;
   try {
-    success =
-        peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, output);
+    success = peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action,
+                         flexi_cfg::config::control>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
     // 'output.cfg_res').
     success &= output.keys.empty();
@@ -56,8 +56,8 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
       flexi_cfg::logger::error("Error at: {} : {}", position.source, position.line);
 
       // Print a trace if a failure occured.
-      input.restart();
-      peg::standard_trace<flexi_cfg::config::grammar>(input);
+      // input.restart();
+      // peg::standard_trace<flexi_cfg::config::grammar>(input);
       return success;
     }
   } catch (const peg::parse_error& e) {
