@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <deque>
 #include <unordered_map>
 #include <utility>
@@ -18,15 +19,15 @@ class ordered_map {
   OrderedKeys keys_;
 
  public:
-  using key_type = Map::key_type;
-  using value_type = Map::value_type;
-  using mapped_type = Map::mapped_type;
-  using hasher = Map::hasher;
-  using key_equal = Map::key_equal;
-  using allocator_type = Map::allocator_type;
+  using key_type = typename Map::key_type;
+  using value_type = typename Map::value_type;
+  using mapped_type = typename Map::mapped_type;
+  using hasher = typename Map::hasher;
+  using key_equal = typename Map::key_equal;
+  using allocator_type = typename Map::allocator_type;
 
   // Iterator related typedefs
-  using size_type = Map::size_type;
+  using size_type = typename Map::size_type;
   // using reference = ;
   // using const_reference = ;
   // using pointer = ;
@@ -85,7 +86,7 @@ class ordered_map {
    public:
     using iterator_category = std::forward_iterator_tag;
     using difference_type = std::ptrdiff_t;
-    using value_type = Map::value_type;
+    using value_type = typename Map::value_type;
 
     iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
         : map_(map), keys_(keys), index_(index) {
@@ -177,7 +178,6 @@ class ordered_map {
 
   std::pair<iterator, bool> insert(const value_type& x) {
     if (map_.contains(x.first)) {
-      // TODO: Make this return the iterator to the correct element
       return {find(x.first), false};
     }
     auto it = end();
@@ -188,7 +188,6 @@ class ordered_map {
 
   std::pair<iterator, bool> insert(value_type&& x) {
     if (map_.contains(x.first)) {
-      // TODO: Make this return the iterator to the correct element
       return {find(x.first), false};
     }
     auto it = end();
@@ -201,7 +200,6 @@ class ordered_map {
   std::enable_if_t<std::is_convertible_v<value_type, Pair>, std::pair<iterator, bool>> insert(
       Pair&& x) {
     if (map_.contains(x.first)) {
-      // TODO: Make this return the iterator to the correct element
       return {find(x.first), false};
     }
     auto it = end();

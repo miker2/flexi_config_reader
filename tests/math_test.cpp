@@ -65,7 +65,8 @@ TEST_F(MathExpressionTest, evaluate) {
 
 // NOLINTNEXTLINE
 TEST_F(MathExpressionTest, evaluate_var_ref) {
-  auto test_input = [](const std::string& input, const flexi_cfg::math::VarRefMap& ref_map) -> double {
+  auto test_input = [](const std::string& input,
+                       const flexi_cfg::math::VarRefMap& ref_map) -> double {
     peg::memory_input in(input, "from content");
     flexi_cfg::math::ActionData out;
     out.var_ref_map = ref_map;
