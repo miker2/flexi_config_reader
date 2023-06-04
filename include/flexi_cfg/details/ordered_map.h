@@ -29,17 +29,13 @@ class ordered_map {
 
   // Iterator related typedefs
   using size_type = typename Map::size_type;
-  // using reference = ;
-  // using const_reference = ;
-  // using pointer = ;
-  // using const_pointer = ;
 
   ordered_map() = default;
 
-  explicit ordered_map(size_type n) : map_(n), keys_(n){};
+  // explicit ordered_map(size_type n) : map_(n), keys_(n){};
 
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last, size_type n = 0) : map_(first, last, n) {}
+  ordered_map(InputIterator first, InputIterator last) : map_(first, last) {}
 
   // Copy constructor
   ordered_map(const ordered_map&) = default;
@@ -70,7 +66,7 @@ class ordered_map {
 
   allocator_type get_allocator() const noexcept { return map_.get_allocator(); }
 
-  [[nodiscard]] bool empty() const noexcept { return map_.empty; }
+  [[nodiscard]] bool empty() const noexcept { return map_.empty(); }
 
   [[nodiscard]] size_type size() const noexcept { return map_.size(); }
 

@@ -70,6 +70,42 @@ TEST(OrderedMap, Test) {
   }
 }
 
+TEST(OrderedMap, constructors) {
+  using BasicMap = flexi_cfg::details::ordered_map<int, double>;
+
+  BasicMap empty;
+  EXPECT_TRUE(empty.empty());
+  EXPECT_EQ(empty.size(), 0);
+
+  // Initializer list construction
+  BasicMap map0({{1, 1.0}, {2, 2.0}, {3, 3.0}});
+
+  // Initializer list assignment construction
+  BasicMap map1 = {{1, 1.0}, {2, 2.0}, {3, 3.0}};
+  EXPECT_EQ(map1.size(), 3);
+
+  // Copy constructor
+  BasicMap map2(map1);
+  EXPECT_EQ(map2.size(), 3);
+
+  // Const copy constructor
+  const BasicMap map3_const(map1);
+  EXPECT_EQ(map3_const.size(), 3);
+
+  // Iterator constructor
+  BasicMap map4(std::begin(map1), std::end(map1));
+  EXPECT_EQ(map4.size(), 3);
+
+  // Move constructor
+  BasicMap map3(std::move(map2));
+  EXPECT_EQ(map3.size(), 3);
+
+  // Construct from a std::vector<std::pair<K, V>>
+  std::vector<std::pair<int, double>> vec = {{1, 1.0}, {2, 2.0}, {3, 3.0}};
+  BasicMap map5(std::begin(vec), std::end(vec));
+  EXPECT_EQ(map5.size(), vec.size());
+}
+
 TEST(OrderedMap, order) {
   // Create a map, and ensure that the order is preserved.
   OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
