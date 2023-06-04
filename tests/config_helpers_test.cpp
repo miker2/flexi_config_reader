@@ -345,12 +345,11 @@ TEST(ConfigHelpers, structFromReference) {
 
     // We want to ensure that if we modify a value in the struct that came from the proto, the proto
     // value isn't modified.
-    for (auto it = struct_out->data.begin(); it != struct_out->data.end(); ++it) {
-      const auto& kv = *it;
+    for (auto& kv : struct_out->data) {
       if (kv.second->type == flexi_cfg::config::types::Type::kVar) {
         auto var = dynamic_pointer_cast<flexi_cfg::config::types::ConfigVar>(kv.second);
         if (reference->ref_vars.contains(var->name)) {
-          it.value() = reference->ref_vars[var->name];
+          kv.second = reference->ref_vars[var->name];
         }
       }
     }
