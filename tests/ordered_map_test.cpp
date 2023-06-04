@@ -27,49 +27,6 @@ struct formatter<OMap::value_type> {
 };
 }  // namespace fmt
 
-TEST(OrderedMap, Test) {
-  OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
-              {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
-
-  fmt::print("value_type: {}\n", flexi_cfg::utils::getTypeName<MyMap::value_type>());
-
-  fmt::print("value_type: {}\n", flexi_cfg::utils::getTypeName<OMap::value_type>());
-
-  fmt::print("keys: {}\n", fmt::join(map.keys(), ", "));
-  fmt::print("map: \n  {}\n", fmt::join(map.map(), "\n  "));
-
-  fmt::print("----- const iterator check: -----\n");
-  for (const auto& [key, value] : map) {
-    fmt::print("key: {}, value: {}\n", key, value);
-  }
-
-  fmt::print("----- non-const iterator check: -----\n");
-  for (auto& [key, value] : map) {
-    fmt::print("key: {}, value: {}\n", key, value);
-  }
-
-  {  // Insertion test. Need to test the other signatures of this call.
-    auto ret = map.insert(OMap::value_type{"new 1", -1});
-    fmt::print("success: {}, it: {}\n", ret.second, *ret.first);
-    auto fail = map.insert(OMap::value_type{"test", -1});
-    fmt::print("Success: {}, it: {}\n", fail.second, *fail.first);
-    auto ret2 = map.insert(OMap::value_type{"see", -1});
-    fmt::print("success: {}, it: {}\n", ret2.second, *ret2.first);
-  }
-
-  {
-    MyMap test = {{"a", 0}, {"b", 1}, {"c", 2}};
-    auto suc = test.insert({"d", 3});
-    fmt::print("success: {}, it: {}\n", suc.second, *suc.first);
-    auto fail = test.insert({"b", 4});
-    fmt::print("success: {}, ", fail.second);
-    if (fail.first != std::end(test)) {
-      fmt::print("it: {}", *fail.first);
-    }
-    fmt::print("\n");
-  }
-}
-
 TEST(OrderedMap, constructors) {
   using BasicMap = flexi_cfg::details::ordered_map<int, double>;
 
@@ -104,6 +61,10 @@ TEST(OrderedMap, constructors) {
   std::vector<std::pair<int, double>> vec = {{1, 1.0}, {2, 2.0}, {3, 3.0}};
   BasicMap map5(std::begin(vec), std::end(vec));
   EXPECT_EQ(map5.size(), vec.size());
+
+  map5.clear();
+  EXPECT_TRUE(map5.empty());
+  EXPECT_EQ(map5.size(), 0);
 }
 
 TEST(OrderedMap, order) {
@@ -146,14 +107,23 @@ TEST(OrderedMap, iterators) {
 TEST(OrderedMap, insert) {
   OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
               {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
+  // This will test both paths of all the insert overloads.
   {
     // Insert a new element. Check that it succeeds and that the returned iterator points to the new
     // element.
-    const auto& ret = map.insert(OMap::value_type{"new 1", -1});
+    const OMap::value_type pair{"new 1", -1};
+    const auto& ret = map.insert(pair);
     EXPECT_TRUE(ret.second);
     const auto& it = ret.first;
     EXPECT_EQ(it->first, "new 1");
     EXPECT_EQ(it->second, -1);
+
+    // This time, try to insert an element with the same key, different value.
+    const OMap::value_type pair2{pair.first, -10};
+    const auto& fail = map.insert(pair2);
+    EXPECT_FALSE(fail.second);
+    EXPECT_EQ(fail.first->first, pair.first);
+    EXPECT_EQ(fail.first->second, pair.second);
   }
   {
     // Attempt to insert and element with a key that already exists. Check that it fails and that
@@ -162,5 +132,103 @@ TEST(OrderedMap, insert) {
     EXPECT_FALSE(fail.second);
     EXPECT_EQ(fail.first->first, "test");
     EXPECT_EQ(fail.first->second, 3);
+
+    // Now, insert a key that doesn't exist.
+    auto ret = map.insert(OMap::value_type{"new 2", -1});
+    EXPECT_TRUE(ret.second);
+    EXPECT_EQ(ret.first->first, "new 2");
+    EXPECT_EQ(ret.first->second, -1);
+  }
+  {
+    // Use an int16_t here since it is convertible to an int, and thus will call the templated
+    // 'insert' overload.
+
+    // This one will pass
+    const std::pair<std::string, int16_t> pair{"foo", 20};
+    const auto& ret = map.insert(pair);
+    EXPECT_TRUE(ret.second);
+    EXPECT_EQ(ret.first->first, pair.first);
+    EXPECT_EQ(ret.first->second, pair.second);
+
+    // This one will fail because the key already exists
+    const std::pair<std::string, int16_t> pair2{pair.first, 30};
+    const auto& fail = map.insert(pair2);
+    EXPECT_FALSE(fail.second);
+    EXPECT_EQ(fail.first->first, pair.first);
+    EXPECT_EQ(fail.first->second, pair.second);
+  }
+}
+
+TEST(OrderedMap, insert_or_assign) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}});
+  {
+    // Insert a new element. Check that it succeeds and that the returned iterator points to the new
+    // element.
+    const auto& ret = map.insert_or_assign("four", 4);
+    EXPECT_TRUE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "four");
+    EXPECT_EQ(it->second, 4);
+    // This is a new element, so it should be at the end of the map.
+    EXPECT_EQ(std::distance(std::begin(map), it),
+              std::distance(std::begin(map), std::end(map)) - 1);
+  }
+  {
+    // Attempt to insert and element with a key that already exists. Check the return value and that
+    // the new value is correct.
+    const auto& ret = map.insert_or_assign("two", 20);
+    EXPECT_FALSE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "two");
+    EXPECT_EQ(it->second, 20);
+    // This is an existing element, so it should be at the same position in the map.
+    EXPECT_EQ(std::distance(std::begin(map), it) + 1, 2);
+  }
+  {
+    const std::string new_key = "five";
+    const int new_value = 5;
+    const auto& ret = map.insert_or_assign(new_key, new_value);
+    EXPECT_TRUE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, new_key);
+    EXPECT_EQ(it->second, new_value);
+    // This is a new element, so it should be at the end of the map.
+    EXPECT_EQ(std::distance(std::begin(map), it),
+              std::distance(std::begin(map), std::end(map)) - 1);
+  }
+}
+
+TEST(OrderedMap, emplace) {
+  // Test the emplace operator that it works as expected.
+  OMap map;
+
+  {
+    const auto& ret = map.emplace("one", 1);
+    EXPECT_TRUE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "one");
+    EXPECT_EQ(it->second, 1);
+    // This is a new element, so it should be at the end of the map.
+    EXPECT_EQ(std::distance(std::begin(map), it),
+              std::distance(std::begin(map), std::end(map)) - 1);
+  }
+  {
+    // Try to emplace an element with the same key.
+    const auto& ret = map.emplace("one", 10);
+    EXPECT_FALSE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "one");
+    EXPECT_EQ(it->second, 1);
+  }
+  {
+    // Try to emplace an element with a different key.
+    const auto& ret = map.emplace(std::string("two"), static_cast<int16_t>(2));
+    EXPECT_TRUE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "two");
+    EXPECT_EQ(it->second, 2);
+    // This is a new element, so it should be at the end of the map.
+    EXPECT_EQ(std::distance(std::begin(map), it),
+              std::distance(std::begin(map), std::end(map)) - 1);
   }
 }
