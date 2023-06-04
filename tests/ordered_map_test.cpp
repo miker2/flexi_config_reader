@@ -277,6 +277,31 @@ TEST(OrderedMap, erase) {
   EXPECT_EQ(count2, 0);
 }
 
+TEST(OrderedMap, find) {
+  OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
+              {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
+  {
+    const auto it = map.find("see");
+    EXPECT_EQ(it->first, "see");
+    EXPECT_EQ(it->second, 5);
+  }
+  {
+    const auto it = map.find("doesn't exist");
+    EXPECT_EQ(it, std::end(map));
+  }
+
+  const auto c_map(map);
+  {
+    const auto it = c_map.find("see");
+    EXPECT_EQ(it->first, "see");
+    EXPECT_EQ(it->second, 5);
+  }
+  {
+    const auto it = c_map.find("doesn't exist");
+    EXPECT_EQ(it, std::cend(c_map));
+  }
+}
+
 TEST(OrderedMap, size_t_test) {
   // This test ensures that we can create an ordered_map that uses the same type for the key_type
   // and value_type and that when using a size_t all of the functions work. With some of the
