@@ -82,21 +82,11 @@ class ordered_map {
       : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
    public:
     iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
-        : map_(map), keys_(keys), index_(index) {
+        : map_(map), keys_(keys), index_(index), key_(get_key()) {
       // Check that the offset is within bounds
       if (index_ > keys_.size()) {
         throw std::out_of_range("Index out of range");
       }
-      key_ = get_key();
-    }
-
-    iterator_base(MapType& map, OrderedKeysType& keys, OrderedKeysType::value_type key)
-        : map_(map), keys_(keys), key_(key) {
-      auto it = std::find(keys_.begin(), keys_.end(), key_);
-      if (it == keys_.end()) {
-        throw std::out_of_range("Key not found");
-      }
-      index_ = std::distance(keys_.begin(), it);
     }
 
     // Prefix increment
@@ -153,9 +143,6 @@ class ordered_map {
     iterator_(Map& map, OrderedKeys& keys, size_type index)
         : iterator_base<Map, OrderedKeys>(map, keys, index) {}
 
-    iterator_(Map& map, OrderedKeys& keys, OrderedKeys::value_type key)
-        : iterator_base<Map, OrderedKeys>(map, keys, key) {}
-
     reference operator*() const { return *this->map_.find(this->key_); }
 
     pointer operator->() const { return &(*this->map_.find(this->key_)); }
@@ -173,9 +160,6 @@ class ordered_map {
 
     const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
-
-    const_iterator_(const Map& map, const OrderedKeys& keys, OrderedKeys::value_type key)
-        : iterator_base<const Map, const OrderedKeys>(map, keys, key) {}
 
     // Construct a const_iterator from a non-const iterator
     const_iterator_(const iterator_& it)
@@ -325,9 +309,9 @@ class ordered_map {
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>&& source);
 
-  iterator find(const Key& key) { return {map_, keys_, index_helper(key)}; }
+  iterator find(const Key& key) { return iter_from_key(key); }
 
-  const_iterator find(const Key& key) const { return {map_, keys_, index_helper(key)}; }
+  const_iterator find(const Key& key) const { return iter_from_key(key); }
 
   bool contains(const Key& key) const { return map_.contains(key); }
 
@@ -335,7 +319,7 @@ class ordered_map {
   const Map& map() const { return map_; }
 
  protected:
-  size_t index_helper(const Key& key) const {
+  size_t get_index(const Key& key) const {
     const auto key_it = std::find(std::begin(keys_), std::end(keys_), key);
     const auto idx = std::distance(std::begin(keys_), key_it);
     assert(idx >= 0 && "Expected element idx to be non-negative");
@@ -345,8 +329,8 @@ class ordered_map {
   // Helpers for creating iterators
   iterator iter_from_index(size_t index) { return {map_, keys_, index}; }
   const_iterator iter_from_index(size_t index) const { return {map_, keys_, index}; }
-  iterator iter_from_key(const Key& key) { return {map_, keys_, key}; }
-  const_iterator iter_from_key(const Key& key) const { return {map_, keys_, key}; }
+  iterator iter_from_key(const Key& key) { return {map_, keys_, get_index(key)}; }
+  const_iterator iter_from_key(const Key& key) const { return {map_, keys_, get_index(key)}; }
 };
 
 }  // namespace flexi_cfg::details
