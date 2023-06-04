@@ -120,6 +120,7 @@ class ordered_map {
     MapType& map_;
     OrderedKeysType& keys_;
     size_type index_;
+    OrderedKeysType::value_type key_;
   };
 
   class iterator_ : public iterator_base<Map, OrderedKeys> {
@@ -256,12 +257,48 @@ class ordered_map {
 
   // TODO: Implement emplace_hint (if necessary, nothing currently uses it)
 
-  // TODO: IMPLEMENT MERGE
-  /*
-  void merge(...) {
+  // TODO: Implement try_emplace (if necessary, nothing currently uses it)
 
+  // TODO: Determine if these erase methods are doing the right thing if 'pos' is not valid.
+  iterator erase(iterator pos) {
+    const auto index = std::distance(begin(), pos);
+    auto it = map_.find(pos->first);
+    keys_.erase(keys_.begin() + index);
+    map_.erase(it);
+    return pos;
   }
-  */
+
+  iterator erase(const_iterator pos) {
+    const auto index = std::distance(cbegin(), pos);
+    assert(index >= 0 && index < keys_.size() && "Index out of bounds");
+    auto it = map_.find(pos->first);
+    keys_.erase(keys_.begin() + index);
+    map_.erase(it);
+    return {map_, keys_, static_cast<size_type>(index)};
+  }
+
+  // TODO: Implement this erase - which handles a range of iterators
+  // iterator erase(const_iterator first, const_iterator last);
+
+  size_type erase(const Key& key) {
+    const auto& it = find(key);
+    if (it == end()) {
+      return 0;
+    }
+    erase(it);
+    return 1;
+  }
+
+  // TODO: Implement swap
+
+  // TODO: Implement extract
+
+  // TODO: IMPLEMENT MERGE
+  template <class H2, class P2>
+  void merge(ordered_map<Key, T, H2, P2, Alloc>& source);
+
+  template <class H2, class P2>
+  void merge(ordered_map<Key, T, H2, P2, Alloc>&& source);
 
   iterator find(const Key& key) { return {map_, keys_, index_helper(key)}; }
 
