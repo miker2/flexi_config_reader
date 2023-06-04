@@ -277,6 +277,42 @@ TEST(OrderedMap, erase) {
   EXPECT_EQ(count2, 0);
 }
 
+// TEST(OrderedMap, swap) {}
+
+// TEST(OrderedMap, extract) {}
+
+// TEST(OrderedMap, merge) {}
+
+TEST(OrderedMap, at) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"one", 4}});
+  EXPECT_EQ(map.at("one"), 1);
+  EXPECT_EQ(map.at("two"), 2);
+  EXPECT_EQ(map.at("three"), 3);
+  EXPECT_THROW(map.at("four"), std::out_of_range);
+}
+
+TEST(OrderedMap, operator_square_brackets) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"two", 4}});
+  EXPECT_EQ(map["one"], 1);
+  EXPECT_EQ(map["two"], 2);
+  EXPECT_EQ(map["three"], 3);
+  EXPECT_EQ(map["four"], 0);  // This passes, but is it really the right value?
+}
+
+TEST(OrderedMap, count) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}});
+  EXPECT_EQ(map.count("one"), 1);
+  EXPECT_EQ(map.count("two"), 1);
+  EXPECT_EQ(map.count("three"), 1);
+  EXPECT_EQ(map.count("four"), 0);
+
+  OMap map2({{"one", 1}, {"two", 2}, {"three", 3}, {"one", 4}});
+  EXPECT_EQ(map2.count("one"), 1);
+  EXPECT_EQ(map2.count("two"), 1);
+  EXPECT_EQ(map2.count("three"), 1);
+  EXPECT_EQ(map2.count("four"), 0);
+}
+
 TEST(OrderedMap, find) {
   OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
               {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
