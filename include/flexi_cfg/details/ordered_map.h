@@ -304,16 +304,58 @@ class ordered_map {
 
   // TODO: IMPLEMENT MERGE
   template <class H2, class P2>
-  void merge(ordered_map<Key, T, H2, P2, Alloc>& source);
+  void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
+    assert(false && "Not implemented yet");
+  }
 
   template <class H2, class P2>
-  void merge(ordered_map<Key, T, H2, P2, Alloc>&& source);
+  void merge(ordered_map<Key, T, H2, P2, Alloc>&& source) {
+    assert(false && "Not implemented yet");
+  }
+
+  T& at(const Key& key) { return map_.at(key); }
+
+  const T& at(const Key& key) const { return map_.at(key); }
+
+  T& operator[](const Key& key) { return map_[key]; }
+
+  T& operator[](Key&& key) { return map_[key]; }
+
+  size_type count(const Key& key) const { return map_.count(key); }
+
+  template <class K>
+  size_type count(const K& x) const {
+    return map_.count(x);
+  }
 
   iterator find(const Key& key) { return iter_from_key(key); }
 
   const_iterator find(const Key& key) const { return iter_from_key(key); }
 
   bool contains(const Key& key) const { return map_.contains(key); }
+
+  template <class K>
+  bool contains(const K& x) const {
+    return map_.contains(x);
+  }
+
+  std::pair<iterator, iterator> equal_range(const Key& key) {
+    assert(false && "Not implemented yet");
+  }
+
+  std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
+    assert(false && "Not implemented yet");
+  }
+
+  template <class K>
+  std::pair<iterator, iterator> equal_range(const K& x) {
+    assert(false && "Not implemented yet");
+  }
+
+  template <class K>
+  std::pair<const_iterator, const_iterator> equal_range(const K& x) const {
+    assert(false && "Not implemented yet");
+  }
 
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
