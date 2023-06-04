@@ -70,27 +70,61 @@ TEST(OrderedMap, Test) {
   }
 }
 
+TEST(OrderedMap, order) {
+  // Create a map, and ensure that the order is preserved.
+  OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
+              {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
+  std::vector<std::string> expected_keys = {"this", "is",  "a",      "test", "to",
+                                            "see",  "how", "things", "work"};
+  for (const auto& [key, idx] : map) {
+    EXPECT_EQ(key, expected_keys[idx]);
+  }
+}
+
+TEST(OrderedMap, iterators) {
+  std::vector<std::string> expected_keys = {"this", "is",  "a",      "test", "to",
+                                            "see",  "how", "things", "work"};
+  auto build_map = [](const std::vector<std::string>& keys) {
+    OMap map;
+    for (size_t i = 0; i < keys.size(); ++i) {
+      map.insert({keys[i], i});
+    }
+    return map;
+  };
+  {
+    OMap map = build_map(expected_keys);
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      EXPECT_EQ(it->first, expected_keys[it->second]);
+      EXPECT_EQ(std::distance(std::begin(map), it), it->second);
+    }
+  }
+  {
+    const OMap map = build_map(expected_keys);
+    for (auto it = map.begin(); it != map.end(); ++it) {
+      EXPECT_EQ(it->first, expected_keys[it->second]);
+      EXPECT_EQ(std::distance(std::begin(map), it), it->second);
+    }
+  }
+}
+
 TEST(OrderedMap, insert) {
   OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
               {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
-  {  // Insertion test. Need to test the other signatures of this call.
-    auto ret = map.insert(OMap::value_type{"new 1", -1});
-    fmt::print("success: {}, it: {}\n", ret.second, *ret.first);
-    auto fail = map.insert(OMap::value_type{"test", -1});
-    fmt::print("Success: {}, it: {}\n", fail.second, *fail.first);
-    auto ret2 = map.insert(OMap::value_type{"see", -1});
-    fmt::print("success: {}, it: {}\n", ret2.second, *ret2.first);
-  }
-
   {
-    MyMap test = {{"a", 0}, {"b", 1}, {"c", 2}};
-    auto suc = test.insert({"d", 3});
-    fmt::print("success: {}, it: {}\n", suc.second, *suc.first);
-    auto fail = test.insert({"b", 4});
-    fmt::print("success: {}, ", fail.second);
-    if (fail.first != std::end(test)) {
-      fmt::print("it: {}", *fail.first);
-    }
-    fmt::print("\n");
+    // Insert a new element. Check that it succeeds and that the returned iterator points to the new
+    // element.
+    const auto& ret = map.insert(OMap::value_type{"new 1", -1});
+    EXPECT_TRUE(ret.second);
+    const auto& it = ret.first;
+    EXPECT_EQ(it->first, "new 1");
+    EXPECT_EQ(it->second, -1);
+  }
+  {
+    // Attempt to insert and element with a key that already exists. Check that it fails and that
+    // the returned iterator points to the existing element.
+    auto fail = map.insert(OMap::value_type{"test", -1});
+    EXPECT_FALSE(fail.second);
+    EXPECT_EQ(fail.first->first, "test");
+    EXPECT_EQ(fail.first->second, 3);
   }
 }

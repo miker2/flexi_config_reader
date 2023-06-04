@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <deque>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -82,12 +83,9 @@ class ordered_map {
   // Custom iterator for the ordered_map object.
   // This iterator should iterate over the keys in the order they were inserted
   template <typename MapType, typename OrderedKeysType>
-  class iterator_base {
+  class iterator_base : public std::iterator<std::forward_iterator_tag, 
+                                             typename MapType::value_type> {
    public:
-    using iterator_category = std::forward_iterator_tag;
-    using difference_type = std::ptrdiff_t;
-    using value_type = typename Map::value_type;
-
     iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
         : map_(map), keys_(keys), index_(index) {
       // Check that the offset is within bounds
@@ -139,7 +137,7 @@ class ordered_map {
 
     reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
 
-    pointer operator->() const { return this->map_[this->keys_[this->index_]]; }
+    pointer operator->() const { return &(*this->map_.find(this->keys_[this->index_])); }
 
    protected:
     friend class const_iterator_;
@@ -159,7 +157,7 @@ class ordered_map {
 
     const_reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
 
-    const_pointer operator->() const { return this->map_[this->keys_[this->index_]]; }
+    const_pointer operator->() const { return &(*this->map_.find(this->keys_[this->index_])); }
   };
 
   // Iterators
