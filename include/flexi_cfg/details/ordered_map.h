@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <deque>
+#include <iostream>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -73,8 +74,6 @@ class ordered_map {
   [[nodiscard]] size_type max_size() const noexcept {
     return min(map_.max_size(), keys_.max_size());
   }
-
-  // TODO: Implement emplace, emplace_hint (if necessary, nothing currently uses it)
 
   // Custom iterator for the ordered_map object.
   // This iterator should iterate over the keys in the order they were inserted
@@ -171,6 +170,11 @@ class ordered_map {
   const_iterator end() const noexcept { return {map_, keys_, keys_.size()}; }
   const_iterator cend() const noexcept { return end(); }
 
+  void clear() noexcept {
+    map_.clear();
+    keys_.clear();
+  }
+
   std::pair<iterator, bool> insert(const value_type& x) {
     if (map_.contains(x.first)) {
       return {find(x.first), false};
@@ -203,10 +207,54 @@ class ordered_map {
     return {it, true};
   }
 
-  void clear() noexcept {
-    map_.clear();
-    keys_.clear();
+  template <class M>
+  std::pair<iterator, bool> insert_or_assign(const Key& key, M&& obj) {
+    if (map_.contains(key)) {
+      map_[key] = std::forward<M>(obj);
+      return {find(key), false};
+    }
+    auto it = end();
+    keys_.emplace_back(key);
+    map_.insert_or_assign(key, std::forward<M>(obj));
+    return {it, true};
   }
+
+  template <class M>
+  std::pair<iterator, bool> insert_or_assign(Key&& k, M&& obj) {
+    if (map_.contains(k)) {
+      map_[k] = std::forward<M>(obj);
+      return {find(k), false};
+    }
+    auto it = end();
+    keys_.emplace_back(k);
+    map_.insert_or_assign(std::move(k), std::forward<M>(obj));
+    return {it, true};
+  }
+
+  template <class M>
+  iterator insert_or_assign(const_iterator hint, const Key& k, M&& obj) {
+    assert(false && "Not implemented yet");
+  }
+
+  template <class M>
+  iterator insert_or_assign(const_iterator hint, Key&& k, M&& obj) {
+    assert(false && "Not implemented yet");
+  }
+
+  template <class... Args>
+  std::pair<iterator, bool> emplace(Args&&... args) {
+    auto value = std::make_pair(std::forward<Args>(args)...);
+    if (map_.contains(value.first)) {
+      return {find(value.first), false};
+    }
+    auto it = end();
+    keys_.emplace_back(value.first);
+    map_.emplace(std::move(value));
+
+    return {it, true};
+  }
+
+  // TODO: Implement emplace_hint (if necessary, nothing currently uses it)
 
   // TODO: IMPLEMENT MERGE
   /*
