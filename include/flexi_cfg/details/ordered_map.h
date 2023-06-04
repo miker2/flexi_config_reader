@@ -83,8 +83,8 @@ class ordered_map {
   // Custom iterator for the ordered_map object.
   // This iterator should iterate over the keys in the order they were inserted
   template <typename MapType, typename OrderedKeysType>
-  class iterator_base : public std::iterator<std::forward_iterator_tag, 
-                                             typename MapType::value_type> {
+  class iterator_base
+      : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
    public:
     iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
         : map_(map), keys_(keys), index_(index) {
@@ -153,7 +153,8 @@ class ordered_map {
     const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
     // Construct a const_iterator from a non-const iterator
-    const_iterator_(const iterator_& it) : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index) {}
+    const_iterator_(const iterator_& it)
+        : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index) {}
 
     const_reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
 
@@ -218,17 +219,11 @@ class ordered_map {
   }
   */
 
-  iterator find(const Key& key) {
-    return {map_, keys_, index_helper(key)};
-  }
+  iterator find(const Key& key) { return {map_, keys_, index_helper(key)}; }
 
-  const_iterator find(const Key& key) const {
-    return {map_, keys_, index_helper(key)};
-  }
+  const_iterator find(const Key& key) const { return {map_, keys_, index_helper(key)}; }
 
-  bool contains(const Key& key) const {
-    return map_.contains(key);
-  }
+  bool contains(const Key& key) const { return map_.contains(key); }
 
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
