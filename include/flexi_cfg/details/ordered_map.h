@@ -87,11 +87,22 @@ class ordered_map {
       if (index_ > keys_.size()) {
         throw std::out_of_range("Index out of range");
       }
+      key_ = get_key();
+    }
+
+    iterator_base(MapType& map, OrderedKeysType& keys, OrderedKeysType::value_type key)
+        : map_(map), keys_(keys), key_(key) {
+      auto it = std::find(keys_.begin(), keys_.end(), key_);
+      if (it == keys_.end()) {
+        throw std::out_of_range("Key not found");
+      }
+      index_ = std::distance(keys_.begin(), it);
     }
 
     // Prefix increment
     iterator_base& operator++() {
       ++index_;
+      key_ = get_key();
       return *this;
     }
 
@@ -99,17 +110,20 @@ class ordered_map {
     iterator_base operator++(int) {
       auto tmp = *this;
       ++index_;
+      key_ = get_key();
       return tmp;
     }
 
     iterator_base operator--() {
       --index_;
+      key_ = get_key();
       return *this;
     }
 
     iterator_base operator--(int) {
       auto tmp = *this;
       --index_;
+      key_ = get_key();
       return tmp;
     }
 
@@ -121,6 +135,14 @@ class ordered_map {
     OrderedKeysType& keys_;
     size_type index_;
     OrderedKeysType::value_type key_;
+
+    OrderedKeysType::value_type get_key() const {
+      if (index_ < 0 || index_ >= keys_.size()) {
+        // If the index is out of range, return the last key
+        return {};
+      }
+      return keys_[index_];
+    }
   };
 
   class iterator_ : public iterator_base<Map, OrderedKeys> {
