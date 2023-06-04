@@ -153,9 +153,12 @@ class ordered_map {
     iterator_(Map& map, OrderedKeys& keys, size_type index)
         : iterator_base<Map, OrderedKeys>(map, keys, index) {}
 
-    reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
+    iterator_(Map& map, OrderedKeys& keys, OrderedKeys::value_type key)
+        : iterator_base<Map, OrderedKeys>(map, keys, key) {}
 
-    pointer operator->() const { return &(*this->map_.find(this->keys_[this->index_])); }
+    reference operator*() const { return *this->map_.find(this->key_); }
+
+    pointer operator->() const { return &(*this->map_.find(this->key_)); }
 
    protected:
     friend class const_iterator_;
@@ -170,13 +173,17 @@ class ordered_map {
 
     const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
+
+    const_iterator_(const Map& map, const OrderedKeys& keys, OrderedKeys::value_type key)
+        : iterator_base<const Map, const OrderedKeys>(map, keys, key) {}
+
     // Construct a const_iterator from a non-const iterator
     const_iterator_(const iterator_& it)
         : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index) {}
 
-    const_reference operator*() const { return *this->map_.find(this->keys_[this->index_]); }
+    const_reference operator*() const { return *this->map_.find(this->key_); }
 
-    const_pointer operator->() const { return &(*this->map_.find(this->keys_[this->index_])); }
+    const_pointer operator->() const { return &(*this->map_.find(this->key_)); }
   };
 
   // Iterators
@@ -185,8 +192,8 @@ class ordered_map {
   // using reverse_iterator = ;
   // using const_reverse_iterator = ;
 
-  iterator begin() noexcept { return {map_, keys_, 0}; }
-  const_iterator begin() const noexcept { return {map_, keys_, 0}; }
+  iterator begin() noexcept { return iter_from_index(0); }
+  const_iterator begin() const noexcept { return iter_from_index(0); }
   const_iterator cbegin() const noexcept { return begin(); }
 
   iterator end() noexcept { return {map_, keys_, keys_.size()}; }
@@ -202,20 +209,18 @@ class ordered_map {
     if (map_.contains(x.first)) {
       return {find(x.first), false};
     }
-    auto it = end();
     keys_.emplace_back(x.first);
     map_.insert(x);
-    return {it, true};
+    return {iter_from_key(x.first), true};
   }
 
   std::pair<iterator, bool> insert(value_type&& x) {
     if (map_.contains(x.first)) {
       return {find(x.first), false};
     }
-    auto it = end();
     keys_.emplace_back(x.first);
     map_.insert(std::move(x));
-    return {it, true};
+    return {iter_from_key(x.first), true};
   }
 
   template <typename Pair>
@@ -224,10 +229,9 @@ class ordered_map {
     if (map_.contains(x.first)) {
       return {find(x.first), false};
     }
-    auto it = end();
     keys_.emplace_back(x.first);
     map_.emplace(std::forward<Pair>(x));
-    return {it, true};
+    return {iter_from_key(x.first), true};
   }
 
   template <class M>
@@ -236,10 +240,9 @@ class ordered_map {
       map_[key] = std::forward<M>(obj);
       return {find(key), false};
     }
-    auto it = end();
     keys_.emplace_back(key);
     map_.insert_or_assign(key, std::forward<M>(obj));
-    return {it, true};
+    return {iter_from_key(key), true};
   }
 
   template <class M>
@@ -248,8 +251,8 @@ class ordered_map {
       map_[k] = std::forward<M>(obj);
       return {find(k), false};
     }
-    auto it = end();
     keys_.emplace_back(k);
+    auto it = iter_from_key(k);
     map_.insert_or_assign(std::move(k), std::forward<M>(obj));
     return {it, true};
   }
@@ -270,8 +273,8 @@ class ordered_map {
     if (map_.contains(value.first)) {
       return {find(value.first), false};
     }
-    auto it = end();
     keys_.emplace_back(value.first);
+    auto it = iter_from_key(value.first);
     map_.emplace(std::move(value));
 
     return {it, true};
@@ -287,7 +290,7 @@ class ordered_map {
     auto it = map_.find(pos->first);
     keys_.erase(keys_.begin() + index);
     map_.erase(it);
-    return pos;
+    return iter_from_index(index);
   }
 
   iterator erase(const_iterator pos) {
@@ -296,7 +299,7 @@ class ordered_map {
     auto it = map_.find(pos->first);
     keys_.erase(keys_.begin() + index);
     map_.erase(it);
-    return {map_, keys_, static_cast<size_type>(index)};
+    return iter_from_index(index);
   }
 
   // TODO: Implement this erase - which handles a range of iterators
@@ -338,6 +341,12 @@ class ordered_map {
     assert(idx >= 0 && "Expected element idx to be non-negative");
     return static_cast<size_t>(idx);
   }
+
+  // Helpers for creating iterators
+  iterator iter_from_index(size_t index) { return {map_, keys_, index}; }
+  const_iterator iter_from_index(size_t index) const { return {map_, keys_, index}; }
+  iterator iter_from_key(const Key& key) { return {map_, keys_, key}; }
+  const_iterator iter_from_key(const Key& key) const { return {map_, keys_, key}; }
 };
 
 }  // namespace flexi_cfg::details
