@@ -90,16 +90,28 @@ TEST(OrderedMap, iterators) {
   };
   {
     OMap map = build_map(expected_keys);
+    // Iterate using non-const iterators.
     for (auto it = map.begin(); it != map.end(); ++it) {
       EXPECT_EQ(it->first, expected_keys[it->second]);
       EXPECT_EQ(std::distance(std::begin(map), it), it->second);
     }
+    // Iterate using const iterators.
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      EXPECT_EQ(it->first, expected_keys[it->second]);
+      EXPECT_EQ(std::distance(std::cbegin(map), it), it->second);
+    }
   }
   {
     const OMap map = build_map(expected_keys);
+    // Iterate using const iterators.
     for (auto it = map.begin(); it != map.end(); ++it) {
       EXPECT_EQ(it->first, expected_keys[it->second]);
       EXPECT_EQ(std::distance(std::begin(map), it), it->second);
+    }
+    // Iterate using const iterators.
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+      EXPECT_EQ(it->first, expected_keys[it->second]);
+      EXPECT_EQ(std::distance(std::cbegin(map), it), it->second);
     }
   }
 }
@@ -231,4 +243,36 @@ TEST(OrderedMap, emplace) {
     EXPECT_EQ(std::distance(std::begin(map), it),
               std::distance(std::begin(map), std::end(map)) - 1);
   }
+}
+
+// TEST(OrderedMap, emplace_hint) {}
+
+// TEST(OrderedMap, try_emplace) {}
+
+TEST(OrderedMap, erase) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}});
+  EXPECT_EQ(map.size(), 3);
+
+  // Erase an element using an iterator
+  const auto& it = map.erase(std::begin(map));
+  EXPECT_EQ(it->first, "two");
+  EXPECT_EQ(it->second, 2);
+  EXPECT_EQ(std::distance(std::begin(map), it), 0);
+  EXPECT_EQ(map.size(), 2);
+
+  // Erase an element using a const iterator
+  const auto& cit = map.erase(std::cbegin(map));
+  EXPECT_EQ(cit->first, "three");
+  EXPECT_EQ(cit->second, 3);
+  EXPECT_EQ(std::distance(std::begin(map), cit), 0);
+  EXPECT_EQ(map.size(), 1);
+
+  // Erase an element using a key
+  const auto& count = map.erase("three");
+  EXPECT_EQ(count, 1);
+  EXPECT_EQ(map.size(), 0);
+
+  // Try erasing an element using a key (but map is empty)
+  const auto& count2 = map.erase("foo");
+  EXPECT_EQ(count2, 0);
 }
