@@ -125,9 +125,9 @@ class ordered_map {
     MapType& map_;
     OrderedKeysType& keys_;
     size_type index_;
-    OrderedKeysType::value_type key_;
+    typename OrderedKeysType::value_type key_;
 
-    OrderedKeysType::value_type get_key() const {
+    typename OrderedKeysType::value_type get_key() const {
       if (index_ < 0 || index_ >= keys_.size()) {
         // If the index is out of range, return the last key
         return {};
