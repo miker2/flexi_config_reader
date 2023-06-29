@@ -279,7 +279,14 @@ TEST(OrderedMap, erase) {
 
 // TEST(OrderedMap, swap) {}
 
-// TEST(OrderedMap, extract) {}
+TEST(OrderedMap, extract) {
+  OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
+  EXPECT_EQ(map.size(), 4);
+  const auto node = map.extract("two");
+  EXPECT_EQ(node.key(), "two");
+  EXPECT_EQ(node.mapped(), 2);
+  EXPECT_EQ(map.size(), 3);
+}
 
 TEST(OrderedMap, merge) {
   // Verify that merge works as expected and that the resulting map is ordered as expected.

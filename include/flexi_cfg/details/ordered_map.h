@@ -324,6 +324,16 @@ class ordered_map {
   // TODO: Implement swap
 
   // TODO: Implement extract
+  node_type extract( const_iterator position ) {
+    const auto key = position->first;
+    keys_.erase(std::find(keys_.begin(), keys_.end(), key));
+    return map_.extract(key);
+  }
+
+  node_type extract( const Key& k ) {
+    keys_.erase(std::find(keys_.begin(), keys_.end(), k));
+    return map_.extract(k);
+  }
 
   // TODO: IMPLEMENT MERGE
   template <class H2, class P2>
@@ -334,8 +344,7 @@ class ordered_map {
       if (!map_.contains(v.first)) {
         std::cout << "  + New key found!" << std::endl;
         extracted_keys.emplace_back(v.first);
-        keys_.emplace_back(v.first);
-        map_.insert(std::move(source.map().extract(v.first)));
+        insert(std::move(source.map().extract(v.first)));
       }
     }
 
