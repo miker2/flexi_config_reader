@@ -227,7 +227,7 @@ class ordered_map {
   }
 
   insert_return_type insert(node_type&& nh) {
-    if(!nh) {
+    if (!nh) {
       return {.position = end(), .inserted = false, .node = std::move(nh)};
     }
     const auto key = nh.key();
@@ -238,7 +238,9 @@ class ordered_map {
     }
 
     keys_.emplace_back(key);
-    return {.position = iter_from_key(key), .inserted = map_ret.inserted, .node = std::move(map_ret.node)};
+    return {.position = iter_from_key(key),
+            .inserted = map_ret.inserted,
+            .node = std::move(map_ret.node)};
   }
 
   template <class M>
@@ -324,13 +326,13 @@ class ordered_map {
   // TODO: Implement swap
 
   // TODO: Implement extract
-  node_type extract( const_iterator position ) {
+  node_type extract(const_iterator position) {
     const auto key = position->first;
     keys_.erase(std::find(keys_.begin(), keys_.end(), key));
     return map_.extract(key);
   }
 
-  node_type extract( const Key& k ) {
+  node_type extract(const Key& k) {
     keys_.erase(std::find(keys_.begin(), keys_.end(), k));
     return map_.extract(k);
   }
