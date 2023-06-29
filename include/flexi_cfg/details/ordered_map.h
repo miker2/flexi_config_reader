@@ -306,13 +306,30 @@ class ordered_map {
   // TODO: IMPLEMENT MERGE
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
-    assert(false && "Not implemented yet");
+    std::vector<Key> extracted_keys;
+    for (auto& v : source) {
+      std::cout << "Examining key: '" << v.first << "' : " << v.second << std::endl;
+      if (!map_.contains(v.first)) {
+        std::cout << "  + New key found!" << std::endl;
+        extracted_keys.emplace_back(v.first);
+        keys_.emplace_back(v.first);
+        map_.insert(std::move(source.map().extract(v.first)));
+      }
+    }
+
+    // Need to remove the keys from the source map that have been extracted
+    for (const auto& k : extracted_keys) {
+      std::cout << "Removing key: '" << k << "' from source" << std::endl;
+      source.keys().erase(std::find(source.keys().begin(), source.keys().end(), k));
+    }
   }
 
+  /*
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>&& source) {
     assert(false && "Not implemented yet");
   }
+  */
 
   T& at(const Key& key) { return map_.at(key); }
 
@@ -358,8 +375,12 @@ class ordered_map {
     assert(false && "Not implemented yet");
   }
 
+  // TODO: Remove these accessors to the underlying keys and map
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
+
+  OrderedKeys& keys() { return keys_; }
+  Map& map() { return map_; }
 
  protected:
   size_t get_index(const Key& key) const {

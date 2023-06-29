@@ -281,7 +281,48 @@ TEST(OrderedMap, erase) {
 
 // TEST(OrderedMap, extract) {}
 
-// TEST(OrderedMap, merge) {}
+TEST(OrderedMap, merge) {
+  // Verify that merge works as expected and that the resulting map is ordered as expected.
+  {
+    OMap map1({{"one", 0}, {"two", 1}, {"three", 2}});
+    OMap map2({{"four", 3}, {"five", 4}, {"six", 5}});
+    map1.merge(map2);
+    EXPECT_EQ(map1.size(), 6);
+    EXPECT_EQ(map2.size(), 0);
+    EXPECT_TRUE(map2.empty());
+    EXPECT_EQ(map1.at("one"), 0);
+    EXPECT_EQ(map1.at("two"), 1);
+    EXPECT_EQ(map1.at("three"), 2);
+    EXPECT_EQ(map1.at("four"), 3);
+    EXPECT_EQ(map1.at("five"), 4);
+    EXPECT_EQ(map1.at("six"), 5);
+
+    std::vector<std::string> expected_keys = {"one", "two", "three", "four", "five", "six"};
+    for (const auto& [key, idx] : map1) {
+      EXPECT_EQ(key, expected_keys[idx]);
+    }
+  }
+  {
+    OMap map1({{"one", 0}, {"two", 1}, {"three", 2}});
+    OMap map2({{"four", 3}, {"two", 0}, {"one", 1}});
+    map1.merge(map2);
+    EXPECT_EQ(map1.size(), 4);
+    EXPECT_EQ(map2.size(), 2);
+
+    {
+      std::vector<std::string> expected_keys = {"one", "two", "three", "four"};
+      for (const auto& [key, idx] : map1) {
+        EXPECT_EQ(key, expected_keys[idx]);
+      }
+    }
+    {
+      std::vector<std::string> expected_keys = {"two", "one"};
+      for (const auto& [key, idx] : map2) {
+        EXPECT_EQ(key, expected_keys[idx]);
+      }
+    }
+  }
+}
 
 TEST(OrderedMap, at) {
   OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"one", 4}});
