@@ -28,6 +28,7 @@ class ordered_map {
   using hasher = typename Map::hasher;
   using key_equal = typename Map::key_equal;
   using allocator_type = typename Map::allocator_type;
+  using node_type = typename Map::node_type;
 
   // Iterator related typedefs
   using size_type = typename Map::size_type;
@@ -185,6 +186,12 @@ class ordered_map {
   const_iterator end() const noexcept { return {map_, keys_, keys_.size()}; }
   const_iterator cend() const noexcept { return end(); }
 
+  struct insert_return_type {
+    iterator position;
+    bool inserted = false;
+    node_type node;
+  };
+
   void clear() noexcept {
     map_.clear();
     keys_.clear();
@@ -217,6 +224,21 @@ class ordered_map {
     keys_.emplace_back(x.first);
     map_.emplace(std::forward<Pair>(x));
     return {iter_from_key(x.first), true};
+  }
+
+  insert_return_type insert(node_type&& nh) {
+    if(!nh) {
+      return {.position = end(), .inserted = false, .node = std::move(nh)};
+    }
+    const auto key = nh.key();
+
+    auto map_ret = map_.insert(std::move(nh));
+    if (!map_ret.inserted) {
+      return {.position = find(key), .inserted = false, .node = std::move(map_ret.node)};
+    }
+
+    keys_.emplace_back(key);
+    return {.position = iter_from_key(key), .inserted = map_ret.inserted, .node = std::move(map_ret.node)};
   }
 
   template <class M>
