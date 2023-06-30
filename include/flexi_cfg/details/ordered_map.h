@@ -325,10 +325,13 @@ class ordered_map {
 
   // TODO: Implement swap
 
-  // TODO: Implement extract
-  node_type extract(const_iterator position) {
+  // TODO: Figure out how to make the parameter a 'const_iterator'
+  node_type extract(const iterator& position) {
+    if (position == end()) {
+      return node_type();
+    }
     const auto key = position->first;
-    keys_.erase(std::find(keys_.begin(), keys_.end(), key));
+    keys_.erase(std::find(keys_.cbegin(), keys_.cend(), key));
     return map_.extract(key);
   }
 
