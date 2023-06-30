@@ -114,6 +114,13 @@ TEST(OrderedMap, iterators) {
       EXPECT_EQ(std::distance(std::cbegin(map), it), it->second);
     }
   }
+  {
+    // Iterator conversion!
+    const OMap map = build_map(expected_keys);
+
+    EXPECT_EQ(OMap::const_iterator(map.begin()), map.cbegin());
+    EXPECT_EQ(OMap::const_iterator(map.end()), map.cend());
+  }
 }
 
 TEST(OrderedMap, insert) {
@@ -280,12 +287,36 @@ TEST(OrderedMap, erase) {
 // TEST(OrderedMap, swap) {}
 
 TEST(OrderedMap, extract) {
-  OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
-  EXPECT_EQ(map.size(), 4);
-  const auto node = map.extract("two");
-  EXPECT_EQ(node.key(), "two");
-  EXPECT_EQ(node.mapped(), 2);
-  EXPECT_EQ(map.size(), 3);
+  {
+    // Test "key" version
+    OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
+    EXPECT_EQ(map.size(), 4);
+    const auto node = map.extract("two");
+    EXPECT_EQ(node.key(), "two");
+    EXPECT_EQ(node.mapped(), 2);
+    EXPECT_EQ(map.size(), 3);
+    EXPECT_FALSE(map.contains("two"));
+
+    // Try extracting a key that doesn't exist
+    const auto node2 = map.extract("foo");
+    EXPECT_TRUE(node2.empty());
+  }
+  {
+    // Test "iterator" version
+    OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
+    EXPECT_EQ(map.size(), 4);
+    const auto it = map.find("two");
+    const auto node = map.extract(it);
+    EXPECT_EQ(node.key(), "two");
+    EXPECT_EQ(node.mapped(), 2);
+    EXPECT_EQ(map.size(), 3);
+    EXPECT_FALSE(map.contains("two"));
+
+    // Try extracting an iterator that doesn't exist
+    auto it2 = map.find("foo");
+    const auto node2 = map.extract(it2);
+    EXPECT_TRUE(node2.empty());
+  }
 }
 
 TEST(OrderedMap, merge) {
