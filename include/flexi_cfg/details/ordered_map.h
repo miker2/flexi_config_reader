@@ -82,6 +82,7 @@ class ordered_map {
   template <typename MapType, typename OrderedKeysType>
   class iterator_base
       : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
+        friend class const_iterator_;
    public:
     iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
         : map_(map), keys_(keys), index_(index), key_(get_key()) {
@@ -138,6 +139,7 @@ class ordered_map {
   };
 
   class iterator_ : public iterator_base<Map, OrderedKeys> {
+    friend class const_iterator_;
    public:
     using pointer = value_type*;
     using reference = value_type&;
@@ -148,9 +150,6 @@ class ordered_map {
     reference operator*() const { return *this->map_.find(this->key_); }
 
     pointer operator->() const { return &(*this->map_.find(this->key_)); }
-
-   protected:
-    friend class const_iterator_;
   };
 
   // Custom iterator for the ordered_map object.
@@ -163,9 +162,14 @@ class ordered_map {
     const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
 
+    /*
     // Construct a const_iterator from a non-const iterator
     const_iterator_(const iterator_& it)
-        : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index) {}
+        : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index_) {
+          std::cout << "creating const_iterator from iterator\n";
+          std::cout << " index: " << this->index_ << ", key: '" << this->get_key() << "'" << std::endl;
+        }
+    */
 
     const_reference operator*() const { return *this->map_.find(this->key_); }
 
@@ -349,14 +353,14 @@ class ordered_map {
       if (!map_.contains(v.first)) {
         std::cout << "  + New key found!" << std::endl;
         extracted_keys.emplace_back(v.first);
-        insert(std::move(source.map().extract(v.first)));
+        insert(std::move(source.map_.extract(v.first)));
       }
     }
 
     // Need to remove the keys from the source map that have been extracted
     for (const auto& k : extracted_keys) {
       std::cout << "Removing key: '" << k << "' from source" << std::endl;
-      source.keys().erase(std::find(source.keys().begin(), source.keys().end(), k));
+      source.keys_.erase(std::find(source.keys_.begin(), source.keys_.end(), k));
     }
   }
 
@@ -411,13 +415,14 @@ class ordered_map {
     assert(false && "Not implemented yet");
   }
 
+#if 0
   // TODO: Remove these accessors to the underlying keys and map
   const OrderedKeys& keys() const { return keys_; }
   const Map& map() const { return map_; }
 
   OrderedKeys& keys() { return keys_; }
   Map& map() { return map_; }
-
+#endif
  protected:
   size_t get_index(const Key& key) const {
     const auto key_it = std::find(std::begin(keys_), std::end(keys_), key);
