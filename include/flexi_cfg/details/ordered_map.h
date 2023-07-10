@@ -345,6 +345,7 @@ class ordered_map {
   }
 
   // TODO: IMPLEMENT MERGE
+#if 1
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
     std::vector<Key> extracted_keys;
@@ -363,6 +364,42 @@ class ordered_map {
       source.keys_.erase(std::find(source.keys_.begin(), source.keys_.end(), k));
     }
   }
+#else 
+  template <class H2, class P2>
+  void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
+    std::vector<Key> extracted_keys;
+    size_t skip_count{0};
+    for (auto it = source.begin(); it != source.end(); ) {
+    // for (auto& v : source) {
+      std::cout << "Examining key: '" << it->first << "' : " << it->second << std::endl;
+      if (!map_.contains(it->first)) {
+        std::cout << "  + New key found!" << std::endl;
+
+        auto extracted = source.extract(it->first);
+        std::cout << "  - extracted key. Attempting insert" << std::endl;
+        std::cout << "  - empty? " << extracted.empty() << std::endl;
+        insert(std::move(extracted));
+        std::cout << "  - insert complete" << std::endl;
+        /*
+        extracted_keys.emplace_back(v.first);
+        insert(std::move(source.map_.extract(v.first)));
+        */
+
+      } else {
+        ++skip_count;
+      }
+      it = std::next(source.begin(), skip_count);
+    }
+
+    /*
+    // Need to remove the keys from the source map that have been extracted
+    for (const auto& k : extracted_keys) {
+      std::cout << "Removing key: '" << k << "' from source" << std::endl;
+      source.keys_.erase(std::find(source.keys_.begin(), source.keys_.end(), k));
+    }
+    */
+  }
+#endif
 
   /*
   template <class H2, class P2>

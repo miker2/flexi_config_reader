@@ -141,6 +141,7 @@ target_link_libraries(
   ordered_map_test
   flexi_cfg
   fmt::fmt
+  range-v3::range-v3
   gtest_main
   )
 

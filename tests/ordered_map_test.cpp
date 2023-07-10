@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <string>
+#include <range/v3/view/map.hpp>
 
 #include "flexi_cfg/utils.h"
 
@@ -430,4 +431,14 @@ TEST(OrderedMap, size_t_test) {
   for (auto it = std::begin(map); it != std::end(map); ++it) {
     EXPECT_EQ(it->first, 3 - it->second);
   }
+}
+
+TEST(OrderedMap, Ranges) {
+  OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
+              {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
+
+  ranges::views::keys(map);
+
+  // ranges::views::values(map);
+
 }
