@@ -82,7 +82,8 @@ class ordered_map {
   template <typename MapType, typename OrderedKeysType>
   class iterator_base
       : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
-        friend class const_iterator_;
+    friend class const_iterator_;
+
    public:
     iterator_base(MapType* map, OrderedKeysType* keys, size_type index)
         : map_(map), keys_(keys), index_(index), key_(get_key()) {
@@ -114,6 +115,7 @@ class ordered_map {
 
   class iterator_ : public iterator_base<Map, OrderedKeys> {
     friend class const_iterator_;
+
    public:
     using pointer = value_type*;
     using reference = value_type&;
@@ -154,7 +156,6 @@ class ordered_map {
       this->key_ = this->get_key();
       return tmp;
     }
-
   };
 
   // Custom iterator for the ordered_map object.
@@ -174,7 +175,8 @@ class ordered_map {
     const_iterator_(const iterator_& it)
         : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index_) {
           std::cout << "creating const_iterator from iterator\n";
-          std::cout << " index: " << this->index_ << ", key: '" << this->get_key() << "'" << std::endl;
+          std::cout << " index: " << this->index_ << ", key: '" << this->get_key() << "'" <<
+    std::endl;
         }
     */
 
@@ -209,7 +211,6 @@ class ordered_map {
       this->key_ = this->get_key();
       return tmp;
     }
-
   };
 
   // Iterators
@@ -266,14 +267,14 @@ class ordered_map {
     return {iter_from_key(x.first), true};
   }
 
-  iterator insert(const_iterator pos, const value_type& value) {
+  iterator insert(const iterator pos, const value_type& value) {
     assert(false && "Not implemented yet");
     return {};
   }
 
   template <typename Pair>
-  std::enable_if_t<std::is_convertible_v<value_type, Pair>,
-  iterator> insert(const_iterator pos, Pair&& value) {
+  std::enable_if_t<std::is_convertible_v<value_type, Pair>, iterator> insert(const iterator pos,
+                                                                             Pair&& value) {
     assert(false && "Not implemented yet");
     return {};
   }
@@ -295,10 +296,10 @@ class ordered_map {
             .node = std::move(map_ret.node)};
   }
 
-  template< class InputIt >
-void insert( InputIt first, InputIt last ) {
-  assert(false && "Not implemented yet");
-}
+  template <class InputIt>
+  void insert(InputIt first, InputIt last) {
+    assert(false && "Not implemented yet");
+  }
 
   template <class M>
   std::pair<iterator, bool> insert_or_assign(const Key& key, M&& obj) {
@@ -417,13 +418,13 @@ void insert( InputIt first, InputIt last ) {
       source.keys_.erase(std::find(source.keys_.begin(), source.keys_.end(), k));
     }
   }
-#else 
+#else
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
     std::vector<Key> extracted_keys;
     size_t skip_count{0};
-    for (auto it = source.begin(); it != source.end(); ) {
-    // for (auto& v : source) {
+    for (auto it = source.begin(); it != source.end();) {
+      // for (auto& v : source) {
       std::cout << "Examining key: '" << it->first << "' : " << it->second << std::endl;
       if (!map_.contains(it->first)) {
         std::cout << "  + New key found!" << std::endl;
