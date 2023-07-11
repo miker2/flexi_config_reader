@@ -3,8 +3,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <string>
 #include <range/v3/view/map.hpp>
+#include <string>
 
 #include "flexi_cfg/utils.h"
 
@@ -434,11 +434,23 @@ TEST(OrderedMap, size_t_test) {
 }
 
 TEST(OrderedMap, Ranges) {
+  static_assert(std::input_iterator<OMap::iterator>);
+  static_assert(std::ranges::forward_range<OMap>);
+
   OMap map = {{"this", 0}, {"is", 1},  {"a", 2},      {"test", 3}, {"to", 4},
               {"see", 5},  {"how", 6}, {"things", 7}, {"work", 8}};
 
-  ranges::views::keys(map);
+  auto b_it = std::begin(map);
+  auto e_it = std::end(map);
 
-  // ranges::views::values(map);
+  const auto cb_it = std::cbegin(map);
+  const auto ce_it = std::cend(map);
 
+  auto size = std::size(map);
+
+  auto empty = std::empty(map);
+
+  fmt::print("Keys: {}\n", fmt::join(ranges::views::keys(map), ", "));
+
+  fmt::print("Values: {}\n", fmt::join(ranges::views::values(map), ", "));
 }

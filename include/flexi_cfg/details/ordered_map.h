@@ -84,57 +84,31 @@ class ordered_map {
       : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
         friend class const_iterator_;
    public:
-    iterator_base(MapType& map, OrderedKeysType& keys, size_type index)
+    iterator_base(MapType* map, OrderedKeysType* keys, size_type index)
         : map_(map), keys_(keys), index_(index), key_(get_key()) {
       // Check that the offset is within bounds
-      if (index_ > keys_.size()) {
+      if (index_ > keys_->size()) {
         throw std::out_of_range("Index out of range");
       }
     }
 
-    // Prefix increment
-    iterator_base& operator++() {
-      ++index_;
-      key_ = get_key();
-      return *this;
-    }
-
-    // Postfix increment
-    iterator_base operator++(int) {
-      auto tmp = *this;
-      ++index_;
-      key_ = get_key();
-      return tmp;
-    }
-
-    iterator_base operator--() {
-      --index_;
-      key_ = get_key();
-      return *this;
-    }
-
-    iterator_base operator--(int) {
-      auto tmp = *this;
-      --index_;
-      key_ = get_key();
-      return tmp;
-    }
+    iterator_base() = default;
 
     bool operator==(const iterator_base& other) const { return index_ == other.index_; }
     bool operator!=(const iterator_base& other) const { return index_ != other.index_; }
 
    protected:
-    MapType& map_;
-    OrderedKeysType& keys_;
-    size_type index_;
+    MapType* map_{nullptr};
+    OrderedKeysType* keys_{nullptr};
+    size_type index_{0};
     typename OrderedKeysType::value_type key_;
 
     typename OrderedKeysType::value_type get_key() const {
-      if (index_ < 0 || index_ >= keys_.size()) {
+      if (index_ < 0 || index_ >= keys_->size()) {
         // If the index is out of range, return the last key
         return {};
       }
-      return keys_[index_];
+      return (*keys_)[index_];
     }
   };
 
@@ -144,12 +118,43 @@ class ordered_map {
     using pointer = value_type*;
     using reference = value_type&;
 
-    iterator_(Map& map, OrderedKeys& keys, size_type index)
+    iterator_(Map* map, OrderedKeys* keys, size_type index)
         : iterator_base<Map, OrderedKeys>(map, keys, index) {}
 
-    reference operator*() const { return *this->map_.find(this->key_); }
+    iterator_() = default;
 
-    pointer operator->() const { return &(*this->map_.find(this->key_)); }
+    reference operator*() const { return *this->map_->find(this->key_); }
+
+    pointer operator->() const { return &(*this->map_->find(this->key_)); }
+
+    // Prefix increment
+    iterator_& operator++() {
+      ++this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    // Postfix increment
+    iterator_ operator++(int) {
+      auto tmp = *this;
+      ++this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    iterator_ operator--() {
+      --this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    iterator_ operator--(int) {
+      auto tmp = *this;
+      --this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
   };
 
   // Custom iterator for the ordered_map object.
@@ -159,8 +164,10 @@ class ordered_map {
     using const_pointer = const value_type*;
     using const_reference = const value_type&;
 
-    const_iterator_(const Map& map, const OrderedKeys& keys, size_type index)
+    const_iterator_(const Map* map, const OrderedKeys* keys, size_type index)
         : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
+
+    const_iterator_() = default;
 
     /*
     // Construct a const_iterator from a non-const iterator
@@ -171,9 +178,38 @@ class ordered_map {
         }
     */
 
-    const_reference operator*() const { return *this->map_.find(this->key_); }
+    const_reference operator*() const { return *this->map_->find(this->key_); }
 
-    const_pointer operator->() const { return &(*this->map_.find(this->key_)); }
+    const_pointer operator->() const { return &(*this->map_->find(this->key_)); }
+
+    // Prefix increment
+    const_iterator_& operator++() {
+      ++this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    // Postfix increment
+    const_iterator_ operator++(int) {
+      auto tmp = *this;
+      ++this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    const_iterator_ operator--() {
+      --this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    const_iterator_ operator--(int) {
+      auto tmp = *this;
+      --this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
   };
 
   // Iterators
@@ -186,8 +222,8 @@ class ordered_map {
   const_iterator begin() const noexcept { return iter_from_index(0); }
   const_iterator cbegin() const noexcept { return begin(); }
 
-  iterator end() noexcept { return {map_, keys_, keys_.size()}; }
-  const_iterator end() const noexcept { return {map_, keys_, keys_.size()}; }
+  iterator end() noexcept { return {&map_, &keys_, keys_.size()}; }
+  const_iterator end() const noexcept { return {&map_, &keys_, keys_.size()}; }
   const_iterator cend() const noexcept { return end(); }
 
   struct insert_return_type {
@@ -469,10 +505,10 @@ class ordered_map {
   }
 
   // Helpers for creating iterators
-  iterator iter_from_index(size_t index) { return {map_, keys_, index}; }
-  const_iterator iter_from_index(size_t index) const { return {map_, keys_, index}; }
-  iterator iter_from_key(const Key& key) { return {map_, keys_, get_index(key)}; }
-  const_iterator iter_from_key(const Key& key) const { return {map_, keys_, get_index(key)}; }
+  iterator iter_from_index(size_t index) { return {&map_, &keys_, index}; }
+  const_iterator iter_from_index(size_t index) const { return {&map_, &keys_, index}; }
+  iterator iter_from_key(const Key& key) { return {&map_, &keys_, get_index(key)}; }
+  const_iterator iter_from_key(const Key& key) const { return {&map_, &keys_, get_index(key)}; }
 };
 
 }  // namespace flexi_cfg::details
