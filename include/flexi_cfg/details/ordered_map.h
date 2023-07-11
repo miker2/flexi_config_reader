@@ -246,15 +246,6 @@ class ordered_map {
     return {iter_from_key(x.first), true};
   }
 
-  std::pair<iterator, bool> insert(value_type&& x) {
-    if (map_.contains(x.first)) {
-      return {find(x.first), false};
-    }
-    keys_.emplace_back(x.first);
-    map_.insert(std::move(x));
-    return {iter_from_key(x.first), true};
-  }
-
   template <typename Pair>
   std::enable_if_t<std::is_convertible_v<value_type, Pair>, std::pair<iterator, bool>> insert(
       Pair&& x) {
@@ -264,6 +255,27 @@ class ordered_map {
     keys_.emplace_back(x.first);
     map_.emplace(std::forward<Pair>(x));
     return {iter_from_key(x.first), true};
+  }
+
+  std::pair<iterator, bool> insert(value_type&& x) {
+    if (map_.contains(x.first)) {
+      return {find(x.first), false};
+    }
+    keys_.emplace_back(x.first);
+    map_.insert(std::move(x));
+    return {iter_from_key(x.first), true};
+  }
+
+  iterator insert(const_iterator pos, const value_type& value) {
+    assert(false && "Not implemented yet");
+    return {};
+  }
+
+  template <typename Pair>
+  std::enable_if_t<std::is_convertible_v<value_type, Pair>,
+  iterator> insert(const_iterator pos, Pair&& value) {
+    assert(false && "Not implemented yet");
+    return {};
   }
 
   insert_return_type insert(node_type&& nh) {
@@ -282,6 +294,11 @@ class ordered_map {
             .inserted = map_ret.inserted,
             .node = std::move(map_ret.node)};
   }
+
+  template< class InputIt >
+void insert( InputIt first, InputIt last ) {
+  assert(false && "Not implemented yet");
+}
 
   template <class M>
   std::pair<iterator, bool> insert_or_assign(const Key& key, M&& obj) {
