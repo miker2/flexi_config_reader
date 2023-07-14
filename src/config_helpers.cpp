@@ -121,7 +121,7 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
       checkForErrors(struct_out->data, proto->data, el.first);
     }
     // types::BasePtr value = el.second->clone();
-    struct_out->data[el.first] = std::move(el.second->clone());
+    struct_out->data[el.first] = el.second->clone();
   }
   return struct_out;
 }
@@ -224,7 +224,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
 
       new_value->line = v->line;
       new_value->source = v->source;
-      return std::move(new_value);
+      return new_value;
     };
 
     if (v->type == types::Type::kVar) {
@@ -395,7 +395,7 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
   } while (value->type == types::Type::kValueLookup);
   logger::debug("{} contains instance of ValueLookup: {}. Has value={}", src_key, src, value);
   // If we've gotten here, then we can return the current 'value'!
-  return std::move(value);
+  return value;
 }
 
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
