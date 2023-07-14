@@ -34,7 +34,8 @@ auto get(const std::string& op_) -> const Operator& {
       // the first argument is discarded (generally a `-1`).
       // A high precedence is used here in order to ensure the unary minus happens before other
       // operations
-      {"m", {.p = 10, .l = false, .f = [](double unused, double x) -> double { return -x; }}}};
+      {"m",
+       {.p = 10, .l = false, .f = [](double /* unused */, double x) -> double { return -x; }}}};
 
   return op_map.at(op_);
 }
