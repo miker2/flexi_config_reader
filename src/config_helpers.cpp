@@ -64,7 +64,7 @@ auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const 
  * key/value pairs from cfg2. */
 auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> types::CfgMap {
   logger::setLevel(logger::Severity::TRACE);
-  logger::debug("Being mergeNestedMaps ---------------------");
+  logger::debug("Begin mergeNestedMaps ---------------------");
   logger::trace("cfg1 keys: {}", cfg1 | ranges::views::keys);
   logger::trace("cfg2 keys: {}", cfg2 | ranges::views::keys);
   const auto common_keys =
