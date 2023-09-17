@@ -52,7 +52,7 @@ class TestMyConfig(unittest.TestCase):
         self.assertEqual(cfg.getBool("test2.bool_key"), expected_cfg["test2"]["bool_key"])
         self.assertEqual(cfg.getFloatList("my_list"), expected_cfg['my_list'])
 
-        self.assertEqual(sorted(cfg.keys()), sorted(expected_cfg.keys()))
+        self.assertEqual(cfg.keys(), list(expected_cfg.keys()))
         self.assertEqual(cfg.getType("test1.key1"), flexi_cfg.Type.kString)
         self.assertEqual(cfg.getType("test1.key2"), flexi_cfg.Type.kNumber)
         self.assertEqual(cfg.getType("test1.key3"), flexi_cfg.Type.kNumber)
@@ -87,7 +87,7 @@ class TestMyConfig(unittest.TestCase):
         
         cfg = flexi_cfg.parse(cfg_file_path)
 
-        self.assertEqual(sorted(cfg.keys()), sorted(expected_cfg.keys()))
+        self.assertEqual(cfg.keys(), list(expected_cfg.keys()))
         self.assertEqual(cfg.getFloat('test1.key3'), cfg.getFloat('test2.var_ref'))
         self.assertAlmostEqual(cfg.getFloat('test1.key3'), expected_cfg['test1']['key3'], places=6)
 
