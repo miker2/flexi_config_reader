@@ -133,7 +133,7 @@ jobs:
       run: |
         ctest -C ${{env.BUILD_TYPE}}
         ${{github.workspace}}/build/src/include_file_test
-        for i in `seq 1 11`; do
+        for i in `seq 1 12`; do
           ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
 

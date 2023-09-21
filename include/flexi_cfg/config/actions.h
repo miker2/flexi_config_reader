@@ -378,8 +378,13 @@ struct action<INCLUDE> {
     try {
       const auto cfg_file = std::filesystem::path(out.base_dir) / out.result;
       peg::file_input include_file(cfg_file);
+      // Update base dir to point to base of included file
+      auto temp_base_dir = out.base_dir;
+      out.base_dir = cfg_file.parent_path().string();
       logger::info("nested parse: {}", include_file.source());
       peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
+      // After nested parsing returns, revert base dir
+      out.base_dir = temp_base_dir;
     } catch (const std::system_error& e) {
       throw peg::parse_error("Include error", in.position());
     }
