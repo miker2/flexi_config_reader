@@ -31,7 +31,7 @@ class Logger {
 
   template <typename... Args>
   void log(Severity level, std::string_view msg_f, Args&&... args) {
-    const auto msg = fmt::vformat(msg_f, fmt::make_format_args(std::forward<Args>(args)...));
+    const auto msg = fmt::vformat(msg_f, fmt::make_format_args(args...));
     log_history_.emplace_back(level, msg);
     if (log_history_.size() > max_history_) {
       log_history_.pop_front();
@@ -127,9 +127,8 @@ static void critical(std::string_view msg) { Logger::instance().log(Severity::CR
 
 template <>
 struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {
-  // parse is inherited from formatter<string_view>
-  template <typename FormatContext>
-  auto format(const flexi_cfg::logger::Severity& severity, FormatContext& ctx) {
+  // parse is inherited from formatter<string_view>  
+  auto format(const flexi_cfg::logger::Severity& severity, format_context& ctx) {
     const auto severity_s = magic_enum::enum_name<flexi_cfg::logger::Severity>(severity);
     return formatter<std::string_view>::format(severity_s, ctx);
   }
