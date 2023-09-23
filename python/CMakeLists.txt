@@ -38,7 +38,7 @@ if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
   add_custom_command(
     OUTPUT ${PROJECT_NAME}/__init__.pyi
     COMMAND export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND pybind11-stubgen --root-module-suffix '' --no-setup-py -o ${CMAKE_CURRENT_BINARY_DIR} flexi_cfg
+    COMMAND pybind11-stubgen --root-suffix '' -o ${CMAKE_CURRENT_BINARY_DIR} flexi_cfg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS flexi_cfg_py
   )
