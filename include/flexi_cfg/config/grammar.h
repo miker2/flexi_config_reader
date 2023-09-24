@@ -168,10 +168,15 @@ struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
 struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, TAIL> {};
 struct include_list : peg::star<INCLUDE> {};
 
+// Include relative syntax
+struct INCLUDE_RELATIVE : peg::seq<TAO_PEGTL_KEYWORD("include_relative"), SP, filename::grammar, TAIL> {};
+struct include_relative_list : peg::star<INCLUDE_RELATIVE> {};
+
 // A single file should look like this:
 //
 //  1. Optional list of include files
-//  2. Elements of a config file: flat keys OR struct / proto / reference / pair
+//  2. Optional list of relative include files
+//  3. Elements of a config file: flat keys OR struct / proto / reference / pair
 
 // The `peg::sor<...>` here matches one or more `FULLPAIR` objects or the contents of a `STRUCT`,
 // which includes the following items:
@@ -184,7 +189,7 @@ struct include_list : peg::star<INCLUDE> {};
 // `STRUCTc` from being matched as a `FULLPAIR` object.
 
 struct CONFIG
-    : peg::seq<TAIL, include_list,
+    : peg::seq<TAIL, include_list, include_relative_list,
                peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
