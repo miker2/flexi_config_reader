@@ -325,8 +325,16 @@ In addition to the tests, there are a number of simple applications that provide
  *  [`config_reader_example`](src/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
 
 ## Python
-The syntax is defined in python using PEG notation. The `pe` library is used to parse the PEG defined grammar, which
-is used to parse the configuration files. There is then a post-processing step to fully resolve all protos, references,
-variable references, etc. The end result is a nested dictionary of key value pairs. There are a variety of tests and
-examples which demonstrate more of the capabilities of the language.
+
+Python bindings for this library are provided via pybind11. These bindings are not built by default, but can be enabled by setting
+`CFG_PYTHON_BINDINGS=ON` via cmake.  The installation directory of these bindings can also be specified by setting
+`CFG_PYTHON_INSTALL_DIR`. If this variable is not set, the default system directory will be used. e.g. From the root of the repo:
+
+```
+mkdir build
+cd build
+cmake -DCFG_PYTHON_BINDINGS=ON -DCFG_PYTHON_INSTALL_DIR=/my/custom/path ..
+ninja
+ninja install
+```
 
