@@ -28,6 +28,10 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    another file. This highlights one of the advantages of this syntax: the ability to
    define a generic set of templates in one file, which will be used to produce multiple,
    repeated concrete structs with different names and parameters in a different file.
+2. `include_relative` syntax - Same as `include`, except nested paths will resolve from the
+   included file's path instead of from the base file's path. See `examples/config_example12.cfg`
+   for an example of this keyword. The list of `include_relative` statements must come after all `include`
+   statements in a config file.
 2. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
    to reference apreviously defined value by its key, and assign it to another key.
 3. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
