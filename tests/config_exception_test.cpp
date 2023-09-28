@@ -44,7 +44,11 @@ TEST(ConfigException, ParseError) {
         "struct test1 {                                                      \n\
            bar = 0                                                           \n\
          }                                                                   \n\
-         foo.bar = 1   # Can't mix flat keys with struct in same file."};
+         foo.bar = 1   # Can't mix flat keys with struct in same file.",
+        "include foo.cfg    # File does not exist",
+        "include_relative foo.cfg    # File does not exist",
+        "include ${abc    # Missing end curly brace",
+        "include_relative ${abc     # Missing end curly brace"};
     for (const auto& input : parse_error) {
       peg::memory_input in_cfg(input, "From content");
       EXPECT_THROW(parse(in_cfg), peg::parse_error) << "Input file: " << in_cfg.source();

@@ -21,7 +21,9 @@ struct SEP : peg::one<'/'> {};
 // There may be other valid characters in a filename. What might they be?
 struct ALPHAPLUS : peg::plus<peg::sor<peg::identifier_other, peg::one<'-'>>> {};
 
-struct FILEPART : peg::sor<DOTDOT, ALPHAPLUS> {};
+struct ENVIRONMENT_VAR : peg::seq<peg::one<'$'>, peg::one<'{'>,
+                                  peg::star<peg::sor<peg::alnum, peg::one<'_'>>>, peg::one<'}'>> {};
+struct FILEPART : peg::sor<ENVIRONMENT_VAR, DOTDOT, ALPHAPLUS> {};
 struct FILENAME : peg::seq<peg::list<FILEPART, SEP>, EXT> {};
 
 struct grammar : peg::must<FILENAME> {};

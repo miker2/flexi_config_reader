@@ -153,7 +153,7 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     // Strip off any leading or trailing quotes from the replacement value. If the replacement
     // value is not a string, this is a no-op.
     const auto replacement = utils::trim(rv->value, "\\\"");
-    // Look for `rk` (escape leadding '$') in `out` and replace them with 'replacement'
+    // Look for `rk` (escape leading '$') in `out` and replace them with 'replacement'
     out = std::regex_replace(out, std::regex(std::string("\\").append(rk)), replacement);
     // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
     // in escape characters as this will be used in a regular expression.
