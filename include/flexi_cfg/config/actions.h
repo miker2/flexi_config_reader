@@ -376,6 +376,9 @@ struct action<INCLUDE> {
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("Found include file: {}", out.result);
     try {
+      // Substitute any environment variables in the filename
+      out.result = utils::substituteEnvVars(out.result);
+      CONFIG_ACTION_DEBUG("Include file after env var substitution: {}", out.result);
       const auto cfg_file = std::filesystem::path(out.base_dir) / out.result;
       peg::file_input include_file(cfg_file);
       logger::info("nested parse: {}", include_file.source());
@@ -392,6 +395,9 @@ struct action<INCLUDE_RELATIVE> {
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("Found relative include file: {}", out.result);
     try {
+      // Substitute any environment variables in the filename
+      out.result = utils::substituteEnvVars(out.result);
+      CONFIG_ACTION_DEBUG("Relative include file after env var substitution: {}", out.result);
       const auto cfg_file = std::filesystem::path(out.base_dir) / out.result;
       peg::file_input include_file(cfg_file);
       // Update base dir to point to base of included file

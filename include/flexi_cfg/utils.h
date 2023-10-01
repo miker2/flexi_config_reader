@@ -11,7 +11,7 @@
 namespace flexi_cfg::utils {
 /// \brief Removes all instances of any char foundi in `sep` from the beginning and end of `s`
 /// \param[in] s - Input string
-/// \paarm[in] sep - A string containing all `char`s to trim
+/// \param[in] sep - A string containing all `char`s to trim
 /// \return The trimmed string
 inline auto trim(std::string s, const std::string& chars = " \n\t\v\r\f") -> std::string {
   std::string str(std::move(s));
@@ -108,6 +108,32 @@ auto contains(const C& v, const T& x) -> decltype(end(v), true) {
   } else {
     return end(v) != std::find(begin(v), end(v), x);
   }
+}
+
+// Substitute all environment variables in the string until there are none left.
+inline auto substituteEnvVars(const std::string& s) -> std::string {
+  std::string str(s);
+  while (true) {
+    const auto pos = str.find("${");
+    if (pos == std::string::npos) {
+      break;
+    }
+
+    const auto end_pos = str.find('}', pos);
+    if (end_pos == std::string::npos) {
+      throw std::runtime_error("Invalid environment variable syntax");
+    }
+
+    const auto var_name = str.substr(pos + 2, end_pos - pos - 2);
+    const auto var_value = std::getenv(var_name.c_str());
+    if (var_value == nullptr) {
+      str.replace(pos, end_pos - pos + 1, "");
+    }
+    else {
+      str.replace(pos, end_pos - pos + 1, var_value);
+    }    
+  }
+  return str;
 }
 
 }  // namespace flexi_cfg::utils

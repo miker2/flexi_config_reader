@@ -31,7 +31,7 @@ struct selector<INCLUDE> : std::true_type {
         logger::debug("  Content: {}", c->string_view());
       }
       if (c->is_type<filename::FILENAME>()) {
-        filename = c->string();
+        filename = utils::substituteEnvVars(c->string());
       }
     }
     std::cout << std::endl;

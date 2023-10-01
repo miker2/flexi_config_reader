@@ -32,6 +32,9 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    included file's path instead of from the base file's path. See `examples/config_example12.cfg`
    for an example of this keyword. The list of `include_relative` statements must come after all `include`
    statements in a config file.
+3. Environment variables - Environment variables may be referenced `include` or `include_relative` statements
+   using the syntax `${ENV_VAR_NAME}`. If the environment variable is not set, the reference
+   will be replaced with an empty string.
 2. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
    to reference apreviously defined value by its key, and assign it to another key.
 3. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
