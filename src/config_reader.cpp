@@ -197,4 +197,12 @@ void Reader::getValue(const std::string& key, Reader& reader) const {
   reader = Reader(struct_like->data, key);
 }
 
+void Reader::merge(const Reader& other) {
+  config::helpers::mergeLeft(cfg_data_, other.getCfgMap());
+}
+
+void Reader::applyOverlay(const Reader& overlay) {
+  config::helpers::mergeLeft(cfg_data_, overlay.getCfgMap(), true);
+}
+
 }  // namespace flexi_cfg

@@ -70,13 +70,29 @@ class Reader {
   /// \return A vector of keys for all structs containing 'key'
   [[nodiscard]] auto findStructsWithKey(const std::string& key) const -> std::vector<std::string>;
 
- protected:
-  [[nodiscard]] auto getNestedConfig(const std::string& key) const
-      -> std::pair<std::string, const config::types::CfgMap&>;
-
   /// \note: This method is here in order to enable the python bindings to more easily parse list
   /// types
   [[nodiscard]] auto getCfgMap() const -> const config::types::CfgMap& { return cfg_data_; }
+
+  /// \brief Merge another config into this one
+  /// \param[in] other The other config to merge into this one
+  /// \note If there are any conflicts, the other config will take precedence
+  void merge(const Reader& other);
+
+  /// @brief Merge another config into this one, enforcing that all keys to be merged exist.
+  /// @param overlay Another config to merge into this one
+  void applyOverlay(const Reader& overlay);
+
+  [[nodiscard]] auto friend operator==(const Reader& lhs, const Reader& rhs) -> bool {
+    return config::helpers::compareNestedMaps(lhs.cfg_data_, rhs.cfg_data_);
+  }
+  [[nodiscard]] auto friend operator!=(const Reader& lhs, const Reader& rhs) -> bool {
+    return !config::helpers::compareNestedMaps(lhs.cfg_data_, rhs.cfg_data_);
+  }
+
+ protected:
+  [[nodiscard]] auto getNestedConfig(const std::string& key) const
+      -> std::pair<std::string, const config::types::CfgMap&>;
 
   static void convert(const config::types::ValuePtr& value_ptr, float& value);
   static void convert(const config::types::ValuePtr& value_ptr, double& value);

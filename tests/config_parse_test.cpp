@@ -91,7 +91,14 @@ struct test2 {\n\
 ")));
 
 /// File-based input
-class FileInput : public testing::TestWithParam<std::filesystem::path> {};
+class FileInput : public testing::TestWithParam<std::filesystem::path> {
+  void SetUp() override {
+    // Set environment variable for include path env test (config_example13.cfg)
+    setenv("TEST_DIR", "env", 1);
+  }
+
+  void TearDown() override { unsetenv("TEST_DIR"); }
+};
 
 namespace {
 auto baseDir() -> const std::filesystem::path& {

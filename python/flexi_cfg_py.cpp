@@ -4,6 +4,7 @@
 #include <flexi_cfg/parser.h>
 #include <flexi_cfg/reader.h>
 #include <flexi_cfg/utils.h>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
@@ -184,6 +185,8 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("keys", &flexi_cfg::Reader::keys)
       .def("getType", &flexi_cfg::Reader::getType)
       .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
+      .def("merge", &flexi_cfg::Reader::merge)
+      .def("applyOverlay", &flexi_cfg::Reader::applyOverlay)
       // Accessors for single values
       .def("getInt", &getValueHelper<int64_t>)
       .def("getUint64", &getValueHelper<uint64_t>)
@@ -199,7 +202,10 @@ PYBIND11_MODULE(flexi_cfg, m) {
       // Accessor for a sub-reader object
       .def("getReader", &getValueHelper<flexi_cfg::Reader>)
       // Generic accessor
-      .def("getValue", &getValueGeneric);
+      .def("getValue", &getValueGeneric)
+      // Equality operator
+      .def(py::self == py::self)
+      .def(py::self != py::self);
 
   py::class_<flexi_cfg::Parser>(m, "Parser")
       .def_static("parse",
