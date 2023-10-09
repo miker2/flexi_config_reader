@@ -400,9 +400,8 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
 
 template <>
 struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_view> {
-  // parse is inherited from formatter<string_view>
-  template <typename FormatContext>
-  auto format(const flexi_cfg::config::types::Type& type, FormatContext& ctx) {
+  // parse is inherited from formatter<string_view>  
+  auto format(const flexi_cfg::config::types::Type& type, format_context& ctx) {
     const auto type_s = magic_enum::enum_name<flexi_cfg::config::types::Type>(type);
     return formatter<std::string_view>::format(type_s, ctx);
   }
@@ -414,10 +413,9 @@ struct fmt::formatter<
     T, std::enable_if_t<
            std::is_convertible_v<T, std::shared_ptr<flexi_cfg::config::types::ConfigBase>>, char>>
     : formatter<std::string_view> {
-  // parse is inherited from formatter<string_view>
-  template <typename FormatContext>
+  // parse is inherited from formatter<string_view>  
   auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg,
-              FormatContext& ctx) const {
+              format_context& ctx) const {
     std::stringstream ss;
     if (cfg != nullptr) {
       cfg->stream(ss);
@@ -425,18 +423,5 @@ struct fmt::formatter<
       ss << "NULL";
     }
     return formatter<std::string_view>::format(ss.str(), ctx);
-  }
-};
-
-template <>
-struct fmt::formatter<flexi_cfg::config::types::CfgMap::value_type> {
-  template <typename ParseContext>
-  constexpr auto parse(ParseContext& ctx) {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(const flexi_cfg::config::types::CfgMap::value_type& kv, FormatContext& ctx) const {
-    return format_to(ctx.out(), "{} = {}", kv.first, kv.second);
   }
 };
