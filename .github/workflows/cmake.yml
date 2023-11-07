@@ -27,6 +27,7 @@ jobs:
           ubuntu-latest-gcc-12,
           ubuntu-20.04-clang-13,
           ubuntu-22.04-clang-14,
+          ubuntu-22.04-clang-15,
           mac-os-latest
         ]
 
@@ -46,6 +47,11 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "14"
+
+          - name: ubuntu-22.04-clang-15
+            os: ubuntu-22.04
+            compiler: clang
+            version: "15"
 
           - name: mac-os-latest
             os: macos-latest
