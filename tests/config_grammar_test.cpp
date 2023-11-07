@@ -31,7 +31,7 @@ template <typename GRAMMAR, typename T>
 void checkResult(const std::string& input, flexi_cfg::config::types::Type expected_type,
                  std::optional<flexi_cfg::config::ActionData>& out) {
   std::optional<RetType> ret;
-  ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input)));
+  ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input))) << "INPUT: '" << input << "'";
   ASSERT_TRUE(ret.has_value());
   if (ret.has_value()) {
     ASSERT_TRUE(ret.value().first);
@@ -401,6 +401,28 @@ TEST(ConfigGrammar, LIST) {
   }
   {
     const std::string content = "[0.123, $(ref.var), 3.456]";
+    checkList(content);
+  }
+  // TODO: Add support for expressions in lists
+  // {
+  //   const std::string content = R"([12, {{ 2^14 - 1}}, 0.32])";
+  //   checkList(content);
+  // }
+  {
+    // Verify that a list can contain newlines:
+    const std::string content = R"([1,
+                                    2,
+                                    3])";
+    checkList(content);
+  }
+  {
+    // Verify that a list can contain newlines and comments:
+    const std::string content = R"([# comment
+                                    1, 
+                                    2,    
+                                    3
+                                    # comment
+                                    ])";
     checkList(content);
   }
   {

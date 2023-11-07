@@ -102,7 +102,6 @@ template <typename Element>
 struct LIST_CONTENT_ : peg::list<Element, COMMA, peg::space> { using element = Element; };
 
 template <typename Content>
-// Should the 'space' here be a 'blank'? Allow multi-line lists (w/o \)?
 // TODO: Figure out how to support 'peg::if_must<>' here instead of 'peg::seq<>' so that we can get
 // a better error message.
 struct LIST_ : peg::seq<SBo, WS_, Content, WS_, SBc> {
