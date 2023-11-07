@@ -416,11 +416,30 @@ TEST(ConfigGrammar, LIST) {
     checkList(content);
   }
   {
-    // Verify that a list can contain newlines and comments:
+    // Verify that a list can contain leading and trailing comments:
     const std::string content = R"([# comment
-                                    1, 
-                                    2,    
-                                    3
+                                    1, 2,   3   # comment
+                                    # comment
+                                    ])";
+    checkList(content);
+  }
+  {
+    // Verify that a list can contain trailing comments within the list:
+    const std::string content = R"([1, 2,  # comment here
+                                    3   # comment
+                                    # comment
+                                    ])";
+    checkList(content);
+  }
+  {
+    // Verify that an empty list is supported
+    const std::string content = "[]";
+    checkList(content);
+  }
+  {
+    // Verify that an empty list containing a comment is supported
+    const std::string content = R"([
+                                    # This is a multi-line
                                     # comment
                                     ])";
     checkList(content);
