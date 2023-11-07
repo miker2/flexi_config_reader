@@ -32,7 +32,7 @@ jobs:
 
         build_type: [Debug, Release]
         include:
-          - name: ubuntu-latest-gcc-12
+          - name: ubuntu-latest-gcc-13
             os: ubuntu-latest
             compiler: gcc
             version: "13"
