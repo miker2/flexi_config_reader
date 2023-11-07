@@ -379,7 +379,7 @@ TEST(ConfigGrammar, STRING) {
 const std::vector<std::string> list_test_cases = {
     "[1, 2, 3]", "[1.0, 2., -3.3]", R"(["one", "two", "three"])", "[0x123, 0Xabc, 0xA1B2F9]",
     "[0.123, $(ref.var), 3.456]",
-    // TODO: Add support for expressions in lists
+    // TODO(miker2): Add support for expressions in lists
     // R"([12, {{ 2^14 - 1}}, 0.32])",  // Expressions in lists
 
     // Verify that lists can contain newlines

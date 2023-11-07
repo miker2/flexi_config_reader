@@ -99,12 +99,12 @@ struct BOOLEAN : peg::sor<TRUE, FALSE> {};
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
 template <typename Element>
-struct LIST_CONTENT_ : peg::list<Element, COMMA, peg::space> { using element = Element; };
+struct LIST_CONTENT_ : peg::list<Element, peg::seq<COMMA, TAIL>, peg::space> { using element = Element; };
 
 template <typename Content>
 // TODO: Figure out how to support 'peg::if_must<>' here instead of 'peg::seq<>' so that we can get
 // a better error message.
-struct LIST_ : peg::seq<SBo, WS_, Content, WS_, SBc> {
+struct LIST_ : peg::seq<SBo, TAIL, peg::opt<Content>, TAIL, SBc> {
   using begin = SBo;
   using end = SBc;
   using element = typename Content::element;
