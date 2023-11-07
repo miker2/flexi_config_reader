@@ -1,5 +1,7 @@
 name: CI Linux
 
+# test
+
 on:
   push:
     branches: [ main ]
