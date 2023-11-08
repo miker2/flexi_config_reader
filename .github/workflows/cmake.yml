@@ -18,13 +18,13 @@ jobs:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
-      CLANG_DEFAULT: 14
+      CLANG_DEFAULT: 13
     strategy:
       fail-fast: false
       matrix:
 
         name: [
-          ubuntu-latest-gcc-13,
+          ubuntu-latest-gcc-12,
           ubuntu-20.04-clang-13,
           ubuntu-22.04-clang-14,
           ubuntu-22.04-clang-15,
@@ -33,10 +33,10 @@ jobs:
 
         build_type: [Debug, Release]
         include:
-          - name: ubuntu-latest-gcc-13
+          - name: ubuntu-latest-gcc-12
             os: ubuntu-latest
             compiler: gcc
-            version: "13"
+            version: "12"
 
           - name: ubuntu-20.04-clang-13
             os: ubuntu-20.04
