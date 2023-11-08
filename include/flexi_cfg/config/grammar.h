@@ -174,6 +174,8 @@ struct include_list : peg::star<INCLUDE> {};
 struct INCLUDE_RELATIVE : peg::seq<TAO_PEGTL_KEYWORD("include_relative"), SP, filename::grammar, TAIL> {};
 struct include_relative_list : peg::star<INCLUDE_RELATIVE> {};
 
+struct includes : peg::seq<include_list, include_relative_list, TAIL> {};
+
 // A single file should look like this:
 //
 //  1. Optional list of include files
@@ -189,10 +191,10 @@ struct include_relative_list : peg::star<INCLUDE_RELATIVE> {};
 //
 // but never both in the same file. The `peg::not_at<PAIR>` prevents the PAIR that might appear in a
 // `STRUCTc` from being matched as a `FULLPAIR` object.
+struct config_fields : peg::opt<peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>> {};
 
 struct CONFIG
-    : peg::seq<TAIL, include_list, include_relative_list,
-               peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>, TAIL> {};
+    : peg::seq<TAIL, peg::not_at<peg::eolf>, includes, config_fields, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
