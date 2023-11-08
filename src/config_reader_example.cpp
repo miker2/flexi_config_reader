@@ -121,7 +121,7 @@ auto main(int argc, char* argv[]) -> int {
       // Read a deeply nested set of lists
       const auto my_nested_list_key = "outer.deep_multi_list";
       const auto out = cfg.getValue<std::vector<std::vector<std::vector<int>>>>(my_nested_list_key);
-      fmt::print("Value of '{}' is : \n", my_nested_list_key); // , fmt::join(out, ", "));
+      fmt::print("Value of '{}' is : \n", my_nested_list_key);  // , fmt::join(out, ", "));
       for (const auto& v0 : out) {
         fmt::print("[");
         for (const auto& v1 : v0) {

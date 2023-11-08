@@ -293,3 +293,11 @@ TEST_P(InvalidConfig, Exception) {
       << "Input file: " << in_file;
 }
 INSTANTIATE_TEST_SUITE_P(ConfigException, InvalidConfig, testing::Values("config_malformed4.cfg"));
+
+TEST(ConfigException, EmptyConfig) {
+  {
+    const auto in_file = std::filesystem::path(EXAMPLE_DIR) / "invalid" / "config_empty.cfg";
+    peg::file_input in_cfg(in_file);
+    EXPECT_THROW(parse(in_cfg), peg::parse_error);
+  }
+}
