@@ -137,8 +137,21 @@ TEST_P(FileInput, Parse) {
 }
 
 TEST_P(FileInput, ConfigReaderParse) {
+  // This test creates a full path to the config files. This works because they are all top level
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(baseDir() / GetParam()));
 }
 
+TEST_P(FileInput, ConfigReaderParseRootDir) {
+  // This test calls parse with a relative path to the config file and specifies the root dir
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
+  EXPECT_NO_THROW(flexi_cfg::Parser::parse(GetParam(), baseDir()));
+}
+
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));
+
+TEST(ConfigParse, ConfigRoot) {
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::DEBUG);
+  EXPECT_NO_THROW(flexi_cfg::Parser::parse(
+      std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
+}
