@@ -202,10 +202,9 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("getValue", &getValueGeneric);
 
   py::class_<flexi_cfg::Parser>(m, "Parser")
-      .def_static("parse",
-                  py::overload_cast<const std::filesystem::path&>(&flexi_cfg::Parser::parse))
-      .def_static("parse",
-                  py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::Parser::parse),
+      .def_static("parse", &flexi_cfg::Parser::parse, py::arg("cfg_file"), py::arg("root_dir") = std::nullopt)
+      .def_static("parseFromString",
+                  &flexi_cfg::Parser::parseFromString,
                   py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
 
   m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));

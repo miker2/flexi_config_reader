@@ -42,7 +42,7 @@ TEST_P(InputString, Reader) {
   flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
                                   // capture the output of 'parse' from within the "try/catch" block
 
-  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
+  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parseFromString(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");
   EXPECT_EQ(cfg.getType("test1.key1"), flexi_cfg::config::types::Type::kString);

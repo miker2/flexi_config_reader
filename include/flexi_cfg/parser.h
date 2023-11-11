@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,9 +14,10 @@ namespace flexi_cfg {
 
 class Parser {
  public:
-  static auto parse(const std::filesystem::path& cfg_filename) -> Reader;
+  static auto parse(const std::filesystem::path& cfg_filename, 
+                    std::optional<std::filesystem::path> root_dir = std::nullopt) -> Reader;
 
-  static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader;
+  static auto parseFromString(std::string_view cfg_string, std::string_view source = "unknown") -> Reader;
 
  private:
   Parser() = default;
