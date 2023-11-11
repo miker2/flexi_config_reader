@@ -140,19 +140,19 @@ PYBIND11_MODULE(flexi_cfg, m) {
 
   py::class_<Type> type_holder(m, "Type");
   py::enum_<flexi_cfg::config::types::Type>(type_holder, "Type")
-      .value("kValue", flexi_cfg::config::types::Type::kValue)
-      .value("kString", flexi_cfg::config::types::Type::kString)
-      .value("kNumber", flexi_cfg::config::types::Type::kNumber)
-      .value("kBoolean", flexi_cfg::config::types::Type::kBoolean)
-      .value("kList", flexi_cfg::config::types::Type::kList)
-      .value("kExpression", flexi_cfg::config::types::Type::kExpression)
-      .value("kValueLookup", flexi_cfg::config::types::Type::kValueLookup)
-      .value("kVar", flexi_cfg::config::types::Type::kVar)
-      .value("kStruct", flexi_cfg::config::types::Type::kStruct)
-      .value("kStructInProto", flexi_cfg::config::types::Type::kStructInProto)
-      .value("kProto", flexi_cfg::config::types::Type::kProto)
-      .value("kReference", flexi_cfg::config::types::Type::kReference)
-      .value("kUnknown", flexi_cfg::config::types::Type::kUnknown)
+      .value("VALUE", flexi_cfg::config::types::Type::kValue)
+      .value("STRING", flexi_cfg::config::types::Type::kString)
+      .value("NUMBER", flexi_cfg::config::types::Type::kNumber)
+      .value("BOOLEAN", flexi_cfg::config::types::Type::kBoolean)
+      .value("LIST", flexi_cfg::config::types::Type::kList)
+      .value("EXPRESSION", flexi_cfg::config::types::Type::kExpression)
+      .value("VALUE_LOOKUP", flexi_cfg::config::types::Type::kValueLookup)
+      .value("VAR", flexi_cfg::config::types::Type::kVar)
+      .value("STRUCT", flexi_cfg::config::types::Type::kStruct)
+      .value("STRUCT_IN_PROTO", flexi_cfg::config::types::Type::kStructInProto)
+      .value("PROTO", flexi_cfg::config::types::Type::kProto)
+      .value("REFERENCE", flexi_cfg::config::types::Type::kReference)
+      .value("UNKNOWN", flexi_cfg::config::types::Type::kUnknown)
       .export_values();
 
   auto pyFlexiCfgException =
@@ -182,33 +182,33 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("dump", &flexi_cfg::Reader::dump)
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)
-      .def("getType", &flexi_cfg::Reader::getType)
-      .def("findStructWithKey", &flexi_cfg::Reader::findStructsWithKey)
+      .def("get_type", &flexi_cfg::Reader::getType)
+      .def("find_struct_with_key", &flexi_cfg::Reader::findStructsWithKey)
       // Accessors for single values
-      .def("getInt", &getValueHelper<int64_t>)
-      .def("getUint64", &getValueHelper<uint64_t>)
-      .def("getFloat", &getValueHelper<double>)
-      .def("getBool", &getValueHelper<bool>)
-      .def("getString", &getValueHelper<std::string>)
+      .def("get_int", &getValueHelper<int64_t>)
+      .def("get_uint64", &getValueHelper<uint64_t>)
+      .def("get_float", &getValueHelper<double>)
+      .def("get_bool", &getValueHelper<bool>)
+      .def("get_string", &getValueHelper<std::string>)
       // Accessors for lists of values
-      .def("getIntList", &getListHelper<int64_t>)
-      .def("getUint64List", &getListHelper<uint64_t>)
-      .def("getFloatList", &getListHelper<double>)
-      .def("getBoolList", &getListHelper<bool>)
-      .def("getStringList", &getListHelper<std::string>)
+      .def("get_int_list", &getListHelper<int64_t>)
+      .def("get_uint64_list", &getListHelper<uint64_t>)
+      .def("get_float_list", &getListHelper<double>)
+      .def("get_bool_list", &getListHelper<bool>)
+      .def("get_string_list", &getListHelper<std::string>)
       // Accessor for a sub-reader object
-      .def("getReader", &getValueHelper<flexi_cfg::Reader>)
+      .def("get_reader", &getValueHelper<flexi_cfg::Reader>)
       // Generic accessor
-      .def("getValue", &getValueGeneric);
+      .def("get_value", &getValueGeneric);
 
   py::class_<flexi_cfg::Parser>(m, "Parser")
       .def_static("parse", &flexi_cfg::Parser::parse, py::arg("cfg_file"), py::arg("root_dir") = std::nullopt)
-      .def_static("parseFromString",
+      .def_static("parse_from_string",
                   &flexi_cfg::Parser::parseFromString,
                   py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
 
-  m.def("parse", py::overload_cast<const std::filesystem::path&>(&flexi_cfg::parse));
-  m.def("parse", py::overload_cast<std::string_view, std::string_view>(&flexi_cfg::parse),
+  m.def("parse", &flexi_cfg::parse, py::arg("cfg_file"), py::arg("root_dir") = std::nullopt);
+  m.def("parse_from_string", &flexi_cfg::parseFromString,
         py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
 
   py::class_<Logger> logger_holder(m, "logger");
@@ -219,6 +219,6 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .value("WARN", flexi_cfg::logger::Severity::WARN)
       .value("ERROR", flexi_cfg::logger::Severity::ERROR)
       .value("CRITICAL", flexi_cfg::logger::Severity::CRITICAL);
-  logger_holder.def("setLevel", &flexi_cfg::logger::setLevel);
-  logger_holder.def("logLevel", &flexi_cfg::logger::logLevel);
+  logger_holder.def("set_level", &flexi_cfg::logger::setLevel);
+  logger_holder.def("log_level", &flexi_cfg::logger::logLevel);
 }
