@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,9 +14,11 @@ namespace flexi_cfg {
 
 class Parser {
  public:
-  static auto parse(const std::filesystem::path& cfg_filename) -> Reader;
+  static auto parse(const std::filesystem::path& cfg_filename,
+                    std::optional<std::filesystem::path> root_dir = std::nullopt) -> Reader;
 
-  static auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader;
+  static auto parseFromString(std::string_view cfg_string, std::string_view source = "unknown")
+      -> Reader;
 
  private:
   Parser() = default;
@@ -43,12 +46,14 @@ class Parser {
   config::types::CfgMap cfg_data_;
 };
 
-inline auto parse(const std::filesystem::path& cfg_filename) -> Reader {
-  return Parser::parse(cfg_filename);
+inline auto parse(const std::filesystem::path& cfg_filename,
+                  std::optional<std::filesystem::path> root_dir = std::nullopt) -> Reader {
+  return Parser::parse(cfg_filename, root_dir);
 }
 
-inline auto parse(std::string_view cfg_string, std::string_view source = "unknown") -> Reader {
-  return Parser::parse(cfg_string, source);
+inline auto parseFromString(std::string_view cfg_string, std::string_view source = "unknown")
+    -> Reader {
+  return Parser::parseFromString(cfg_string, source);
 }
 
 }  // namespace flexi_cfg

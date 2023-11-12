@@ -42,7 +42,7 @@ TEST_P(InputString, Reader) {
   flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
                                   // capture the output of 'parse' from within the "try/catch" block
 
-  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parse(GetParam(), "From String"));
+  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parseFromString(GetParam(), "From String"));
   EXPECT_TRUE(cfg.exists("test1.key1"));
   EXPECT_EQ(cfg.getValue<std::string>("test1.key1"), "value");
   EXPECT_EQ(cfg.getType("test1.key1"), flexi_cfg::config::types::Type::kString);
@@ -137,8 +137,21 @@ TEST_P(FileInput, Parse) {
 }
 
 TEST_P(FileInput, ConfigReaderParse) {
+  // This test creates a full path to the config files. This works because they are all top level
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(baseDir() / GetParam()));
 }
 
+TEST_P(FileInput, ConfigReaderParseRootDir) {
+  // This test calls parse with a relative path to the config file and specifies the root dir
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
+  EXPECT_NO_THROW(flexi_cfg::Parser::parse(GetParam(), baseDir()));
+}
+
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));
+
+TEST(ConfigParse, ConfigRoot) {
+  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::DEBUG);
+  EXPECT_NO_THROW(flexi_cfg::Parser::parse(
+      std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
+}

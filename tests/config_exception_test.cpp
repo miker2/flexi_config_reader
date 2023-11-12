@@ -91,7 +91,7 @@ TEST(ConfigException, DuplicateKeyException) {
            $BAZ = \"baz\"               \n\
            +bar = 0                     \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(ref_proto_failure, "ref_proto_failure"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(ref_proto_failure, "ref_proto_failure"),
                  flexi_cfg::config::DuplicateKeyException);
   }
 #if 0  // See FULLPAIR action
@@ -183,7 +183,7 @@ TEST(ConfigException, InvalidKeyException) {
         "struct test1 {         \n\
            key = $(test1.key2)  \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(invalid_key_reference, "invalid key reference"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(invalid_key_reference, "invalid key reference"),
                  flexi_cfg::config::InvalidKeyException);
   }
   {
@@ -193,7 +193,7 @@ TEST(ConfigException, InvalidKeyException) {
         "struct test1 {             \n\
            key = $(test1.key3.bar)  \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(not_a_struct, "not a struct"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(not_a_struct, "not a struct"),
                  flexi_cfg::config::InvalidKeyException);
   }
 }
@@ -207,7 +207,7 @@ TEST(ConfigException, InvalidTypeException) {
            key = $(test1.key3.bar)  \n\
            key3 = 0                 \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(key_wrong_type, "key wrong type"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(key_wrong_type, "key wrong type"),
                  flexi_cfg::config::InvalidTypeException);
   }
   {
@@ -216,8 +216,9 @@ TEST(ConfigException, InvalidTypeException) {
            key1 = \"not a number\"         \n\
            key2 = {{ 0.5 * $(foo.key1) }}  \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(non_numeric_in_expression, "non numeric in expression"),
-                 flexi_cfg::config::InvalidTypeException);
+    EXPECT_THROW(
+        flexi_cfg::Parser::parseFromString(non_numeric_in_expression, "non numeric in expression"),
+        flexi_cfg::config::InvalidTypeException);
   }
 }
 
@@ -233,7 +234,7 @@ TEST(ConfigException, UndefinedReferenceVarException) {
            $KEY1 = 0                   \n\
            #$KEY2 undefined            \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(proto_var_doesnt_exist, "$KEY2 is undefined"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(proto_var_doesnt_exist, "$KEY2 is undefined"),
                  flexi_cfg::config::UndefinedReferenceVarException);
   }
   {
@@ -248,7 +249,7 @@ TEST(ConfigException, UndefinedReferenceVarException) {
            $KEY2 = \"defined\"                             \n\
            $EXTRA_KEY = 0  # not useful, but not an error  \n\
          }\n";
-    EXPECT_NO_THROW(flexi_cfg::Parser::parse(extra_proto_var, "$EXTRA_KEY is unused"));
+    EXPECT_NO_THROW(flexi_cfg::Parser::parseFromString(extra_proto_var, "$EXTRA_KEY is unused"));
   }
 
   {
@@ -270,7 +271,7 @@ TEST(ConfigException, UndefinedProtoException) {
            $KEY1 = 0                                       \n\
            $KEY2 = \"defined\"                             \n\
          }\n";
-    EXPECT_THROW(flexi_cfg::Parser::parse(undefined_proto, "bar_proto not defined"),
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(undefined_proto, "bar_proto not defined"),
                  flexi_cfg::config::UndefinedProtoException);
   }
 }
