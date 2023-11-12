@@ -183,7 +183,7 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)
       .def("get_type", &flexi_cfg::Reader::getType)
-      .def("find_struct_with_key", &flexi_cfg::Reader::findStructsWithKey)
+      .def("find_structs_with_key", &flexi_cfg::Reader::findStructsWithKey)
       // Accessors for single values
       .def("get_int", &getValueHelper<int64_t>)
       .def("get_uint64", &getValueHelper<uint64_t>)
