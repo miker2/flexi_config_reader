@@ -102,6 +102,14 @@ inline auto operator<<(std::ostream& os, const std::shared_ptr<T>& cfg) -> std::
   return (cfg ? (os << *cfg) : (os << "NULL"));
 }
 
+inline auto operator==(const ConfigBase& lhs, const ConfigBase& rhs) -> bool {
+  std::stringstream ss_left;
+  ss_left << lhs;
+  std::stringstream ss_rhs;
+  ss_rhs << rhs;
+  return ss_left.str() == ss_rhs.str();
+}
+
 class ConfigStructLike;
 template <typename Key, typename Value>
 inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> std::ostream& {

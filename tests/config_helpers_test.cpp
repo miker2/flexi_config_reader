@@ -617,3 +617,128 @@ TEST(ConfigHelpers, resolveVarRefs) {
                  flexi_cfg::config::CyclicReferenceException);
   }
 }
+
+TEST(ConfigHelpers, compareNestedMaps) {
+  {
+    const std::string key = "key";
+    const std::vector<std::string> inner_keys = {"key1", "key2"};
+
+    // cfg1 is:
+    //  struct key
+    //    key1 = ""
+    //    key2 = ""
+    flexi_cfg::config::types::CfgMap cfg1_inner = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+        {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+    };
+    auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg1_struct->data = std::move(cfg1_inner);
+    flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
+
+    // cfg2 is:
+    //  struct key
+    //    key1 = ""
+    //    key2 = ""
+    flexi_cfg::config::types::CfgMap cfg2_inner = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+        {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+    };
+    auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg2_struct->data = std::move(cfg2_inner);
+    flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
+
+    EXPECT_TRUE(flexi_cfg::config::helpers::compareNestedMaps(cfg1, cfg2));
+  }
+
+  {
+    const std::string key = "key";
+    const std::vector<std::string> inner_keys = {"key1"};
+
+    // cfg1 is:
+    //  struct key
+    //    key1 = ""
+    flexi_cfg::config::types::CfgMap cfg1_inner = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+    };
+    auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg1_struct->data = std::move(cfg1_inner);
+    flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
+
+    // cfg2 is:
+    //  struct key
+    //    key1 = "not_equal"
+    flexi_cfg::config::types::CfgMap cfg2_inner = {
+        {inner_keys[0],
+         std::make_shared<flexi_cfg::config::types::ConfigValue>("not_equal", kValue)},
+    };
+    auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg2_struct->data = std::move(cfg2_inner);
+    flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
+
+    EXPECT_FALSE(flexi_cfg::config::helpers::compareNestedMaps(cfg1, cfg2));
+  }
+
+  {
+    const std::string key = "key";
+    const std::vector<std::string> inner_keys = {"key1", "key2"};
+
+    // cfg1 is:
+    //  struct key
+    //    key1 = ""
+    flexi_cfg::config::types::CfgMap cfg1_inner = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+    };
+    auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg1_struct->data = std::move(cfg1_inner);
+    flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
+
+    // cfg2 is:
+    //  struct key
+    //    key2 = ""
+    flexi_cfg::config::types::CfgMap cfg2_inner = {
+        {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
+    };
+    auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+    cfg2_struct->data = std::move(cfg2_inner);
+    flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
+
+    EXPECT_FALSE(flexi_cfg::config::helpers::compareNestedMaps(cfg1, cfg2));
+  }
+
+  {
+    const std::string key = "key";
+    const std::vector<std::string> inner_keys = {"key1"};
+
+    // cfg1 is:
+    //  struct key
+    //    struct nested
+    //      key1 = "1"
+    flexi_cfg::config::types::CfgMap cfg1_lvl2 = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("1", kValue)}};
+    auto cfg1_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
+        "nested", 1 /* depth doesn't matter */);
+    cfg1_inner->data = std::move(cfg1_lvl2);
+    flexi_cfg::config::types::CfgMap cfg1_lvl1 = {{cfg1_inner->name, std::move(cfg1_inner)}};
+    auto cfg1_outer =
+        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    cfg1_outer->data = std::move(cfg1_lvl1);
+    flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_outer->name, std::move(cfg1_outer)}};
+
+    // cfg2 is:
+    //  struct key
+    //    struct nested
+    //      key1 = "2"
+    flexi_cfg::config::types::CfgMap cfg2_lvl2 = {
+        {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("2", kValue)}};
+    auto cfg2_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
+        "nested", 1 /* depth doesn't matter */);
+    cfg2_inner->data = std::move(cfg2_lvl2);
+    flexi_cfg::config::types::CfgMap cfg2_lvl1 = {{cfg2_inner->name, std::move(cfg2_inner)}};
+    auto cfg2_outer =
+        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    cfg2_outer->data = std::move(cfg2_lvl1);
+    flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_outer->name, std::move(cfg2_outer)}};
+
+    EXPECT_FALSE(flexi_cfg::config::helpers::compareNestedMaps(cfg1, cfg2));
+  }
+}
