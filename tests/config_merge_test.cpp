@@ -99,10 +99,10 @@ struct section4 {
 }
 )"};
 
-  EXPECT_NO_THROW(base = flexi_cfg::Parser::parse(base_config, "From String"));
-  EXPECT_NO_THROW(overrides = flexi_cfg::Parser::parse(override_config, "From String"));
+  EXPECT_NO_THROW(base = flexi_cfg::Parser::parseFromString(base_config, "From String"));
+  EXPECT_NO_THROW(overrides = flexi_cfg::Parser::parseFromString(override_config, "From String"));
   EXPECT_NO_THROW(base.merge(overrides));
-  EXPECT_NO_THROW(expected = flexi_cfg::Parser::parse(expected_config, "From String"));
+  EXPECT_NO_THROW(expected = flexi_cfg::Parser::parseFromString(expected_config, "From String"));
   EXPECT_EQ(base, expected);
 }
 
@@ -166,10 +166,10 @@ key13 = "untouched"
 key14 = "untouched"
 )"};
 
-  EXPECT_NO_THROW(base = flexi_cfg::Parser::parse(base_config, "From String"));
-  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parse(overlay_config, "From String"));
+  EXPECT_NO_THROW(base = flexi_cfg::Parser::parseFromString(base_config, "From String"));
+  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parseFromString(overlay_config, "From String"));
   EXPECT_NO_THROW(base.applyOverlay(overlay));
-  EXPECT_NO_THROW(expected = flexi_cfg::Parser::parse(expected_config, "From String"));
+  EXPECT_NO_THROW(expected = flexi_cfg::Parser::parseFromString(expected_config, "From String"));
   EXPECT_EQ(base, expected);
 }
 
@@ -185,8 +185,8 @@ key1 = "value"
 key1 = 1234
 )"};
 
-  EXPECT_NO_THROW(base = flexi_cfg::Parser::parse(base_config, "From String"));
-  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parse(overlay_config, "From String"));
+  EXPECT_NO_THROW(base = flexi_cfg::Parser::parseFromString(base_config, "From String"));
+  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parseFromString(overlay_config, "From String"));
   EXPECT_THROW(base.applyOverlay(overlay), flexi_cfg::config::MismatchTypeException);
 }
 
@@ -202,7 +202,7 @@ key1 = "value"
 nonexistent_key = 1234
 )"};
 
-  EXPECT_NO_THROW(base = flexi_cfg::Parser::parse(base_config, "From String"));
-  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parse(overlay_config, "From String"));
+  EXPECT_NO_THROW(base = flexi_cfg::Parser::parseFromString(base_config, "From String"));
+  EXPECT_NO_THROW(overlay = flexi_cfg::Parser::parseFromString(overlay_config, "From String"));
   EXPECT_THROW(base.applyOverlay(overlay), flexi_cfg::config::InvalidKeyException);
 }
