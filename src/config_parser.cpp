@@ -111,10 +111,19 @@ auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in)
 
 namespace flexi_cfg {
 
-auto Parser::parse(const std::filesystem::path& cfg_filename) -> Reader {
+auto Parser::parse(const std::filesystem::path& cfg_filename,
+                   std::optional<std::filesystem::path> root_dir) -> Reader {
   config::ActionData state;
-  state.base_dir = cfg_filename.parent_path().string();
-  peg::file_input cfg_file(cfg_filename);
+
+  std::filesystem::path input_file;
+  if (root_dir.has_value()) {
+    input_file = root_dir.value() / cfg_filename;
+    state.base_dir = root_dir.value();
+  } else {
+    input_file = cfg_filename;
+    state.base_dir = cfg_filename.parent_path();
+  }
+  peg::file_input cfg_file(input_file);
 
   // TODO(miker2): Do something smarter if "parseCommon" fails!
   parseCommon(cfg_file, state);
@@ -123,7 +132,7 @@ auto Parser::parse(const std::filesystem::path& cfg_filename) -> Reader {
   return Reader(parser.resolveConfig(state));
 }
 
-auto Parser::parse(std::string_view cfg_string, std::string_view source) -> Reader {
+auto Parser::parseFromString(std::string_view cfg_string, std::string_view source) -> Reader {
   peg::memory_input cfg_file(cfg_string, source);
   config::ActionData state;
 

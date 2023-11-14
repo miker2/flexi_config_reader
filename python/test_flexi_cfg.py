@@ -44,23 +44,23 @@ class TestMyConfig(unittest.TestCase):
                                   'bool_key': False,
                                   'var_ref': 10},
                         'my_list': [1.0, -2, 4.2]}
-        cfg = flexi_cfg.parse(my_config_example, "example_cfg")
-        self.assertEqual(cfg.getString("test1.key1"), expected_cfg["test1"]["key1"])
-        self.assertEqual(cfg.getFloat("test1.key2"), expected_cfg["test1"]["key2"])
-        self.assertEqual(cfg.getInt("test1.key3"), expected_cfg["test1"]["key3"])
-        self.assertEqual(cfg.getUint64("test2.my_hex"), expected_cfg["test2"]["my_hex"])
-        self.assertEqual(cfg.getBool("test2.bool_key"), expected_cfg["test2"]["bool_key"])
-        self.assertEqual(cfg.getFloatList("my_list"), expected_cfg['my_list'])
+        cfg = flexi_cfg.parse_from_string(my_config_example, "example_cfg")
+        self.assertEqual(cfg.get_string("test1.key1"), expected_cfg["test1"]["key1"])
+        self.assertEqual(cfg.get_float("test1.key2"), expected_cfg["test1"]["key2"])
+        self.assertEqual(cfg.get_int("test1.key3"), expected_cfg["test1"]["key3"])
+        self.assertEqual(cfg.get_uint64("test2.my_hex"), expected_cfg["test2"]["my_hex"])
+        self.assertEqual(cfg.get_bool("test2.bool_key"), expected_cfg["test2"]["bool_key"])
+        self.assertEqual(cfg.get_float_list("my_list"), expected_cfg['my_list'])
 
         self.assertEqual(sorted(cfg.keys()), sorted(expected_cfg.keys()))
-        self.assertEqual(cfg.getType("test1.key1"), flexi_cfg.Type.kString)
-        self.assertEqual(cfg.getType("test1.key2"), flexi_cfg.Type.kNumber)
-        self.assertEqual(cfg.getType("test1.key3"), flexi_cfg.Type.kNumber)
-        self.assertEqual(cfg.getType("test2.my_hex"), flexi_cfg.Type.kNumber)
-        self.assertEqual(cfg.getType("test2.bool_key"), flexi_cfg.Type.kBoolean)
-        self.assertEqual(cfg.getType("my_list"), flexi_cfg.Type.kList)
+        self.assertEqual(cfg.get_type("test1.key1"), flexi_cfg.Type.STRING)
+        self.assertEqual(cfg.get_type("test1.key2"), flexi_cfg.Type.NUMBER)
+        self.assertEqual(cfg.get_type("test1.key3"), flexi_cfg.Type.NUMBER)
+        self.assertEqual(cfg.get_type("test2.my_hex"), flexi_cfg.Type.NUMBER)
+        self.assertEqual(cfg.get_type("test2.bool_key"), flexi_cfg.Type.BOOLEAN)
+        self.assertEqual(cfg.get_type("my_list"), flexi_cfg.Type.LIST)
 
-        cfg_test2 = cfg.getReader("test2")
+        cfg_test2 = cfg.get_reader("test2")
         self.assertEqual(sorted(cfg_test2.keys()), sorted(expected_cfg["test2"].keys()))
         
     def test_cfg_file(self):
@@ -88,16 +88,16 @@ class TestMyConfig(unittest.TestCase):
         cfg = flexi_cfg.parse(cfg_file_path)
 
         self.assertEqual(sorted(cfg.keys()), sorted(expected_cfg.keys()))
-        self.assertEqual(cfg.getFloat('test1.key3'), cfg.getFloat('test2.var_ref'))
-        self.assertAlmostEqual(cfg.getFloat('test1.key3'), expected_cfg['test1']['key3'], places=6)
+        self.assertEqual(cfg.get_float('test1.key3'), cfg.get_float('test2.var_ref'))
+        self.assertAlmostEqual(cfg.get_float('test1.key3'), expected_cfg['test1']['key3'], places=6)
 
-        self.assertEqual(cfg.getType('test1.f'), flexi_cfg.Type.kList)
-        self.assertEqual(cfg.getStringList('test1.f'), expected_cfg['test1']['f'])
+        self.assertEqual(cfg.get_type('test1.f'), flexi_cfg.Type.LIST)
+        self.assertEqual(cfg.get_string_list('test1.f'), expected_cfg['test1']['f'])
 
         # Check that parsing a signed integer as an unsigned integer produces an exception.
         excepted = False
         try:
-            cfg.getUint64('uint64')
+            cfg.get_uint64('uint64')
         except flexi_cfg.MismatchTypeException:
             excepted = True
         except:
@@ -105,22 +105,22 @@ class TestMyConfig(unittest.TestCase):
         self.assertTrue(excepted)
 
         # Check various list types:
-        self.assertEqual(cfg.getIntList('int_list'), expected_cfg['int_list'])
-        self.assertEqual(cfg.getUint64List('uint_list'), expected_cfg['uint_list'])
-        self.assertEqual(cfg.getFloatList('float_list'), expected_cfg['float_list'])
+        self.assertEqual(cfg.get_int_list('int_list'), expected_cfg['int_list'])
+        self.assertEqual(cfg.get_uint64_list('uint_list'), expected_cfg['uint_list'])
+        self.assertEqual(cfg.get_float_list('float_list'), expected_cfg['float_list'])
 
-        # Check the generic getValue() method:
-        self.assertEqual(cfg.getValue('test1.key1'), expected_cfg['test1']['key1'])
-        self.assertEqual(cfg.getValue('test1.key2'), expected_cfg['test1']['key2'])
-        self.assertAlmostEqual(cfg.getValue('test1.key3'), expected_cfg['test1']['key3'], places=6)
-        self.assertEqual(cfg.getValue('test2.my_key'), expected_cfg['test2']['my_key'])
-        self.assertEqual(cfg.getValue('test2.n_key'), expected_cfg['test2']['n_key'])
-        self.assertAlmostEqual(cfg.getValue('test2.var_ref'), expected_cfg['test2']['var_ref'], places=6)
-        self.assertEqual(cfg.getValue('solo_key'), expected_cfg['solo_key'])
-        self.assertEqual(cfg.getValue('int_list'), expected_cfg['int_list'])
-        self.assertEqual(cfg.getValue('uint_list'), expected_cfg['uint_list'])
-        self.assertEqual(cfg.getValue('float_list'), expected_cfg['float_list'])
-        self.assertEqual(cfg.getValue('uint64'), expected_cfg['uint64'])
+        # Check the generic get_value() method:
+        self.assertEqual(cfg.get_value('test1.key1'), expected_cfg['test1']['key1'])
+        self.assertEqual(cfg.get_value('test1.key2'), expected_cfg['test1']['key2'])
+        self.assertAlmostEqual(cfg.get_value('test1.key3'), expected_cfg['test1']['key3'], places=6)
+        self.assertEqual(cfg.get_value('test2.my_key'), expected_cfg['test2']['my_key'])
+        self.assertEqual(cfg.get_value('test2.n_key'), expected_cfg['test2']['n_key'])
+        self.assertAlmostEqual(cfg.get_value('test2.var_ref'), expected_cfg['test2']['var_ref'], places=6)
+        self.assertEqual(cfg.get_value('solo_key'), expected_cfg['solo_key'])
+        self.assertEqual(cfg.get_value('int_list'), expected_cfg['int_list'])
+        self.assertEqual(cfg.get_value('uint_list'), expected_cfg['uint_list'])
+        self.assertEqual(cfg.get_value('float_list'), expected_cfg['float_list'])
+        self.assertEqual(cfg.get_value('uint64'), expected_cfg['uint64'])
 
 
 if __name__ == '__main__':
