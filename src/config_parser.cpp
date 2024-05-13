@@ -220,20 +220,20 @@ void Parser::stripProtos(config::types::CfgMap& cfg_map) const {
   const auto keys = protos_ | ranges::views::keys |
                     ranges::to<std::vector<decltype(protos_)::key_type>> | ranges::actions::sort |
                     ranges::actions::reverse;
-  for (const auto& key : keys) {
-    logger::debug("Removing '{}' from config.", key);
-    // Split the keys so we can use them to recurse into the map.
-    const auto parts = utils::split(key, '.');
+  // for (const auto& key : keys) {
+  //   logger::debug("Removing '{}' from config.", key);
+  //   // Split the keys so we can use them to recurse into the map.
+  //   const auto parts = utils::split(key, '.');
 
-    auto& content =
-        parts.size() == 1 ? cfg_map : config::helpers::getNestedConfig(cfg_map, parts)->data;
+  //   auto& content =
+  //       parts.size() == 1 ? cfg_map : config::helpers::getNestedConfig(cfg_map, parts)->data;
 
-    logger::trace("Final component: \n{}", content.at(parts.back()));
-    content.erase(parts.back());
-    if (content.empty()) {
-      logger::debug("{} is empty and could be removed.", parts | ranges::views::drop_last(1));
-    }
-  }
+  //   logger::trace("Final component: \n{}", content.at(parts.back()));
+  //   content.erase(parts.back());
+  //   if (content.empty()) {
+  //     logger::debug("{} is empty and could be removed.", parts | ranges::views::drop_last(1));
+  //   }
+  // }
 }
 
 void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
