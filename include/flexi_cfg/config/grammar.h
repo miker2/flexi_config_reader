@@ -63,9 +63,10 @@ struct STRUCTk : TAO_PEGTL_KEYWORD("struct") {};
 struct PROTOk : TAO_PEGTL_KEYWORD("proto") {};
 struct REFk : TAO_PEGTL_KEYWORD("reference") {};
 struct ASk : TAO_PEGTL_KEYWORD("as") {};
+struct OVERRIDEk : TAO_PEGTL_KEYWORD("[override]") {};
 struct PARENTNAMEk : TAO_PEGTL_KEYWORD("$PARENT_NAME") {};
 
-struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk> {};
+struct RESERVED : peg::sor<STRUCTk, PROTOk, REFk, ASk, OVERRIDEk, PARENTNAMEk> {};
 
 struct HEXTAG : peg::seq<peg::one<'0'>, peg::one<'x', 'X'>> {};
 struct HEX : peg::seq<HEXTAG, peg::plus<peg::xdigit>> {};
@@ -138,7 +139,7 @@ struct REF_VARDEF
 
 // A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
 struct FULLPAIR : peg::seq<FLAT_KEY, KVs, KV_NOMINAL, TAIL> {};
-struct PAIR : peg::seq<KEY, KVs, KV_NOMINAL, TAIL> {};
+struct PAIR : peg::seq<KEY, peg::opt<pd<OVERRIDEk>>, KVs, KV_NOMINAL, TAIL> {};
 // NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
 // one or more 'VAR' elements
 struct PROTO_PAIR
