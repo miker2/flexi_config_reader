@@ -14,7 +14,7 @@
 #include "flexi_cfg/utils.h"
 
 #define DEBUG_CLASSES 0
-#define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
+#define PRINT_SRC 1  // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace flexi_cfg::config::types {
 constexpr std::size_t tw{4};  // The width of the indentation
@@ -383,8 +383,10 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
     os << ws << "}";
   }
 
+  /// @brief The name of the referenced proto
   const std::string proto{};
 
+  /// @brief The value of the variables in the referenced proto
   RefMap ref_vars;
 
   ~ConfigReference() noexcept override = default;
