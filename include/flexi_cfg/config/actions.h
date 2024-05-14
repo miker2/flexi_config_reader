@@ -72,6 +72,10 @@ struct ActionData {
   std::vector<std::shared_ptr<types::ConfigList>> lists;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
+  // Special data for overrides. We need to track these separately to make it easier to confirm things are being overwritten
+  bool is_override{false};
+  types::CfgMap override_values;  // A set of FLAT_KEY / VALUE pairs (to be resolved later)
+
   void print(std::ostream& os) const {
     if (in_proto) {
       os << "current proto key: " << proto_key << "\n";
@@ -113,6 +117,12 @@ struct ActionData {
         os << l << std::endl;
       }
     }
+
+    os << "is_override: " << (is_override ? "true" : "false") << std::endl;
+    if (!override_values.empty()) {
+      os << "override_values: \n" << override_values << std::endl;
+    }
+
     os << "^^^^^^^^^^" << std::endl;
   }
 };
@@ -128,6 +138,18 @@ struct action<KEY> {
       CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
     }
     out.keys.emplace_back(in.string());
+    out.is_override = false;  // Reset the override flag
+  }
+};
+
+template <>
+struct action<OVERRIDEk> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    if (VERBOSE_DEBUG_ACTIONS) {
+      CONFIG_ACTION_TRACE("In OVERRIDEk action: '{}'", in.string());
+    }
+    out.is_override = true;
   }
 };
 
@@ -493,7 +515,20 @@ struct action<PAIR> {
     }
     CONFIG_ACTION_TRACE("In PAIR action: '{} = {}'", out.keys.back(), out.obj_res);
 
-    data[out.keys.back()] = std::move(out.obj_res);
+    if (out.is_override) {
+      auto flat_key = fmt::format("{}", fmt::join(out.keys, "."));
+      if (out.override_values.contains(flat_key)) {
+        THROW_EXCEPTION(DuplicateKeyException,
+                        "Duplicate key '{}' found in override_values! "
+                        "Previously encountered at {} ({}), now at {} ({})",
+                        flat_key, out.override_values[flat_key]->loc(),
+                        out.override_values[flat_key]->type, out.obj_res->loc(), out.obj_res->type);
+      }
+      CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", flat_key, out.obj_res);
+      out.override_values[flat_key] = std::move(out.obj_res);
+    } else {
+      data[out.keys.back()] = std::move(out.obj_res);
+    }
 
     out.keys.pop_back();
   }
