@@ -167,6 +167,8 @@ auto Parser::resolveConfig(config::ActionData& state) -> const config::types::Cf
 
   cfg_data_ = mergeNested(state.cfg_res);
 
+  validateAndApplyOverrides(state, cfg_data_);
+
   if (STRIP_PROTOS) {
     // Stripping protos is not strictly necessary, but it cleans up the resulting config file.
     logger::trace("{0} Strip Protos {0}", debug_sep);
@@ -211,31 +213,6 @@ auto Parser::flattenAndFindProtos(const config::types::CfgMap& in, const std::st
     }
   }
   return flattened;
-}
-
-/// \brief Remove the protos from merged dictionary
-/// \param[in/out] cfg_map - The top level (resolved) config map
-void Parser::stripProtos(config::types::CfgMap& cfg_map) const {
-  // For each entry in the protos map, find the corresponding entry in the resolved config and
-  // remove the proto. This isn't strictly necessary, but it simplifies some things later when
-  // trying to resolve references and other variables.
-  const auto keys = protos_ | ranges::views::keys |
-                    ranges::to<std::vector<decltype(protos_)::key_type>> | ranges::actions::sort |
-                    ranges::actions::reverse;
-  for (const auto& key : keys) {
-    logger::debug("Removing '{}' from config.", key);
-    // Split the keys so we can use them to recurse into the map.
-    const auto parts = utils::split(key, '.');
-
-    auto& content =
-        parts.size() == 1 ? cfg_map : config::helpers::getNestedConfig(cfg_map, parts)->data;
-
-    logger::trace("Final component: \n{}", content.at(parts.back()));
-    content.erase(parts.back());
-    if (content.empty()) {
-      logger::debug("{} is empty and could be removed.", parts | ranges::views::drop_last(1));
-    }
-  }
 }
 
 void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string& base_name,
@@ -316,6 +293,46 @@ void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string
     } else if (v->type == config::types::Type::kStruct) {
       resolveReferences(dynamic_pointer_cast<config::types::ConfigStructLike>(v)->data, new_name,
                         ref_vars, refd_protos);
+    }
+  }
+}
+
+void Parser::validateAndApplyOverrides(const config::ActionData& state,
+                                       config::types::CfgMap& cfg_map) const {
+  /*
+  for (const auto& override : state.override_values) {
+    const auto parts = utils::split(override.first, '.');
+    if (parts.size() == 1) {
+      // If the override key is at the top level, just apply it.
+      cfg_map[parts[0]] = override.second;
+    } else {
+      // Otherwise, we need to find the nested key and apply the override.
+      auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
+      content[parts.back()] = override.second;
+    }
+  }
+  */
+}
+
+void Parser::stripProtos(config::types::CfgMap& cfg_map) const {
+  // For each entry in the protos map, find the corresponding entry in the resolved config and
+  // remove the proto. This isn't strictly necessary, but it simplifies some things later when
+  // trying to resolve references and other variables.
+  const auto keys = protos_ | ranges::views::keys |
+                    ranges::to<std::vector<decltype(protos_)::key_type>> | ranges::actions::sort |
+                    ranges::actions::reverse;
+  for (const auto& key : keys) {
+    logger::debug("Removing '{}' from config.", key);
+    // Split the keys so we can use them to recurse into the map.
+    const auto parts = utils::split(key, '.');
+
+    auto& content =
+        parts.size() == 1 ? cfg_map : config::helpers::getNestedConfig(cfg_map, parts)->data;
+
+    logger::trace("Final component: \n{}", content.at(parts.back()));
+    content.erase(parts.back());
+    if (content.empty()) {
+      logger::debug("{} is empty and could be removed.", parts | ranges::views::drop_last(1));
     }
   }
 }
