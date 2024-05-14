@@ -11,6 +11,7 @@
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/tail.hpp>
+#include <set>
 #include <sstream>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/trace.hpp>
@@ -193,8 +194,6 @@ auto Parser::resolveConfig(config::ActionData& state) -> const config::types::Cf
   // Removes empty structs, fixes incorrect depth, etc.
   config::helpers::cleanupConfig(cfg_data_);
 
-  // fmt::print("config:\n{}", cfg_data_);
-
   return cfg_data_;
 }
 
@@ -299,19 +298,50 @@ void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string
 
 void Parser::validateAndApplyOverrides(const config::ActionData& state,
                                        config::types::CfgMap& cfg_map) const {
-  /*
+  // Walk across the override key and:
+  //  1. Check if that key exists in the config file.
+  //  2. If it does, check that the type matches the override type.
+  //  3. If it does, apply the override.
   for (const auto& override : state.override_values) {
-    const auto parts = utils::split(override.first, '.');
-    if (parts.size() == 1) {
-      // If the override key is at the top level, just apply it.
-      cfg_map[parts[0]] = override.second;
-    } else {
-      // Otherwise, we need to find the nested key and apply the override.
-      auto& content = config::helpers::getNestedConfig(cfg_map, parts)->data;
-      content[parts.back()] = override.second;
+    try {
+      const auto struct_like = config::helpers::getNestedConfig(cfg_map, override.first);
+      // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
+      auto& data = (struct_like != nullptr) ? struct_like->data : cfg_map;
+
+      const auto parts = utils::split(override.first, '.');
+      if (!data.contains(parts.back())) {
+        THROW_EXCEPTION(config::InvalidOverrideException,
+                        "Override invalid: No default found for '{}' in config file. Defined at {}",
+                        override.first, override.second->loc());
+      }
+      logger::error("Found default for '{} = {}'. Overriding with {}", override.first,
+                    data.at(parts.back()), override.second);
+      // Check that the types match (if possible)
+      const auto& default_type = data.at(parts.back())->type;
+      const auto& override_type = override.second->type;
+      using config::types::Type;
+      std::set<Type> checked_types{Type::kString, Type::kNumber, Type::kBoolean, Type::kList,
+                                   Type::kExpression};
+      if (checked_types.contains(default_type) && checked_types.contains(override_type)) {
+        // Check the types match.
+        auto types_match = default_type == override_type ||
+                           (default_type == Type::kNumber && override_type == Type::kExpression) ||
+                           (default_type == Type::kExpression && override_type == Type::kNumber);
+
+        if (!types_match) {
+          THROW_EXCEPTION(
+              config::InvalidOverrideException,
+              "Override key '{}':{} has type '{}' but expected '{}'. Original key at {}",
+              override.first, override.second->loc(), override_type, default_type,
+              data.at(parts.back())->loc());
+        }
+      }
+    } catch (const config::InvalidKeyException& e) {
+      THROW_EXCEPTION(config::InvalidOverrideException,
+                      "Override invalid: No default found for '{}' in config file. Defined at {}",
+                      override.first, override.second->loc());
     }
   }
-  */
 }
 
 void Parser::stripProtos(config::types::CfgMap& cfg_map) const {
