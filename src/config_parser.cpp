@@ -314,8 +314,8 @@ void Parser::validateAndApplyOverrides(const config::ActionData& state,
                         "Override invalid: No default found for '{}' in config file. Defined at {}",
                         override.first, override.second->loc());
       }
-      logger::error("Found default for '{} = {}'. Overriding with {}", override.first,
-                    data.at(parts.back()), override.second);
+      logger::info("+++ Found default for '{} = {}'. Overriding with {}", override.first,
+                   data.at(parts.back()), override.second);
       // Check that the types match (if possible)
       const auto& default_type = data.at(parts.back())->type;
       const auto& override_type = override.second->type;
