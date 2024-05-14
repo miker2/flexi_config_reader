@@ -508,7 +508,7 @@ struct action<PAIR> {
 
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
 
-    if (data.contains(out.keys.back())) {
+    if (!out.is_override && data.contains(out.keys.back())) {
       const auto location =
           out.objects.empty() ? std::string("top_level") : out.objects.back()->name;
       THROW_EXCEPTION(DuplicateKeyException,

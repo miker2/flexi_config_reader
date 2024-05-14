@@ -336,6 +336,10 @@ void Parser::validateAndApplyOverrides(const config::ActionData& state,
               data.at(parts.back())->loc());
         }
       }
+
+      // Default value exists and types match. Apply override!
+      data[parts.back()] = override.second;
+
     } catch (const config::InvalidKeyException& e) {
       THROW_EXCEPTION(config::InvalidOverrideException,
                       "Override invalid: No default found for '{}' in config file. Defined at {}",
