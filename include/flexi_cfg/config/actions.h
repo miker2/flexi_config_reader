@@ -34,8 +34,9 @@
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
   logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
+#define VERBOSE_DEBUG_ACTIONS 0  // NOLINT(cppcoreguidelines-macro-usage)
+
 namespace flexi_cfg::config {
-constexpr bool VERBOSE_DEBUG_ACTIONS{false};
 
 constexpr std::string_view DEFAULT_RES{"***"};
 
@@ -72,7 +73,8 @@ struct ActionData {
   std::vector<std::shared_ptr<types::ConfigList>> lists;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
 
-  // Special data for overrides. We need to track these separately to make it easier to confirm things are being overwritten
+  // Special data for overrides. We need to track these separately to make it easier to confirm
+  // things are being overwritten
   bool is_override{false};
   types::CfgMap override_values;  // A set of FLAT_KEY / VALUE pairs (to be resolved later)
 
@@ -134,9 +136,10 @@ template <>
 struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
+#endif
+
     out.keys.emplace_back(in.string());
     out.is_override = false;  // Reset the override flag
   }
@@ -146,9 +149,9 @@ template <>
 struct action<OVERRIDEk> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In OVERRIDEk action: '{}'", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In OVERRIDEk action: '{}'", in.string());
+#endif
     out.is_override = true;
   }
 };
@@ -180,9 +183,9 @@ struct action<VALUE> {
                       "is the result of a misconfigured action.",
                       config::types::Type::kValue));
     }
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
+#endif
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
   }
@@ -194,9 +197,9 @@ struct action<HEX> {
   static void apply(const ActionInput& in, ActionData& out) {
     const auto hex = std::stoull(in.string(), nullptr, 16);
 
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
+#endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
   }
 };
@@ -205,9 +208,9 @@ template <>
 struct action<STRING> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
+#endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
   }
 };
@@ -216,9 +219,9 @@ template <>
 struct action<FLOAT> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
+#endif
     std::any any_val = std::stod(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -229,9 +232,9 @@ template <>
 struct action<INTEGER> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
+#endif
     std::any any_val = std::stoi(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -243,9 +246,9 @@ struct action<INTEGER> {
 template <>
 struct action<BOOLEAN> {
   static void apply0(ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In BOOLEAN action...");
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In BOOLEAN action...");
+#endif
   }
 };
 
@@ -253,9 +256,9 @@ template <>
 struct action<TRUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
+#endif
     std::any any_val = true;
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
@@ -266,9 +269,9 @@ template <>
 struct action<FALSE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
+#endif
     std::any any_val = false;
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
@@ -340,9 +343,9 @@ template <>
 struct action<EXPRESSION> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
+#endif
     CONFIG_ACTION_TRACE("EXPRESSION contains the following VALUE_LOOKUP objects: {}",
                         ranges::views::values(out.value_lookups));
     // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
@@ -358,9 +361,9 @@ template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("Found var: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("Found var: {}", in.string());
+#endif
     // Store string here in `result` because for the case of a `REF_VARDEF` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
@@ -455,9 +458,9 @@ struct action<FLAT_KEY> {
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
       assert(keys.back() == out.keys.back());  // NOLINT
-      if (VERBOSE_DEBUG_ACTIONS) {
-        CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
-      }
+#if VERBOSE_DEBUG_ACTIONS
+      CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
+#endif
       keys.pop_back();
       out.keys.pop_back();
     }
@@ -475,15 +478,15 @@ struct action<VALUE_LOOKUP> {
     // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the
     // VALUE_LOOKUP starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
+#endif
     const auto parts = utils::split(var_ref, '.');
     for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
       if (!out.keys.empty() && out.keys.back() == *it) {
-        if (VERBOSE_DEBUG_ACTIONS) {
-          CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
-        }
+#if VERBOSE_DEBUG_ACTIONS
+        CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
+#endif
         out.keys.pop_back();
       }
     }
@@ -504,6 +507,7 @@ struct action<PAIR> {
     }
 
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
+
     if (data.contains(out.keys.back())) {
       const auto location =
           out.objects.empty() ? std::string("top_level") : out.objects.back()->name;
@@ -573,10 +577,10 @@ struct action<FULLPAIR> {
 template <>
 struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
-      CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
+#endif
 
     // If we're here, then there must be an object and it must be a proto!
     if (out.objects.back()->type != types::Type::kProto &&
