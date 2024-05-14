@@ -276,6 +276,28 @@ TEST(ConfigException, UndefinedProtoException) {
   }
 }
 
+TEST(ConfigException, DuplicateOverrideException) {
+  {
+    const std::string_view duplicate_override =
+        "struct foo {                  \n\
+           key1 [override] = -3        \n\
+           key4 = false                \n\
+         }                             \n\
+                                       \n\
+         struct foo {                  \n\
+           key1 = 0                    \n\
+           key2 = 1.2                  \n\
+         }                             \n\
+                                       \n\
+         struct foo {                  \n\
+           key1 [override] = 10        \n\
+           key3 = \"string\"           \n\
+         }\n";
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(duplicate_override, "duplicate override"),
+                 flexi_cfg::config::DuplicateOverrideException);
+  }
+}
+
 class CyclicReference : public testing::TestWithParam<std::string> {};
 
 TEST_P(CyclicReference, Exception) {
