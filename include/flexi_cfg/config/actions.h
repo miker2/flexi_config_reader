@@ -522,7 +522,7 @@ struct action<PAIR> {
     if (out.is_override) {
       auto flat_key = fmt::format("{}", fmt::join(out.keys, "."));
       if (out.override_values.contains(flat_key)) {
-        THROW_EXCEPTION(DuplicateKeyException,
+        THROW_EXCEPTION(DuplicateOverrideException,
                         "Duplicate key '{}' found in override_values! "
                         "Previously encountered at {} ({}), now at {} ({})",
                         flat_key, out.override_values[flat_key]->loc(),

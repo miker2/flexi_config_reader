@@ -148,9 +148,11 @@ auto Parser::resolveConfig(config::ActionData& state) -> const config::types::Cf
   for (const auto& e : state.cfg_res) {
     flat = flattenAndFindProtos(e, "", flat);
   }
-  logger::debug("Flattened: \n{}", fmt::join(flat, "\n"));
+  logger::debug("Flattened: \n {}", fmt::join(flat, "\n "));
 
   logger::debug("Protos: \n  {}", fmt::join(protos_ | ranges::views::keys, "\n  "));
+
+  logger::debug("Overrides: \n {}", fmt::join(state.override_values, "\n "));
 
   static const std::string debug_sep(35, '=');
   logger::debug("{0} Resolving References {0}", debug_sep);
