@@ -74,9 +74,16 @@ TEST_P(InputString, Reader) {
   // Coverage for override. The values below should match the value on the following line:
   //  a [override] = 2
   // All of the following variables should match the override value:
-  for (const auto& key : {"a", "b", "c", "d", "q.e"}) {
+  for (const auto& key : {"a", "c", "d", "q.e", "g"}) {
     EXPECT_TRUE(cfg.exists(key));
     EXPECT_EQ(cfg.getValue<float>(key), 2);
+    EXPECT_EQ(cfg.getType(key), flexi_cfg::config::types::Type::kNumber);
+  }
+  //  b [override] = 4
+  // All of the following variables should match the override value:
+  for (const auto& key : {"b", "e", "f"}) {
+    EXPECT_TRUE(cfg.exists(key));
+    EXPECT_EQ(cfg.getValue<float>(key), 4);
     EXPECT_EQ(cfg.getType(key), flexi_cfg::config::types::Type::kNumber);
   }
 }
@@ -95,6 +102,7 @@ reference p as q {
 }
 
 a [override] = 2
+b [override] = 4
 
 struct test2 {
     my_key = "foo"
@@ -109,6 +117,9 @@ a = 1
 b = $(a)
 c = {{ $(a) }}
 d = $(c)
+e = {{ $(b) }}
+f = $(e)
+g = $(a)
 
 proto p {
   e = $A
