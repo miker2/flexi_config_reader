@@ -70,25 +70,51 @@ TEST_P(InputString, Reader) {
   EXPECT_EQ(cfg.getType("test1"), flexi_cfg::config::types::Type::kStruct);
   EXPECT_TRUE(cfg.exists("test2.inner"));
   EXPECT_EQ(cfg.getType("test2.inner"), flexi_cfg::config::types::Type::kStruct);
+
+  // Coverage for override. The values below should match the value on the following line:
+  //  a [override] = 2
+  // All of the following variables should match the override value:
+  for (const auto& key : {"a", "b", "c", "d", "q.e"}) {
+    EXPECT_TRUE(cfg.exists(key));
+    EXPECT_EQ(cfg.getValue<float>(key), 2);
+    EXPECT_EQ(cfg.getType(key), flexi_cfg::config::types::Type::kNumber);
+  }
 }
 
-INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string("\n\
-struct test1 {\n\
-    key1 = \"value\"\n\
-    key2 = 1.342    # test comment here\n\
-    key3 = 10\n\
-    f = \"none\"\n\
-}\n\
-\n\
-struct test2 {\n\
-    my_key = \"foo\"  \n\
-    n_key = true\n\
-\n\
-    struct inner {\n\
-        list = [1, 2, 3, 4]\n\
-    }\n\
-}\n\
-")));
+INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string(R"(
+
+struct test1 {
+    key1 = "value"
+    key2 = 1.342    # test comment here
+    key3 = 10
+    f = "none"
+}
+
+reference p as q {
+  $A = $(a)
+}
+
+a [override] = 2
+
+struct test2 {
+    my_key = "foo"
+    n_key = true
+
+    struct inner {
+        list = [1, 2, 3, 4]
+    }
+}
+
+a = 1
+b = $(a)
+c = {{ $(a) }}
+d = $(c)
+
+proto p {
+  e = $A
+}
+
+)")));
 
 /// File-based input
 class FileInput : public testing::TestWithParam<std::filesystem::path> {};
