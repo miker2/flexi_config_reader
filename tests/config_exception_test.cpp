@@ -298,6 +298,31 @@ TEST(ConfigException, DuplicateOverrideException) {
   }
 }
 
+TEST(ConfigException, InvalidOverrideException) {
+  // There are two flavors of InvalidOverrideException:
+  //  1) Attempting to override a key that doesn't exist elsewhere in the config
+  //  2) Attempting to override a key with a type that is different from the original
+  {  // Type 1
+    const std::string_view invalid_override = R"(
+      my_key = 4
+      mykey [override] = 0  # Mis-spelled key
+    )";
+
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(invalid_override, "invalid override"),
+                 flexi_cfg::config::InvalidOverrideException);
+  }
+
+  {  // Type 2
+    const std::string_view invalid_override_type = R"(
+      my_key = 4
+      my_key [override] = "string"  # Type mismatch
+    )";
+
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(invalid_override_type, "invalid override"),
+                 flexi_cfg::config::InvalidOverrideException);
+  }
+}
+
 class CyclicReference : public testing::TestWithParam<std::string> {};
 
 TEST_P(CyclicReference, Exception) {
