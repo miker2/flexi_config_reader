@@ -618,9 +618,6 @@ struct action<PROTO_PAIR> {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
       out.obj_res = nullptr;
     }
-    logger::error("in PROTO_PAIR");
-    out.print(std::cout);
-    logger::error("end PROTO_PAIR");
 
     out.keys.pop_back();
     out.result = DEFAULT_RES;
