@@ -24,8 +24,6 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
 
-#define CONFIG_UNFLATTEN_KEYS 1  // NOLINT(cppcoreguidelines-macro-usage)
-
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_DEBUG(MSG_F, ...) \
   logger::debug("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
@@ -34,8 +32,9 @@
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
   logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
+#define VERBOSE_DEBUG_ACTIONS 0  // NOLINT(cppcoreguidelines-macro-usage)
+
 namespace flexi_cfg::config {
-constexpr bool VERBOSE_DEBUG_ACTIONS{false};
 
 constexpr std::string_view DEFAULT_RES{"***"};
 
@@ -71,6 +70,11 @@ struct ActionData {
   std::shared_ptr<types::ConfigBase> obj_res;
   std::vector<std::shared_ptr<types::ConfigList>> lists;
   std::vector<std::shared_ptr<types::ConfigStructLike>> objects;
+
+  // Special data for overrides. We need to track these separately to make it easier to confirm
+  // things are being overwritten
+  bool is_override{false};
+  types::CfgMap override_values;  // A set of FLAT_KEY / VALUE pairs (to be resolved later)
 
   void print(std::ostream& os) const {
     if (in_proto) {
@@ -113,6 +117,12 @@ struct ActionData {
         os << l << std::endl;
       }
     }
+
+    os << "is_override: " << (is_override ? "true" : "false") << std::endl;
+    if (!override_values.empty()) {
+      os << "override_values: \n" << override_values << std::endl;
+    }
+
     os << "^^^^^^^^^^" << std::endl;
   }
 };
@@ -124,10 +134,23 @@ template <>
 struct action<KEY> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In KEY action: '{}'", in.string());
+#endif
+
     out.keys.emplace_back(in.string());
+    out.is_override = false;  // Reset the override flag
+  }
+};
+
+template <>
+struct action<OVERRIDEk> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In OVERRIDEk action: '{}'", in.string());
+#endif
+    out.is_override = true;
   }
 };
 
@@ -158,9 +181,9 @@ struct action<VALUE> {
                       "is the result of a misconfigured action.",
                       config::types::Type::kValue));
     }
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In VALUE ({}) action: {}", out.obj_res->type, in.string());
+#endif
     out.obj_res->line = in.position().line;
     out.obj_res->source = in.position().source;
   }
@@ -172,9 +195,9 @@ struct action<HEX> {
   static void apply(const ActionInput& in, ActionData& out) {
     const auto hex = std::stoull(in.string(), nullptr, 16);
 
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In HEX action: {}|{}|0x{:X}", in.string(), hex, hex);
+#endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, hex);
   }
 };
@@ -183,9 +206,9 @@ template <>
 struct action<STRING> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In STRING action: {}", in.string());
+#endif
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kString);
   }
 };
@@ -194,9 +217,9 @@ template <>
 struct action<FLOAT> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In FLOAT action: {}", in.string());
+#endif
     std::any any_val = std::stod(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -207,9 +230,9 @@ template <>
 struct action<INTEGER> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In INTEGER action: {}", in.string());
+#endif
     std::any any_val = std::stoi(in.string());
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kNumber, any_val);
@@ -221,9 +244,9 @@ struct action<INTEGER> {
 template <>
 struct action<BOOLEAN> {
   static void apply0(ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In BOOLEAN action...");
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In BOOLEAN action...");
+#endif
   }
 };
 
@@ -231,9 +254,9 @@ template <>
 struct action<TRUE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In TRUE action: {}", in.string());
+#endif
     std::any any_val = true;
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
@@ -244,9 +267,9 @@ template <>
 struct action<FALSE> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In FALSE action: {}", in.string());
+#endif
     std::any any_val = false;
 
     out.obj_res = std::make_shared<types::ConfigValue>(in.string(), types::Type::kBoolean, any_val);
@@ -318,9 +341,9 @@ template <>
 struct action<EXPRESSION> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("In EXPRESSION action: {}", in.string());
+#endif
     CONFIG_ACTION_TRACE("EXPRESSION contains the following VALUE_LOOKUP objects: {}",
                         ranges::views::values(out.value_lookups));
     // Grab the entire input and stuff it into a ConfigExpression. We'll properly evaluate it later.
@@ -336,9 +359,9 @@ template <>
 struct action<VAR> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("Found var: {}", in.string());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("Found var: {}", in.string());
+#endif
     // Store string here in `result` because for the case of a `REF_VARDEF` element, storing the
     // result only in the `out.obj_res` will result it in being over-written by the `VALUE` element
     // that is captured.
@@ -433,9 +456,9 @@ struct action<FLAT_KEY> {
     for (size_t i = 0; i < N_KEYS; ++i) {
       // Consume 1 key for every key in "keys"
       assert(keys.back() == out.keys.back());  // NOLINT
-      if (VERBOSE_DEBUG_ACTIONS) {
-        CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
-      }
+#if VERBOSE_DEBUG_ACTIONS
+      CONFIG_ACTION_TRACE("Popping: {} | {}", keys.back(), out.keys.back());
+#endif
       keys.pop_back();
       out.keys.pop_back();
     }
@@ -453,15 +476,15 @@ struct action<VALUE_LOOKUP> {
     // We can't use `utils::trim(in.string(), "$()")` here, because if the contents of the
     // VALUE_LOOKUP starts with a `VAR` then the leading `$` of the `VAR` will also be removed.
     const auto var_ref = utils::trim(utils::removeSubStr(in.string(), "$("), ")");
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Result: {}", var_ref);
+#endif
     const auto parts = utils::split(var_ref, '.');
     for (auto it = parts.crbegin(); it != parts.crend(); ++it) {
       if (!out.keys.empty() && out.keys.back() == *it) {
-        if (VERBOSE_DEBUG_ACTIONS) {
-          CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
-        }
+#if VERBOSE_DEBUG_ACTIONS
+        CONFIG_ACTION_TRACE("[VALUE_LOOKUP] Consuming: '{}'", out.keys.back());
+#endif
         out.keys.pop_back();
       }
     }
@@ -482,7 +505,8 @@ struct action<PAIR> {
     }
 
     auto& data = out.objects.empty() ? out.cfg_res.back() : out.objects.back()->data;
-    if (data.contains(out.keys.back())) {
+
+    if (!out.is_override && data.contains(out.keys.back())) {
       const auto location =
           out.objects.empty() ? std::string("top_level") : out.objects.back()->name;
       THROW_EXCEPTION(DuplicateKeyException,
@@ -493,7 +517,20 @@ struct action<PAIR> {
     }
     CONFIG_ACTION_TRACE("In PAIR action: '{} = {}'", out.keys.back(), out.obj_res);
 
-    data[out.keys.back()] = std::move(out.obj_res);
+    if (out.is_override) {
+      auto flat_key = fmt::format("{}", fmt::join(out.keys, "."));
+      if (out.override_values.contains(flat_key)) {
+        THROW_EXCEPTION(DuplicateOverrideException,
+                        "Duplicate key '{}' found in override_values! "
+                        "Previously encountered at {} ({}), now at {} ({})",
+                        flat_key, out.override_values[flat_key]->loc(),
+                        out.override_values[flat_key]->type, out.obj_res->loc(), out.obj_res->type);
+      }
+      CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", flat_key, out.obj_res);
+      out.override_values[flat_key] = std::move(out.obj_res);
+    } else {
+      data[out.keys.back()] = std::move(out.obj_res);
+    }
 
     out.keys.pop_back();
   }
@@ -517,20 +554,24 @@ struct action<FULLPAIR> {
     }
     CONFIG_ACTION_TRACE("In FULLPAIR action: '{} = {}'", out.flat_keys.back(), out.obj_res);
 
-#if CONFIG_UNFLATTEN_KEYS
-    auto keys = utils::split(out.flat_keys.back(), '.');
-    const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
-                                                  {{ keys.back(),
-                                                     std::move(out.obj_res) }});
-    out.cfg_res.emplace_back(c_map);
-#else
-    // Keep flattened keys as is
-    auto& data = out.cfg_res.back();
-    if (data.contains(out.flat_keys.back())) {
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found!", out.flat_keys.back());
+    if (out.is_override) {
+      if (out.override_values.contains(out.flat_keys.back())) {
+        THROW_EXCEPTION(DuplicateOverrideException,
+                        "Duplicate key '{}' found in override_values! "
+                        "Previously encountered at {} ({}), now at {} ({})",
+                        out.flat_keys.back(), out.override_values[out.flat_keys.back()]->loc(),
+                        out.override_values[out.flat_keys.back()]->type, out.obj_res->loc(),
+                        out.obj_res->type);
+      }
+      CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", out.flat_keys.back(),
+                          out.obj_res);
+      out.override_values[out.flat_keys.back()] = std::move(out.obj_res);
+    } else {
+      auto keys = utils::split(out.flat_keys.back(), '.');
+      const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
+                                                    {{keys.back(), std::move(out.obj_res)}});
+      out.cfg_res.emplace_back(c_map);
     }
-    data[out.flat_keys.back()] = std::move(out.obj_res);
-#endif
     out.flat_keys.pop_back();
   }
 };
@@ -538,10 +579,10 @@ struct action<FULLPAIR> {
 template <>
 struct action<PROTO_PAIR> {
   static void apply0(ActionData& out) {
-    if (VERBOSE_DEBUG_ACTIONS) {
-      CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
-      CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
-    }
+#if VERBOSE_DEBUG_ACTIONS
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Result: {} = {}", out.keys.back(), out.result);
+    CONFIG_ACTION_TRACE("[PROTO_VAR] Key count: {}", out.keys.size());
+#endif
 
     // If we're here, then there must be an object and it must be a proto!
     if (out.objects.back()->type != types::Type::kProto &&

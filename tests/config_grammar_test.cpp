@@ -646,6 +646,84 @@ TEST(ConfigGrammar, VALUELOOKUP) {
   }
 }
 
+TEST(ConfigGrammar, PAIR) {
+  // Can't use the `checkResult` helper here.
+  auto checkPair = [](const std::string& input, flexi_cfg::config::types::Type expected_type,
+                      bool is_override) {
+    std::cout << "input: '" << input << "'" << std::endl;
+    auto ret = runTest<peg::must<flexi_cfg::config::PAIR, peg::eolf>>(input);
+    ASSERT_TRUE(ret.first);
+    auto& out = ret.second;
+
+    fmt::print("out: {}\n", ret.first);
+    out.print(std::cout);
+    if (is_override) {
+      EXPECT_TRUE(out.is_override);
+      EXPECT_TRUE(out.cfg_res.front().empty());
+      EXPECT_EQ(out.override_values.size(), 1);
+      const auto& [key, value] = *out.override_values.begin();
+      EXPECT_EQ(key, "key");
+      EXPECT_EQ(value->type, expected_type);
+    } else {
+      EXPECT_FALSE(out.is_override);
+      EXPECT_EQ(out.cfg_res.size(), 1);
+      EXPECT_TRUE(out.override_values.empty());
+      const auto& cfg_map = out.cfg_res.front();
+      EXPECT_EQ(cfg_map.size(), 1);
+      const auto& [key, value] = *cfg_map.begin();
+      EXPECT_EQ(key, "key");
+      EXPECT_EQ(value->type, expected_type);
+    }
+  };
+  using flexi_cfg::config::types::Type;
+
+  {
+    constexpr std::string_view content = "key{}= 123";
+    checkPair(fmt::format(content, ""), Type::kNumber, false);
+    checkPair(fmt::format(content, "  [override]  "), Type::kNumber, true);
+  }
+  {
+    constexpr std::string_view content = "key{}= 0x123";
+    checkPair(fmt::format(content, ""), Type::kNumber, false);
+    checkPair(fmt::format(content, "[override]"), Type::kNumber, true);
+  }
+  {
+    constexpr std::string_view content = "key{}= 0.123";
+    checkPair(fmt::format(content, " "), Type::kNumber, false);
+    checkPair(fmt::format(content, "[override] "), Type::kNumber, true);
+  }
+  {
+    constexpr std::string_view content = "key{}= \"value\"";
+    checkPair(fmt::format(content, "\t"), Type::kString, false);
+    checkPair(fmt::format(content, "\t[override]\t"), Type::kString, true);
+  }
+  {
+    constexpr const std::string_view content = "key{}= true";
+    checkPair(fmt::format(content, "  "), Type::kBoolean, false);
+    checkPair(fmt::format(content, "      [override] "), Type::kBoolean, true);
+  }
+  {
+    constexpr std::string_view content = "key{}= false";
+    checkPair(fmt::format(content, " "), Type::kBoolean, false);
+    checkPair(fmt::format(content, " [override]   "), Type::kBoolean, true);
+  }
+
+  {
+    auto checkFail = [](const std::string& input) {
+      std::optional<RetType> ret;
+      EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::PAIR, peg::eolf>>(input)),
+                   std::exception);
+    };
+    // Newline values are not allowed within a pair. Check this.
+    constexpr std::string_view content = "key{}={}0";
+
+    checkFail(fmt::format(content, "\n", ""));
+    checkFail(fmt::format(content, "", "\n"));
+    checkFail(fmt::format(content, " [override]\n", ""));
+    checkFail(fmt::format(content, "\n[override] ", ""));
+  }
+}
+
 TEST(ConfigGrammar, FULLPAIR) {
   const std::string flat_key = "float.my.value";
   const std::string content = flat_key + "   =  5.37e+6";

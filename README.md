@@ -35,11 +35,14 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
 3. Environment variables - Environment variables may be referenced `include` or `include_relative` statements
    using the syntax `${ENV_VAR_NAME}`. If the environment variable is not set, the reference
    will be replaced with an empty string.
-2. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
+4. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
    to reference apreviously defined value by its key, and assign it to another key.
-3. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
+5. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
    to the resulting `struct` when the `proto` is referenced.
-4. Fully qualified keys - One may define the configuration parameters using a combination
+6. `[override]` - By default, a key can be specified once and only once in the config file. Using 
+   the `[override]` keyword allows a value that was previously specified in the config to be
+   overridden with a new value.
+6. Fully qualified keys - One may define the configuration parameters using a combination
    of the tree-like structure found in json along with fully qualified key value pairs.
    These can not be mixed within the same file however.
 
@@ -240,6 +243,50 @@ struct bar {
   key2 = 10.378318
 }
 ```
+
+### `[override]` keyword
+
+As mentioned above, a leaf key can be specified once and only once in the config file (e.g. `foo.bar` and `baz.bar` are unique keys). Using the `[override]` keyword allows the value of a key 
+that was previously specified in the config to be overridden with a new value. In order to use 
+`[override]` the key/value pair must exist elsewhere in the config (using `[override]` on a key not previously defined will result in an error). In addition, the type of the override must match the previously defined value. 
+
+An example of usage can be found in [example_config1.cfg](examples/config_example1.cfg) and is shown below:
+
+```
+struct foo {
+  bar = 0
+  baz = 2
+  buzz = "string"
+}
+
+a = $(baz)
+b = {{ $(baz) }}
+c = $(a)
+
+...
+
+struct foo {
+  baz [override] = -7
+  buzz [override] = 13  # <-- This results in an error due to the type change
+}
+```
+
+With the above example, the fully resolved config will be (ignoring the error highlighted above):
+
+```
+struct foo {
+  bar = 0
+  baz = -7
+  buzz = "string"
+}
+
+a = -7
+b = -7
+c = -7
+```
+
+Note that the `[override]` keyword must come after the key and before the `=`, but spacing does 
+not matter.
 
 ### Comments
 

@@ -74,4 +74,16 @@ class CyclicReferenceException : public Exception {
   explicit CyclicReferenceException(const std::string& message) : Exception(message){};
 };
 
+class DuplicateOverrideException : public Exception {
+ public:
+  explicit DuplicateOverrideException(const std::string& message) : Exception(message){};
+};
+
+/// @brief Exception thrown when an override exists for a key that is not present in the config or
+/// when an override exists for a key whose type is incompatible with the original key.
+class InvalidOverrideException : public Exception {
+ public:
+  explicit InvalidOverrideException(const std::string& message) : Exception(message){};
+};
+
 }  // namespace flexi_cfg::config
