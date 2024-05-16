@@ -138,7 +138,7 @@ struct REF_VARDEF
     : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
 
 // A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
-struct FULLPAIR : peg::seq<FLAT_KEY, KVs, KV_NOMINAL, TAIL> {};
+struct FULLPAIR : peg::seq<FLAT_KEY, peg::opt<pd<OVERRIDEk>>, KVs, KV_NOMINAL, TAIL> {};
 struct PAIR : peg::seq<KEY, peg::opt<pd<OVERRIDEk>>, KVs, KV_NOMINAL, TAIL> {};
 // NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
 // one or more 'VAR' elements
@@ -172,7 +172,8 @@ struct INCLUDE : peg::seq<TAO_PEGTL_KEYWORD("include"), SP, filename::grammar, T
 struct include_list : peg::star<INCLUDE> {};
 
 // Include relative syntax
-struct INCLUDE_RELATIVE : peg::seq<TAO_PEGTL_KEYWORD("include_relative"), SP, filename::grammar, TAIL> {};
+struct INCLUDE_RELATIVE
+    : peg::seq<TAO_PEGTL_KEYWORD("include_relative"), SP, filename::grammar, TAIL> {};
 struct include_relative_list : peg::star<INCLUDE_RELATIVE> {};
 
 struct includes : peg::seq<include_list, include_relative_list, TAIL> {};
@@ -192,40 +193,55 @@ struct includes : peg::seq<include_list, include_relative_list, TAIL> {};
 //
 // but never both in the same file. The `peg::not_at<PAIR>` prevents the PAIR that might appear in a
 // `STRUCTc` from being matched as a `FULLPAIR` object.
-struct config_fields : peg::opt<peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>> {};
+struct config_fields
+    : peg::opt<peg::sor<peg::seq<peg::not_at<PAIR>, peg::plus<FULLPAIR>>, STRUCTc>> {};
 
-struct CONFIG
-    : peg::seq<TAIL, peg::not_at<peg::eolf>, includes, config_fields, TAIL> {};
+struct CONFIG : peg::seq<TAIL, peg::not_at<peg::eolf>, includes, config_fields, TAIL> {};
 
 struct grammar : peg::seq<CONFIG, peg::eolf> {};
 
-
 // Custom error messages for rules
-template <typename > inline constexpr const char* error_message = nullptr;
+template <typename>
+inline constexpr const char* error_message = nullptr;
 
-template <> inline constexpr auto error_message<CBc> = "expected a closing '}'";
-template <> inline constexpr auto error_message<PROTO_LIST> = "invalid list in 'proto'";
-template <> inline constexpr auto error_message<PROTO_LIST_CONTENT> = "invalid list in 'proto'";
-template <> inline constexpr auto error_message<PROTO_LIST_ELEMENT> = "invalid element in proto list";
-template <> inline constexpr auto error_message<SBc> = "expected a closing ']'";
-template <> inline constexpr auto error_message<grammar> = "Invalid config file found!";
+template <>
+inline constexpr auto error_message<CBc> = "expected a closing '}'";
+template <>
+inline constexpr auto error_message<PROTO_LIST> = "invalid list in 'proto'";
+template <>
+inline constexpr auto error_message<PROTO_LIST_CONTENT> = "invalid list in 'proto'";
+template <>
+inline constexpr auto error_message<PROTO_LIST_ELEMENT> = "invalid element in proto list";
+template <>
+inline constexpr auto error_message<SBc> = "expected a closing ']'";
+template <>
+inline constexpr auto error_message<grammar> = "Invalid config file found!";
 
-template <> inline constexpr auto error_message<PROTOc> = "expected a proto-pair, struct or reference";
-template <> inline constexpr auto error_message<REFc> = "expected a variable definition or a added variable";
-template <> inline constexpr auto error_message<STRUCTc> = "expected a pair, struct or reference";
+template <>
+inline constexpr auto error_message<PROTOc> = "expected a proto-pair, struct or reference";
+template <>
+inline constexpr auto error_message<REFc> = "expected a variable definition or a added variable";
+template <>
+inline constexpr auto error_message<STRUCTc> = "expected a pair, struct or reference";
 
-template <> inline constexpr auto error_message<filename::FILENAME> = "invalid filename";
+template <>
+inline constexpr auto error_message<filename::FILENAME> = "invalid filename";
 
-template <> inline constexpr auto error_message<WS_> = "expected whitespace (why are we here?)";
-template <> inline constexpr auto error_message<TAIL> = "expected a comment (why are we here?)";
+template <>
+inline constexpr auto error_message<WS_> = "expected whitespace (why are we here?)";
+template <>
+inline constexpr auto error_message<TAIL> = "expected a comment (why are we here?)";
 
 // As must_if can not take error_message as a template parameter directly, we need to wrap it:
 struct error {
-  template< typename Rule > static constexpr bool raise_on_failure = false;
-  template< typename Rule > static constexpr auto message = error_message< Rule >;
+  template <typename Rule>
+  static constexpr bool raise_on_failure = false;
+  template <typename Rule>
+  static constexpr auto message = error_message<Rule>;
 };
 
-template< typename Rule > using control = tao::pegtl::must_if< error >::control< Rule >;
+template <typename Rule>
+using control = tao::pegtl::must_if<error>::control<Rule>;
 
 }  // namespace config
 

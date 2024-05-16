@@ -24,8 +24,6 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
 
-#define CONFIG_UNFLATTEN_KEYS 1  // NOLINT(cppcoreguidelines-macro-usage)
-
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIG_ACTION_DEBUG(MSG_F, ...) \
   logger::debug("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
@@ -556,20 +554,24 @@ struct action<FULLPAIR> {
     }
     CONFIG_ACTION_TRACE("In FULLPAIR action: '{} = {}'", out.flat_keys.back(), out.obj_res);
 
-#if CONFIG_UNFLATTEN_KEYS
-    auto keys = utils::split(out.flat_keys.back(), '.');
-    const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
-                                                  {{ keys.back(),
-                                                     std::move(out.obj_res) }});
-    out.cfg_res.emplace_back(c_map);
-#else
-    // Keep flattened keys as is
-    auto& data = out.cfg_res.back();
-    if (data.contains(out.flat_keys.back())) {
-      THROW_EXCEPTION(DuplicateKeyException, "Duplicate key '{}' found!", out.flat_keys.back());
+    if (out.is_override) {
+      if (out.override_values.contains(out.flat_keys.back())) {
+        THROW_EXCEPTION(DuplicateOverrideException,
+                        "Duplicate key '{}' found in override_values! "
+                        "Previously encountered at {} ({}), now at {} ({})",
+                        out.flat_keys.back(), out.override_values[out.flat_keys.back()]->loc(),
+                        out.override_values[out.flat_keys.back()]->type, out.obj_res->loc(),
+                        out.obj_res->type);
+      }
+      CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", out.flat_keys.back(),
+                          out.obj_res);
+      out.override_values[out.flat_keys.back()] = std::move(out.obj_res);
+    } else {
+      auto keys = utils::split(out.flat_keys.back(), '.');
+      const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
+                                                    {{keys.back(), std::move(out.obj_res)}});
+      out.cfg_res.emplace_back(c_map);
     }
-    data[out.flat_keys.back()] = std::move(out.obj_res);
-#endif
     out.flat_keys.pop_back();
   }
 };
