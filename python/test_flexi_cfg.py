@@ -78,11 +78,16 @@ class TestMyConfig(unittest.TestCase):
                         'test2': {'my_key': 'foo',
                                   'n_key': 0x1234,
                                   'var_ref': None},
+                        'q': {'e': 2},
                         'solo_key': 10.1,
                         'int_list': [0, 1, 3, -5],
                         'uint_list': [0x0, 0x1, 0x3, 0x5],
                         'float_list': [0.0, 1.0, 3.0, -5.0],
-                        'uint64': -5}
+                        'uint64': -5,
+                        'a' : 2,
+                        'b' : 2,
+                        'c' : 2,
+                        'd' : 2,}
         expected_cfg['test2']['var_ref'] = expected_cfg['test1']['key3']
         
         cfg = flexi_cfg.parse(cfg_file_path)
