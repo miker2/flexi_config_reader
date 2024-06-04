@@ -8,6 +8,7 @@
 #include <deque>
 #include <magic_enum.hpp>
 #include <map>
+#include <mutex>
 #include <string_view>
 
 namespace flexi_cfg::logger {
@@ -27,14 +28,20 @@ class Logger {
   [[nodiscard]] auto logLevel() const -> Severity { return log_level_; }
 
   void setMaxHistory(std::size_t max_history) { max_history_ = max_history; }
-  void clearHistory() { log_history_.clear(); }
+  void clearHistory() {
+    const std::lock_guard<std::mutex> lock(mutex_);
+    log_history_.clear();
+  }
 
   template <typename... Args>
   void log(Severity level, std::string_view msg_f, Args&&... args) {
     const auto msg = fmt::vformat(msg_f, fmt::make_format_args(args...));
-    log_history_.emplace_back(level, msg);
-    if (log_history_.size() > max_history_) {
-      log_history_.pop_front();
+    {
+      const std::lock_guard<std::mutex> lock(mutex_);
+      log_history_.emplace_back(level, msg);
+      if (log_history_.size() > max_history_) {
+        log_history_.pop_front();
+      }
     }
     if (level >= log_level_) {
       // NOTE: The clear format sequence shouldn't be necessary, but appears to be.
@@ -45,8 +52,11 @@ class Logger {
   /// \brief Prints the history of messages (ignoring log level)
   /// \param[in] clear - Flag to indicate if history should be cleared after printing
   void backtrace(bool clear = true) {
-    for (const auto& msg : log_history_) {
-      fmt::print(fg_color_.at(msg.first), "[{}] {}\x1b[0m\n", msg.first, msg.second);
+    {
+      const std::lock_guard<std::mutex> lock(mutex_);
+      for (const auto& msg : log_history_) {
+        fmt::print(fg_color_.at(msg.first), "[{}] {}\x1b[0m\n", msg.first, msg.second);
+      }
     }
     if (clear) {
       clearHistory();
@@ -67,6 +77,8 @@ class Logger {
 
   // This container holds a history of messages to provide a type of "backtrace" functionality
   std::size_t max_history_{15};  // NOLINT
+
+  std::mutex mutex_;
   std::deque<std::pair<Severity, std::string>> log_history_;
 };
 
