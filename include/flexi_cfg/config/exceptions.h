@@ -24,6 +24,11 @@ class Exception : public std::runtime_error {
   std::string message_;
 };
 
+class ParseErrorException : public Exception {
+ public:
+   explicit ParseErrorException(const std::string& message) : Exception(message){};
+};
+
 class InvalidTypeException : public Exception {
  public:
   explicit InvalidTypeException(const std::string& message) : Exception(message){};

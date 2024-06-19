@@ -127,7 +127,9 @@ auto Parser::parse(const std::filesystem::path& cfg_filename,
   peg::file_input cfg_file(input_file);
 
   // TODO(miker2): Do something smarter if "parseCommon" fails!
-  parseCommon(cfg_file, state);
+  if(!parseCommon(cfg_file, state)) {
+    throw config::ParseErrorException("Failed to parse config!");
+  }
 
   Parser parser;
   return Reader(parser.resolveConfig(state));
@@ -138,7 +140,9 @@ auto Parser::parseFromString(std::string_view cfg_string, std::string_view sourc
   config::ActionData state;
 
   // TODO(miker2): Do something smarter if "parseCommon" fails!
-  parseCommon(cfg_file, state);
+  if(!parseCommon(cfg_file, state)) {
+    throw config::ParseErrorException("Failed to parse config!");
+  }
 
   Parser parser;
   return Reader(parser.resolveConfig(state));
