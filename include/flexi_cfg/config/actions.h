@@ -4,7 +4,6 @@
 #include <fmt/ranges.h>
 
 #include <algorithm>
-#include <exception>
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -14,13 +13,15 @@
 #include <string>
 #include <string_view>
 #include <tao/pegtl.hpp>
-#include <tao/pegtl/contrib/parse_tree.hpp>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
 
@@ -32,17 +33,30 @@
 #define CONFIG_ACTION_TRACE(MSG_F, ...) \
   logger::trace("{}" MSG_F, std::string(out.depth * 2UL, ' '), ##__VA_ARGS__);
 
-#define VERBOSE_DEBUG_ACTIONS 0  // NOLINT(cppcoreguidelines-macro-usage)
-
 namespace flexi_cfg::config {
 
 constexpr std::string_view DEFAULT_RES{"***"};
 
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
+  // include file metadata as it's processing
+  struct IncludeData {
+    std::string file;
+    // [optional]
+    bool is_optional{false};
+    // [once]
+    bool is_once{false};
+    bool is_relative{false};
+  };
+
+  ActionData() : ActionData(std::filesystem::current_path()) {}
+  explicit ActionData(const std::filesystem::path& base) : base_dir(base) {}
+
   int depth{0};  // Nesting level
 
-  std::filesystem::path base_dir{};
+  std::filesystem::path base_dir;
+  std::optional<IncludeData> include_pending;
+  std::unordered_set<std::filesystem::path> all_files;  // catch duplicate includes
   std::string result{DEFAULT_RES};
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
@@ -391,50 +405,125 @@ struct action<filename::FILENAME> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("Found filename: {}", in.string());
-    out.result = in.string();
+    assert(out.include_pending.has_value());
+    out.include_pending->file = in.string();
   }
 };
 
 template <>
-struct action<INCLUDE> {
+struct action<INCLUDEk> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    CONFIG_ACTION_DEBUG("Found include file: {}", out.result);
+    out.include_pending = ActionData::IncludeData{.is_relative = false};
+    CONFIG_ACTION_DEBUG("Found INCLUDE: {}", in.string());
+  }
+};
+
+template <>
+struct action<INCLUDE_RELATIVEk> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    out.include_pending = ActionData::IncludeData{.is_relative = true};
+    CONFIG_ACTION_DEBUG("Found INCLUDE_RELATIVE: {}", in.string());
+  }
+};
+
+template <>
+struct action<OPTIONALk> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    CONFIG_ACTION_DEBUG("Found OPTIONAL: {}", in.string());
+    assert(out.include_pending.has_value());
+    out.include_pending->is_optional = true;
+  }
+};
+
+template <>
+struct action<ONCEk> {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    CONFIG_ACTION_DEBUG("Found ONCE: {}", in.string());
+    assert(out.include_pending.has_value());
+    out.include_pending->is_once = true;
+  }
+};
+
+struct base_include_action {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    assert(out.include_pending.has_value());
+    auto incl = std::move(out.include_pending.value());
+    CONFIG_ACTION_DEBUG("Found include file: {} - (optional: {}, relative: {}, once: {})",
+                        incl.file, incl.is_optional, incl.is_relative, incl.is_once);
+
     try {
       // Substitute any environment variables in the filename
-      out.result = utils::substituteEnvVars(out.result);
-      CONFIG_ACTION_DEBUG("Include file after env var substitution: {}", out.result);
-      const auto cfg_file = out.base_dir / out.result;
+      auto source = incl.file;
+      incl.file = utils::substituteEnvVars(incl.file);
+      CONFIG_ACTION_DEBUG("Include file after env var substitution: {}", incl.file);
+      CONFIG_ACTION_DEBUG("Basedir: {}", out.base_dir.string());
+
+      const auto is_absolute = std::filesystem::path(incl.file).is_absolute();
+
+      const auto cfg_file =
+          absolute(is_absolute ? std::filesystem::path(incl.file) : out.base_dir / incl.file);
+
+      CONFIG_ACTION_DEBUG("Resolved include: {}", cfg_file.string());
+
+      if (!exists(cfg_file)) {
+        if (incl.is_optional) {
+          logger::warn("Skipping, [optional] include (not found): {} -> {}", source,
+                       cfg_file.string());
+          return;
+        }
+        throw peg::parse_error(
+            fmt::format("Missing include file, consider using 'include [optional] {} -> {}'",
+                        source, cfg_file.string()),
+            in.position());
+      }
+
+      utils::ScopedOverride base_dir_override{out.base_dir};
+      if (incl.is_relative) [[unlikely]] {
+        base_dir_override.override(cfg_file.parent_path());
+      }
       peg::file_input include_file(cfg_file);
-      logger::info("nested parse: {}", include_file.source());
-      peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
+
+      if (out.all_files.contains(cfg_file)) {
+        if (incl.is_once) {
+          logger::warn("Skipping [once] include (duplicate): {} -> {}", source, cfg_file.string());
+          return;
+        } else {
+          logger::error("Duplicate include file detected: {}", cfg_file.string());
+          throw peg::parse_error(
+              fmt::format(
+                  "duplicate includes are not allowed, consider using 'include [once] {}' -> {}",
+                  source, cfg_file.string()),
+              in.position());
+        }
+      }
+      out.all_files.insert(cfg_file);
+      logger::info("Begin nested parse: {}", cfg_file.string());
+      internal::parseNestedCore<grammar, action, control>(in.position(), include_file, out);
+      logger::info("End nested parse: {}", cfg_file.string());
     } catch (const std::system_error& e) {
-      throw peg::parse_error("Include error", in.position());
+      throw peg::parse_error(fmt::format("Include error: {}", e.what()), in.position());
     }
   }
 };
 
 template <>
-struct action<INCLUDE_RELATIVE> {
+struct action<INCLUDE> : base_include_action {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
-    CONFIG_ACTION_DEBUG("Found relative include file: {}", out.result);
-    try {
-      // Substitute any environment variables in the filename
-      out.result = utils::substituteEnvVars(out.result);
-      CONFIG_ACTION_DEBUG("Relative include file after env var substitution: {}", out.result);
-      const auto cfg_file = out.base_dir / out.result;
-      peg::file_input include_file(cfg_file);
-      // Update base dir to point to base of included file
-      auto temp_base_dir = out.base_dir;
-      out.base_dir = cfg_file.parent_path();
-      logger::info("nested parse: {}", include_file.source());
-      peg::parse_nested<config::grammar, config::action>(in.position(), include_file, out);
-      // After nested parsing returns, revert base dir
-      out.base_dir = temp_base_dir;
-    } catch (const std::system_error& e) {
-      throw peg::parse_error("Relative include error", in.position());
-    }
+    base_include_action::apply(in, out);
+  }
+};
+
+template <>
+struct action<INCLUDE_RELATIVE> : base_include_action {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
+    base_include_action::apply(in, out);
   }
 };
 
@@ -575,7 +664,7 @@ struct action<FULLPAIR> {
       auto keys = utils::split(out.flat_keys.back(), '.');
       const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
                                                     {{keys.back(), std::move(out.obj_res)}});
-      out.obj_res = nullptr;  
+      out.obj_res = nullptr;
       out.cfg_res.emplace_back(c_map);
     }
     out.flat_keys.pop_back();

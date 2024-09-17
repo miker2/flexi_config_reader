@@ -136,6 +136,30 @@ inline auto substituteEnvVars(const std::string& s) -> std::string {
   return str;
 }
 
+// RAII temp variable override (handles multiple exit paths with base_dir)
+template<typename T>
+class ScopedOverride {
+ public:
+  explicit ScopedOverride(T& field) : field_(&field) {}
+  void override(T value) {
+    if (armed_) {
+      throw std::runtime_error("Override already in progress");
+    }
+    orig_value_ = *field_;
+    *field_ = value;
+    armed_ = true;
+  }
+  ~ScopedOverride() {
+    if (armed_) {
+      *field_ = orig_value_;
+    }
+  }
+ private:
+  bool armed_{};
+  T* field_{};
+  T orig_value_;
+};
+
 }  // namespace flexi_cfg::utils
 
 template <typename T>

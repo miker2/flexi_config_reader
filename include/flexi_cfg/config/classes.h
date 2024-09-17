@@ -12,6 +12,7 @@
 #include <string>
 
 #include "flexi_cfg/utils.h"
+#include "flexi_cfg/logger.h"
 
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
@@ -401,7 +402,7 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
 template <>
 struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
-  auto format(const flexi_cfg::config::types::Type& type, format_context& ctx) {
+  FMT_CONSTEXPR auto format(const flexi_cfg::config::types::Type& type, format_context& ctx) const {
     const auto type_s = magic_enum::enum_name<flexi_cfg::config::types::Type>(type);
     return formatter<std::string_view>::format(type_s, ctx);
   }

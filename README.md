@@ -28,21 +28,28 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    another file. This highlights one of the advantages of this syntax: the ability to
    define a generic set of templates in one file, which will be used to produce multiple,
    repeated concrete structs with different names and parameters in a different file.
+   The same config files may not be included twice
 2. `include_relative` syntax - Same as `include`, except nested paths will resolve from the
    included file's path instead of from the base file's path. See `examples/config_example12.cfg`
    for an example of this keyword. The list of `include_relative` statements must come after all `include`
    statements in a config file.
-3. Environment variables - Environment variables may be referenced `include` or `include_relative` statements
+3. optional attributes for includes: `[optional]` and `[once]`
+   - e.g. `include [once] base.cfg` allows including the same file twice, which may be useful if some base values or 
+   structure is defined in a separate file that may be transitively included from multiple places.
+   By default, the parser will fail when it encounters a duplicate include, this leads to duplicate key definitions.
+   - w.g. `include [optional] file_may_not_exist.cfg` enables a config to reference files that may be missing.
+   By default, the parser will fail when it encounters a missing file.
+4. Environment variables - Environment variables may be referenced in `include` or `include_relative` statements
    using the syntax `${ENV_VAR_NAME}`. If the environment variable is not set, the reference
    will be replaced with an empty string.
-4. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
+5. [key-value reference](#key-value-references) - Much like bash, the syntax provides the ability
    to reference apreviously defined value by its key, and assign it to another key.
-5. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
+6. Appended keys - While a `proto` defines a templated `struct`, one can add additional keys
    to the resulting `struct` when the `proto` is referenced.
-6. `[override]` - By default, a key can be specified once and only once in the config file. Using 
+7. `[override]` - By default, a key can be specified once and only once in the config file. Using 
    the `[override]` keyword allows a value that was previously specified in the config to be
    overridden with a new value.
-6. Fully qualified keys - One may define the configuration parameters using a combination
+8. Fully qualified keys - One may define the configuration parameters using a combination
    of the tree-like structure found in json along with fully qualified key value pairs.
    These can not be mixed within the same file however.
 
@@ -387,4 +394,3 @@ cmake -DCFG_PYTHON_BINDINGS=ON -DCFG_PYTHON_INSTALL_DIR=/my/custom/path ..
 ninja
 ninja install
 ```
-

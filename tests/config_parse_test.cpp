@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
-#include <iostream>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
@@ -164,8 +163,7 @@ TEST_P(FileInput, Parse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
-    flexi_cfg::config::ActionData out;
-    out.base_dir = baseDir();
+    flexi_cfg::config::ActionData out{baseDir()};
     return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};

@@ -4,3 +4,5 @@ __pycache__
 sandbox
 build
 build-debug
+# CLion
+cmake-build*
