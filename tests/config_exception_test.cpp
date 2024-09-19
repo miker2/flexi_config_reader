@@ -11,6 +11,7 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
@@ -20,7 +21,7 @@ namespace {
 template <typename INPUT>
 auto parse(INPUT& input, flexi_cfg::config::ActionData out = flexi_cfg::config::ActionData()) {
   setLevel(flexi_cfg::logger::Severity::WARN);
-  return peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, out);
+  return flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, out);
 }
 
 auto parse(std::filesystem::path& input) {

@@ -8,6 +8,7 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/selector.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
@@ -29,7 +30,7 @@ TEST_P(InputString, Parse) {
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
     flexi_cfg::config::ActionData out;
-    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
+    return flexi_cfg::config::internal::parseCore<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   EXPECT_NO_THROW(ret = parse());
@@ -164,7 +165,7 @@ TEST_P(FileInput, Parse) {
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
     flexi_cfg::config::ActionData out{baseDir()};
-    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
+    return flexi_cfg::config::internal::parseCore<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   EXPECT_NO_THROW(ret = parse());

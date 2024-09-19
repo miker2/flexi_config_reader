@@ -1,3 +1,4 @@
+#include <flexi_cfg/config/parser-internal.h>
 #include <gtest/gtest.h>
 
 #include <iostream>
@@ -11,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/math/actions.h"
 #include "flexi_cfg/math/grammar.h"
 
@@ -51,7 +53,7 @@ TEST_F(MathExpressionTest, evaluate) {
   auto test_input = [](const std::string& input) -> double {
     peg::memory_input in(input, "from content");
     flexi_cfg::math::ActionData out;
-    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
+    const auto result = flexi_cfg::config::internal::parseCore<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 
@@ -75,7 +77,7 @@ TEST_F(MathExpressionTest, evaluate_var_ref) {
     peg::memory_input in(input, "from content");
     flexi_cfg::math::ActionData out;
     out.var_ref_map = ref_map;
-    const auto result = peg::parse<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
+    const auto result = flexi_cfg::config::internal::parseCore<flexi_cfg::math::expression, flexi_cfg::math::action>(in, out);
     return out.res;
   };
 
