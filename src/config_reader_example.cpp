@@ -1,6 +1,5 @@
 // Read a configuration file and get values from it.
 
-#include <fmt/color.h>
 #include <fmt/format.h>
 
 #include <array>
@@ -15,7 +14,7 @@
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
-auto main(int argc, char* argv[]) -> int {
+auto main(int argc, char* argv[]) -> int {  // NOLINT(bugprone-exception-escape)
   try {
     const auto cfg_file = std::filesystem::path(EXAMPLE_DIR) / "config_example5.cfg";
 
@@ -23,7 +22,7 @@ auto main(int argc, char* argv[]) -> int {
 
     flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
 
-    std::cout << std::endl;
+    std::cout << "\n";
     // Read a variety of values from the config file (and print their values).
     {
       const std::string int_key = "outer.inner.key";
@@ -61,10 +60,12 @@ auto main(int argc, char* argv[]) -> int {
       cfg.getValue(vec_key, var);
       fmt::print("Value of '{}' is: {}\n", vec_key, var);
 
-      // This same entry can be read using a std::array, which provides length checking.
-      // E.g. This will pass:
-      auto arr_var = cfg.getValue<std::array<float, 3>>(vec_key);
-      fmt::print("Value of array '{}' is: {}\n", vec_key, arr_var);
+      {
+        // This same entry can be read using a std::array, which provides length checking.
+        // E.g. This will pass:
+        auto arr_var = cfg.getValue<std::array<float, 3>>(vec_key);
+        fmt::print("Value of array '{}' is: {}\n", vec_key, arr_var);
+      }
       // But this will fail:
       try {
         // There are only 3 values contained by the key, but we're looking for 4!
@@ -90,12 +91,12 @@ auto main(int argc, char* argv[]) -> int {
     }
     {
       // Read a list of lists
-      const auto my_nested_list_key = "outer.multi_list";
+      const auto* my_nested_list_key = "outer.multi_list";
       const auto out = cfg.getValue<std::vector<std::vector<int>>>(my_nested_list_key);
       fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(out, ", "));
 
       try {
-        auto arr_var = cfg.getValue<std::array<std::array<int, 3>, 3>>(my_nested_list_key);
+        cfg.getValue<std::array<std::array<int, 3>, 3>>(my_nested_list_key);
       } catch (std::exception& e) {
         flexi_cfg::logger::error("!!! getValue failure !!!\n{}", e.what());
       }
@@ -106,7 +107,7 @@ auto main(int argc, char* argv[]) -> int {
     }
     {
       // Read a list of lists
-      const auto my_nested_list_key = "outer.multi_array";
+      const auto* const my_nested_list_key = "outer.multi_array";
       const auto out = cfg.getValue<std::vector<std::vector<float>>>(my_nested_list_key);
       fmt::print("Value of '{}' is : [{}]\n", my_nested_list_key, fmt::join(out, ", "));
 
@@ -119,7 +120,7 @@ auto main(int argc, char* argv[]) -> int {
     }
     {
       // Read a deeply nested set of lists
-      const auto my_nested_list_key = "outer.deep_multi_list";
+      const auto* const my_nested_list_key = "outer.deep_multi_list";
       const auto out = cfg.getValue<std::vector<std::vector<std::vector<int>>>>(my_nested_list_key);
       fmt::print("Value of '{}' is : \n", my_nested_list_key);  // , fmt::join(out, ", "));
       for (const auto& v0 : out) {

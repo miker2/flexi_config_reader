@@ -1,9 +1,6 @@
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
-#include <algorithm>
 #include <filesystem>
-#include <memory>
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -14,7 +11,6 @@
 #include <set>
 #include <sstream>
 #include <tao/pegtl.hpp>
-#include <tao/pegtl/contrib/trace.hpp>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
@@ -31,7 +27,7 @@ constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
 auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
-  bool success;
+  bool success;  // NOLINT
   try {
     success = flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
                                                      flexi_cfg::config::action,
@@ -67,7 +63,7 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
     flexi_cfg::logger::critical("!!!");
     flexi_cfg::logger::critical("  Parser failure!");
     flexi_cfg::logger::critical("{}\n", e.what());
-    for (auto& p : e.positions()) {
+    for (const auto& p : e.positions()) {
       if (p.source != input.source()) {
         peg::file_input input_other{p.source};  // reload the file (maybe keep in ActionData?)
         flexi_cfg::logger::critical("{}", input_other.line_at(p));
@@ -304,7 +300,7 @@ void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string
 }
 
 void Parser::validateAndApplyOverrides(const config::ActionData& state,
-                                       config::types::CfgMap& cfg_map) const {
+                                       config::types::CfgMap& cfg_map) {
   // Walk across the override key and:
   //  1. Check if that key exists in the config file.
   //  2. If it does, check that the type matches the override type.
@@ -313,6 +309,7 @@ void Parser::validateAndApplyOverrides(const config::ActionData& state,
     try {
       const auto struct_like = config::helpers::getNestedConfig(cfg_map, override.first);
       // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
+      // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
       auto& data = (struct_like != nullptr) ? struct_like->data : cfg_map;
 
       const auto parts = utils::split(override.first, '.');

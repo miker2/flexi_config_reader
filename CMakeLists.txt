@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.28)
 
 set(CFG_IS_MAIN_PROJECT OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -22,6 +22,8 @@ FetchContent_Declare(
   taocpp_pegtl
   GIT_REPOSITORY  https://github.com/taocpp/PEGTL.git
   GIT_TAG         3.2.7
+  SYSTEM
+  EXCLUDE_FROM_ALL
   )
 FetchContent_MakeAvailable(taocpp_pegtl)
 
@@ -38,6 +40,8 @@ else(magic_enum_FOUND)
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
     GIT_TAG        v0.9.3
+    SYSTEM
+    EXCLUDE_FROM_ALL
     )
   FetchContent_MakeAvailable(magic_enum)
   set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
@@ -50,6 +54,8 @@ FetchContent_Declare(
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
   GIT_TAG ${FMT_VERSION_REQUIRED}
   CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib
+  SYSTEM
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(fmt)
 set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
@@ -59,6 +65,8 @@ FetchContent_Declare(
   range-v3
   GIT_REPOSITORY "https://github.com/ericniebler/range-v3.git"
   GIT_TAG 0.12.0
+  SYSTEM
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(range-v3)
 
@@ -151,6 +159,8 @@ if (CFG_PYTHON_BINDINGS)
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
     GIT_TAG        v2.12.0
+    SYSTEM
+    EXCLUDE_FROM_ALL
   )
   FetchContent_MakeAvailable(pybind11)
 
@@ -164,9 +174,19 @@ if (CFG_ENABLE_TEST)
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG        v1.14.0
+    SYSTEM
+    EXCLUDE_FROM_ALL
     )
   FetchContent_MakeAvailable(googletest)
 
+  # Silence clang-tidy warnings from googletest
+  set_target_properties(gtest PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gtest_main PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gmock PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gmock_main PROPERTIES CXX_CLANG_TIDY "")
+
   enable_testing()
   add_subdirectory(tests)
+
+
 endif()

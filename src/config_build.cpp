@@ -10,13 +10,13 @@
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 
-auto main(int argc, char* argv[]) -> int {
+auto main(int argc, char* argv[]) -> int {  // NOLINT(bugprone-exception-escape)
   try {
     std::span<char*> args(argv, argc);
     if (argc < 2) {
       std::cerr << "No file specified.\n";
       std::cerr << "usage: " << std::filesystem::path(args[0]).filename().string() << " CFG_FILE"
-                << std::endl;
+                << '\n';
       return -1;
     }
     auto log_level = flexi_cfg::logger::Severity::INFO;
@@ -30,7 +30,7 @@ auto main(int argc, char* argv[]) -> int {
     flexi_cfg::logger::setLevel(log_level);
 
     auto cfg = flexi_cfg::Parser::parse(std::filesystem::path(args[1]));
-    std::cout << std::endl;
+    std::cout << '\n';
     cfg.dump();
 
     return EXIT_SUCCESS;

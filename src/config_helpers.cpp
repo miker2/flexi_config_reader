@@ -348,6 +348,7 @@ auto getConfigValue(const types::CfgMap& cfg, const std::vector<std::string>& ke
   const auto struct_like = getNestedConfig(cfg, keys);
 
   // Special handling for the case where 'keys' only has one entry:
+  // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
   const auto& cfg_tail = (struct_like != nullptr) ? struct_like->data : cfg;
 
   if (!cfg_tail.contains(keys.back())) {
@@ -487,7 +488,8 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
         std::stod(dynamic_pointer_cast<types::ConfigValue>(var_ref.second)->value);
   }
   peg::memory_input input(expression->value, key);
-  internal::parseCore<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input, math);
+  internal::parseCore<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input,
+                                                                                        math);
   return std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
                                               math.res);
 }

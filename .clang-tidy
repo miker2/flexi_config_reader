@@ -18,7 +18,7 @@ Checks: '-*,
 
 HeaderFilterRegex: 'cpp/.*'
 
-#WarningsAsErrors: '*'
+WarningsAsErrors: '*'
 
 CheckOptions:
   - { key: readability-function-cognitive-complexity.IgnoreMacros,     value: 1 }

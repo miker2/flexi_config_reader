@@ -21,7 +21,8 @@ namespace {
 template <typename INPUT>
 auto parse(INPUT& input, flexi_cfg::config::ActionData out = flexi_cfg::config::ActionData()) {
   setLevel(flexi_cfg::logger::Severity::WARN);
-  return flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, out);
+  return flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
+                                                flexi_cfg::config::action>(input, out);
 }
 
 auto parse(std::filesystem::path& input) {

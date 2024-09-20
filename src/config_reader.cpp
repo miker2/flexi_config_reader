@@ -1,11 +1,9 @@
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <iostream>
 #include <range/v3/range/conversion.hpp>
 #include <string>
-#include <tao/pegtl.hpp>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -13,14 +11,13 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
-#include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/utils.h"
 
 namespace {
-
+// NOLINTBEGIN(cert-err58-cpp)
 const std::unordered_map<std::type_index, std::string_view> type_names = {
     {{typeid(int)}, "int"},           {{typeid(float)}, "float"},
     {{typeid(double)}, "double"},     {{typeid(uint8_t)}, "uint8_t"},
@@ -29,6 +26,7 @@ const std::unordered_map<std::type_index, std::string_view> type_names = {
     {{typeid(int16_t)}, "int16_t"},   {{typeid(int32_t)}, "int32_t"},
     {{typeid(int64_t)}, "int64_t"},   {{typeid(bool)}, "bool"},
     {{typeid(std::string)}, "string"}};
+// NOLINTEND(cert-err58-cpp)
 
 /// \brief A helper for converting strings to numeric values
 /// \param[in] value_ptr A reference to a ValuePtr object
@@ -123,6 +121,7 @@ auto Reader::getNestedConfig(const std::string& key) const
     const auto struct_like = config::helpers::getNestedConfig(cfg_data_, keys);
 
     // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
+    // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
     const auto& data = (struct_like != nullptr) ? struct_like->data : cfg_data_;
 
     return {keys.back(), data};
