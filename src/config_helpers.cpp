@@ -404,7 +404,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key) {
   auto resolve_expression_vars = [&root](std::shared_ptr<types::ConfigExpression>& expression,
                                          const std::string& src_key) {
-    assert(expression != nullptr);
+    assert(expression.get() != nullptr);
     logger::trace("Calling resolve_expression_vars with expression={}, src_key={}", expression,
                   src_key);
     for (auto& kvl : expression->value_lookups) {

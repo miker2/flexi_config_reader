@@ -37,6 +37,14 @@ namespace flexi_cfg::config {
 
 constexpr std::string_view DEFAULT_RES{"***"};
 
+struct path_hash
+{
+  std::size_t operator () (std::filesystem::path const &p) const
+  {
+    return std::hash<std::string>()(p.string());
+  }
+};
+
 // Add action to perform when a `proto` is encountered!
 struct ActionData {
   // include file metadata as it's processing
@@ -56,7 +64,7 @@ struct ActionData {
 
   std::filesystem::path base_dir;
   std::optional<IncludeData> include_pending;
-  std::unordered_set<std::filesystem::path> all_files;  // catch duplicate includes
+  std::unordered_set<std::filesystem::path, path_hash> all_files{};  // catch duplicate includes
   std::string result{DEFAULT_RES};
   std::vector<std::string> keys;
   std::vector<std::string> flat_keys;
