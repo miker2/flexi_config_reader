@@ -11,6 +11,8 @@
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/parser-internal.h"
 
+// NOLINTBEGIN(google-readability-avoid-underscore-in-googletest-name)
+
 namespace peg = TAO_PEGTL_NAMESPACE;
 
 namespace {
@@ -850,3 +852,5 @@ TEST(ConfigGrammar, INCLUDE_RELATIVE_OPTIONAL) {
   auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
   ASSERT_EQ(val.get()->value, "123");
 }
+
+// NOLINTEND(google-readability-avoid-underscore-in-googletest-name)

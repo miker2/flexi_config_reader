@@ -71,11 +71,19 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(range-v3)
 
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
+option(CFG_CLANG_TIDY_WARN_AS_ERROR "Enable warnings as errors for clang-tidy > 13" ON)
+
 if(ENABLE_CLANG_TIDY)
   if(NOT CMAKE_CROSSCOMPILING) # adds invalid paths
     find_package(ClangTools QUIET)
     if(CLANG_TIDY_FOUND)
-      set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}")
+      if (COMPILER_VERSION_MAJOR GREATER 13 AND CFG_CLANG_TIDY_WARN_AS_ERROR)
+        message(STATUS "Clang-Tidy > 13 - warning as errors")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}" --warnings-as-errors=*)
+      else()
+        message(STATUS "Clang-Tidy - warnings as warnings")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}" --warnings-as-errors=)
+      endif()
     else(CLANG_TIDY_FOUND)
       message(STATUS "${Yellow}clang-tidy static analysis won't be done.${ColourReset}")
     endif(CLANG_TIDY_FOUND)
@@ -89,6 +97,7 @@ endif(ENABLE_CLANG_TIDY)
 
 option(CFG_ENABLE_DEBUG "Enable DEBUG logging." OFF)
 option(CFG_ENABLE_PARSER_TRACE "Enable parser trace logging." OFF)
+option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
 option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
@@ -180,6 +189,8 @@ if (CFG_ENABLE_TEST)
   FetchContent_MakeAvailable(googletest)
 
   # Silence clang-tidy warnings from googletest
+  message( STATUS "Silencing CLANG_TIDY for gtest and gmock")
+  # This doesn't seem to work for clang-13 :(
   set_target_properties(gtest PROPERTIES CXX_CLANG_TIDY "")
   set_target_properties(gtest_main PROPERTIES CXX_CLANG_TIDY "")
   set_target_properties(gmock PROPERTIES CXX_CLANG_TIDY "")
@@ -187,6 +198,4 @@ if (CFG_ENABLE_TEST)
 
   enable_testing()
   add_subdirectory(tests)
-
-
 endif()
