@@ -37,7 +37,7 @@ In summary, a `proto` that is `reference`d, effectively becomes a `struct`.
    - e.g. `include [once] base.cfg` allows including the same file twice, which may be useful if some base values or 
    structure is defined in a separate file that may be transitively included from multiple places.
    By default, the parser will fail when it encounters a duplicate include, this leads to duplicate key definitions.
-   - w.g. `include [optional] file_may_not_exist.cfg` enables a config to reference files that may be missing.
+   - e.g. `include [optional] file_may_not_exist.cfg` enables a config to reference files that may be missing.
    By default, the parser will fail when it encounters a missing file.
 4. Environment variables - Environment variables may be referenced in `include` or `include_relative` statements
    using the syntax `${ENV_VAR_NAME}`. If the environment variable is not set, the reference

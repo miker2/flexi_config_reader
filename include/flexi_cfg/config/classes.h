@@ -4,7 +4,7 @@
 #include <fmt/ostream.h>
 
 #include <any>
-#include <iostream>
+#include <iosfwd>
 #include <magic_enum.hpp>
 #include <map>
 #include <memory>

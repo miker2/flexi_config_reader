@@ -37,15 +37,13 @@ namespace flexi_cfg::config {
 
 constexpr std::string_view DEFAULT_RES{"***"};
 
-struct path_hash
-{
-  std::size_t operator () (std::filesystem::path const &p) const
-  {
+struct path_hash {
+  std::size_t operator()(std::filesystem::path const& p) const {
     return std::hash<std::string>()(p.string());
   }
 };
 
-// Add action to perform when a `proto` is encountered!
+// Holds state as we make progress parsing the config document(s)
 struct ActionData {
   // include file metadata as it's processing
   struct IncludeData {
