@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
-#include <iostream>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/config/selector.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
@@ -30,7 +30,8 @@ TEST_P(InputString, Parse) {
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
     flexi_cfg::config::ActionData out;
-    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
+    return flexi_cfg::config::internal::parseCore<flexi_cfg::config::grammar,
+                                                  flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   EXPECT_NO_THROW(ret = parse());
@@ -164,9 +165,9 @@ TEST_P(FileInput, Parse) {
   flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
   auto parse = []() {
     peg::file_input in(baseDir() / GetParam());
-    flexi_cfg::config::ActionData out;
-    out.base_dir = baseDir();
-    return peg::parse<flexi_cfg::config::grammar, flexi_cfg::config::action>(in, out);
+    flexi_cfg::config::ActionData out{baseDir()};
+    return flexi_cfg::config::internal::parseCore<flexi_cfg::config::grammar,
+                                                  flexi_cfg::config::action>(in, out);
   };
   bool ret{false};
   EXPECT_NO_THROW(ret = parse());

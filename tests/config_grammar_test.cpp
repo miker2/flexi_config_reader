@@ -1,25 +1,29 @@
+#include <fmt/format.h>
 #include <gtest/gtest.h>
+#include <unistd.h>
 
 #include <algorithm>
+#include <iosfwd>
 #include <optional>
 #include <tao/pegtl/contrib/analyze.hpp>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
-#include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/parser-internal.h"
+
+// NOLINTBEGIN(google-readability-avoid-underscore-in-googletest-name)
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
 namespace {
 using RetType = std::pair<bool, flexi_cfg::config::ActionData>;
 
-template <typename GTYPE>
+template <typename GTYPE, template <typename...> class Control = peg::normal>
 auto runTest(const std::string& test_str) -> RetType {
   peg::memory_input in(test_str, "from_content");
-
-  flexi_cfg::config::ActionData out;
-  const auto ret = peg::parse<GTYPE, flexi_cfg::config::action>(in, out);
-  // out.print();
+  flexi_cfg::config::ActionData out(std::filesystem::path(EXAMPLE_DIR));
+  const auto ret =
+      flexi_cfg::config::internal::parseCore<GTYPE, flexi_cfg::config::action, Control>(in, out);
   return {ret, out};
 }
 
@@ -650,7 +654,7 @@ TEST(ConfigGrammar, PAIR) {
   // Can't use the `checkResult` helper here.
   auto checkPair = [](const std::string& input, flexi_cfg::config::types::Type expected_type,
                       bool is_override) {
-    std::cout << "input: '" << input << "'" << std::endl;
+    std::cout << "input: '" << input << "'\n";
     auto ret = runTest<peg::must<flexi_cfg::config::PAIR, peg::eolf>>(input);
     ASSERT_TRUE(ret.first);
     auto& out = ret.second;
@@ -749,3 +753,104 @@ TEST(ConfigGrammar, FULLPAIR) {
   }
   EXPECT_EQ(cfg_map->at(keys.back())->type, flexi_cfg::config::types::Type::kNumber);
 }
+
+TEST(ConfigGrammar, INCLUDE_ABSOLUTE) {
+  const std::filesystem::path tmp_path = fmt::format("/tmp/flexi_cfg/{}_absolute.cfg", getpid());
+  create_directories(tmp_path.parent_path());
+  const auto* const cfg_content = "\n  foo = 123 \n";
+  std::ofstream absolute_cfg_file(tmp_path, std::ios::out | std::ios::trunc);
+  absolute_cfg_file << cfg_content << std::flush;
+  const std::string test_config = fmt::format("include {}", tmp_path.string());
+  auto ret = runTest<peg::must<flexi_cfg::config::INCLUDE>>(test_config);
+  std::ignore = std::filesystem::remove(tmp_path);
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE) {
+  const std::string test_config = "include nested/simple_include.cfg";
+  auto ret = runTest<peg::must<flexi_cfg::config::INCLUDE>>(test_config);
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE_OPTIONAL) {
+  const std::string test_config =
+      "include nested/simple_include.cfg\n"
+      "include [optional] nested/does_not_exist.cfg\n";
+  auto ret = runTest<peg::must<flexi_cfg::config::includes>>(test_config);
+
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE_ONCE) {
+  flexi_cfg::logger::Logger::instance().setLevel(flexi_cfg::logger::Severity::TRACE);
+  const std::string test_config =
+      "include nested/simple_include.cfg\n"
+      "include [once] nested/simple_include.cfg\n";  // without [once] it shouldn't work
+  auto ret = runTest<peg::must<flexi_cfg::config::includes>>(test_config);
+
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE_ONCE_OPTIONAL) {
+  flexi_cfg::logger::Logger::instance().setLevel(flexi_cfg::logger::Severity::TRACE);
+  const std::string test_config =
+      "include nested/simple_include.cfg\n"
+      "include [once][optional][optional]  nested/simple_include.cfg\n";  // without [once] it
+                                                                          // shouldn't work
+  auto ret = runTest<peg::must<flexi_cfg::config::includes>>(test_config);
+
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE_RELATIVE) {
+  const std::string test_config = "include_relative nested/simple_include.cfg\n";
+  auto ret = runTest<peg::must<flexi_cfg::config::includes>>(test_config);
+
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+TEST(ConfigGrammar, INCLUDE_RELATIVE_OPTIONAL) {
+  const std::string test_config =
+      "include_relative nested/simple_include.cfg\n"
+      "include_relative [optional] nested/does_not_exist.cfg\n\n";
+  auto ret = runTest<peg::must<flexi_cfg::config::includes>>(test_config);
+
+  EXPECT_TRUE(ret.first);
+  ASSERT_EQ(ret.second.cfg_res.size(), 1);
+  auto* cfg_map = &ret.second.cfg_res.front();
+  ASSERT_TRUE(cfg_map->contains("foo"));
+  auto val = std::dynamic_pointer_cast<flexi_cfg::config::types::ConfigValue>(cfg_map->at("foo"));
+  ASSERT_EQ(val.get()->value, "123");
+}
+
+// NOLINTEND(google-readability-avoid-underscore-in-googletest-name)

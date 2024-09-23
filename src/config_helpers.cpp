@@ -15,6 +15,7 @@
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/math/actions.h"
 #include "flexi_cfg/utils.h"
@@ -185,7 +186,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
     config::ActionData state;
     // NOTE: 'peg::until' will consume everything until the rule 'config::VAR' matches. If
     // 'config::VAR' never matches, then 'parse' will return false, otherwise true
-    const auto ret = peg::parse<peg::until<config::VAR>, config::action>(in, state);
+    const auto ret = internal::parseCore<peg::until<config::VAR>, config::action>(in, state);
     return ret;
   };
 
@@ -262,7 +263,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       // have been resolved.
       config::ActionData state;
       peg::memory_input input(out.value(), k);
-      peg::parse<EXPRESSION, config::action>(input, state);
+      internal::parseCore<EXPRESSION, config::action>(input, state);
 
       state.obj_res->line = v->line;
       state.obj_res->source = v->source;
@@ -347,6 +348,7 @@ auto getConfigValue(const types::CfgMap& cfg, const std::vector<std::string>& ke
   const auto struct_like = getNestedConfig(cfg, keys);
 
   // Special handling for the case where 'keys' only has one entry:
+  // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
   const auto& cfg_tail = (struct_like != nullptr) ? struct_like->data : cfg;
 
   if (!cfg_tail.contains(keys.back())) {
@@ -402,7 +404,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key) {
   auto resolve_expression_vars = [&root](std::shared_ptr<types::ConfigExpression>& expression,
                                          const std::string& src_key) {
-    assert(expression != nullptr);
+    assert(expression.get() != nullptr);
     logger::trace("Calling resolve_expression_vars with expression={}, src_key={}", expression,
                   src_key);
     for (auto& kvl : expression->value_lookups) {
@@ -486,7 +488,8 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
         std::stod(dynamic_pointer_cast<types::ConfigValue>(var_ref.second)->value);
   }
   peg::memory_input input(expression->value, key);
-  peg::parse<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input, math);
+  internal::parseCore<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input,
+                                                                                        math);
   return std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
                                               math.res);
 }

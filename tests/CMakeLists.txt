@@ -11,6 +11,7 @@ target_link_libraries(
   utils_test
   flexi_cfg
   gtest_main
+  gmock_main
   )
 
 target_include_directories(utils_test PRIVATE
@@ -32,6 +33,7 @@ target_link_libraries(
   fmt::fmt
   range-v3::range-v3
   gtest_main
+  gmock_main
   )
 
 target_include_directories(config_helpers_test PRIVATE
@@ -55,6 +57,7 @@ target_link_libraries(
   range-v3::range-v3
   taocpp::pegtl
   gtest_main
+  gmock_main
   )
 
 target_include_directories(config_grammar_test PRIVATE
@@ -75,6 +78,7 @@ target_link_libraries(
   flexi_cfg
   taocpp::pegtl
   gtest_main
+  gmock_main
   )
 
 target_include_directories(config_exception_test PRIVATE
@@ -95,6 +99,7 @@ target_link_libraries(
   flexi_cfg
   taocpp::pegtl
   gtest_main
+  gmock_main
   )
 
 target_include_directories(config_parse_test PRIVATE
@@ -116,6 +121,7 @@ target_link_libraries(
   taocpp::pegtl
   fmt::fmt
   gtest_main
+  gmock_main
   )
 
 target_include_directories(math_test PRIVATE

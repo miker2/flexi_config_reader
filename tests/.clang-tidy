@@ -1,6 +1,5 @@
-
 InheritParentConfig: true
 
 Checks: '-bugprone-suspicious-include,
          -modernize-use-trailing-return-type
-				 cppcoreguidelines-avoid-goto'
+         cppcoreguidelines-avoid-goto'

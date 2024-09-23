@@ -1,9 +1,6 @@
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 
-#include <algorithm>
 #include <filesystem>
-#include <memory>
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/action/reverse.hpp>
 #include <range/v3/action/sort.hpp>
@@ -14,13 +11,12 @@
 #include <set>
 #include <sstream>
 #include <tao/pegtl.hpp>
-#include <tao/pegtl/contrib/trace.hpp>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
-#include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
@@ -31,10 +27,11 @@ constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
 auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
-  bool success = true;
+  bool success;  // NOLINT
   try {
-    success = peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action,
-                         flexi_cfg::config::control>(input, output);
+    success = flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
+                                                     flexi_cfg::config::action,
+                                                     flexi_cfg::config::control>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
     // 'output.cfg_res').
     success &= output.keys.empty();
@@ -62,20 +59,26 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
       return success;
     }
   } catch (const peg::parse_error& e) {
-    success = false;
+    success = false;  // TODO(jayv) this should probably throw
     flexi_cfg::logger::critical("!!!");
     flexi_cfg::logger::critical("  Parser failure!");
-    const auto p = e.positions().front();
-    flexi_cfg::logger::critical("{}", e.what());
-    flexi_cfg::logger::critical("{}", input.line_at(p));
-    flexi_cfg::logger::critical("{}^", std::string(p.column - 1, ' '));
+    flexi_cfg::logger::critical("{}\n", e.what());
+    for (const auto& p : e.positions()) {
+      if (p.source != input.source()) {
+        peg::file_input input_other{p.source};  // reload the file (maybe keep in ActionData?)
+        flexi_cfg::logger::critical("{}", input_other.line_at(p));
+      } else {  // assume no file means the root input
+        flexi_cfg::logger::critical("{}", input.line_at(p));
+      }
+      flexi_cfg::logger::critical("{}^", std::string(p.column - 1, ' '));
+      flexi_cfg::logger::critical("at {}:{}:{}", p.source, p.line, p.column);
+    }
     std::stringstream ss;
     output.print(ss);
-    flexi_cfg::logger::critical("Partial output: \n{}", ss.str());
+    flexi_cfg::logger::critical("\nPartial output: \n{}", ss.str());
     flexi_cfg::logger::critical("!!!");
     return success;
   }
-
   return success;
 }
 
@@ -114,17 +117,17 @@ namespace flexi_cfg {
 
 auto Parser::parse(const std::filesystem::path& cfg_filename,
                    std::optional<std::filesystem::path> root_dir) -> Reader {
-  config::ActionData state;
-
   std::filesystem::path input_file;
+  std::filesystem::path base_dir;
   if (root_dir.has_value()) {
     input_file = root_dir.value() / cfg_filename;
-    state.base_dir = root_dir.value();
+    base_dir = root_dir.value();
   } else {
     input_file = cfg_filename;
-    state.base_dir = cfg_filename.parent_path();
+    base_dir = cfg_filename.parent_path();
   }
   peg::file_input cfg_file(input_file);
+  config::ActionData state{base_dir};
 
   // TODO(miker2): Do something smarter if "parseCommon" fails!
   parseCommon(cfg_file, state);
@@ -297,7 +300,7 @@ void Parser::resolveReferences(config::types::CfgMap& cfg_map, const std::string
 }
 
 void Parser::validateAndApplyOverrides(const config::ActionData& state,
-                                       config::types::CfgMap& cfg_map) const {
+                                       config::types::CfgMap& cfg_map) {
   // Walk across the override key and:
   //  1. Check if that key exists in the config file.
   //  2. If it does, check that the type matches the override type.
@@ -306,6 +309,7 @@ void Parser::validateAndApplyOverrides(const config::ActionData& state,
     try {
       const auto struct_like = config::helpers::getNestedConfig(cfg_map, override.first);
       // Special handling for the case where 'key' contains a single key (i.e is not a flat key)
+      // NOLINTNEXTLINE(clang-analyzer-core.NullDereference)
       auto& data = (struct_like != nullptr) ? struct_like->data : cfg_map;
 
       const auto parts = utils::split(override.first, '.');

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.28)
 
 set(CFG_IS_MAIN_PROJECT OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -22,6 +22,8 @@ FetchContent_Declare(
   taocpp_pegtl
   GIT_REPOSITORY  https://github.com/taocpp/PEGTL.git
   GIT_TAG         3.2.7
+  SYSTEM
+  EXCLUDE_FROM_ALL
   )
 FetchContent_MakeAvailable(taocpp_pegtl)
 
@@ -38,6 +40,8 @@ else(magic_enum_FOUND)
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
     GIT_TAG        v0.9.3
+    SYSTEM
+    EXCLUDE_FROM_ALL
     )
   FetchContent_MakeAvailable(magic_enum)
   set(magic_enum_INCLUDE_DIR "${magic_enum_SOURCE_DIR}/include")
@@ -50,6 +54,8 @@ FetchContent_Declare(
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
   GIT_TAG ${FMT_VERSION_REQUIRED}
   CMAKE_ARGS -DFMT_DOC=OFF -DFMT_TEST=OFF -DFMT_INSTALL=ON -DFMT_LIB_DIR=lib
+  SYSTEM
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(fmt)
 set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
@@ -59,15 +65,25 @@ FetchContent_Declare(
   range-v3
   GIT_REPOSITORY "https://github.com/ericniebler/range-v3.git"
   GIT_TAG 0.12.0
+  SYSTEM
+  EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(range-v3)
 
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" ON)
+option(CFG_CLANG_TIDY_WARN_AS_ERROR "Enable warnings as errors for clang-tidy > 13" ON)
+
 if(ENABLE_CLANG_TIDY)
   if(NOT CMAKE_CROSSCOMPILING) # adds invalid paths
     find_package(ClangTools QUIET)
     if(CLANG_TIDY_FOUND)
-      set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}")
+      if (COMPILER_VERSION_MAJOR GREATER 13 AND CFG_CLANG_TIDY_WARN_AS_ERROR)
+        message(STATUS "Clang-Tidy > 13 - warning as errors")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}" --warnings-as-errors=*)
+      else()
+        message(STATUS "Clang-Tidy - warnings as warnings")
+        set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}" --warnings-as-errors=)
+      endif()
     else(CLANG_TIDY_FOUND)
       message(STATUS "${Yellow}clang-tidy static analysis won't be done.${ColourReset}")
     endif(CLANG_TIDY_FOUND)
@@ -79,13 +95,24 @@ else(ENABLE_CLANG_TIDY)
   set(CMAKE_CXX_CLANG_TIDY "")
 endif(ENABLE_CLANG_TIDY)
 
+option(CFG_ENABLE_DEBUG "Enable DEBUG logging." OFF)
+option(CFG_ENABLE_PARSER_TRACE "Enable parser trace logging." OFF)
 option(CFG_ENABLE_TEST "Enable unit tests." ON)
 option(CFG_EXAMPLES "Build example applications." OFF)
 option(CFG_PYTHON_BINDINGS "Build python bindings." OFF)
 option(CFG_PYTHON_INSTALL_DIR "Installation directory of python bindings." "")
 
+add_compile_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
 
-add_definitions(-DEXAMPLE_DIR="${CMAKE_SOURCE_DIR}/examples")
+if(CFG_ENABLE_DEBUG)
+  add_compile_definitions(VERBOSE_DEBUG_ACTIONS=1)
+  message(STATUS "Enabling VERBOSE_DEBUG_ACTIONS")
+endif(CFG_ENABLE_DEBUG)
+
+if(CFG_ENABLE_PARSER_TRACE)
+  add_compile_definitions(ENABLE_PARSER_TRACE=1)
+  message(STATUS "Enabling ENABLE_PARSER_TRACE")
+endif(CFG_ENABLE_PARSER_TRACE)
 
 set(PUBLIC_CFG_HEADERS include/flexi_cfg/reader.h include/flexi_cfg/parser.h)
 set(CFG_HEADERS
@@ -95,7 +122,9 @@ set(CFG_HEADERS
   include/flexi_cfg/config/exceptions.h
   include/flexi_cfg/config/grammar.h
   include/flexi_cfg/config/helpers.h
+  include/flexi_cfg/config/parser-internal.h
   include/flexi_cfg/config/selector.h
+  include/flexi_cfg/config/trace-internal.h
   include/flexi_cfg/logger.h
   include/flexi_cfg/math/actions.h
   include/flexi_cfg/math/grammar.h
@@ -138,6 +167,8 @@ if (CFG_PYTHON_BINDINGS)
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
     GIT_TAG        v2.12.0
+    SYSTEM
+    EXCLUDE_FROM_ALL
   )
   FetchContent_MakeAvailable(pybind11)
 
@@ -151,8 +182,18 @@ if (CFG_ENABLE_TEST)
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG        v1.14.0
+    SYSTEM
+    EXCLUDE_FROM_ALL
     )
   FetchContent_MakeAvailable(googletest)
+
+  # Silence clang-tidy warnings from googletest
+  message( STATUS "Silencing CLANG_TIDY for gtest and gmock")
+  # This doesn't seem to work for clang-13 :(
+  set_target_properties(gtest PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gtest_main PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gmock PROPERTIES CXX_CLANG_TIDY "")
+  set_target_properties(gmock_main PROPERTIES CXX_CLANG_TIDY "")
 
   enable_testing()
   add_subdirectory(tests)

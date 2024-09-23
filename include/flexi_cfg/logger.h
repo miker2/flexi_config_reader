@@ -61,9 +61,8 @@ class Logger {
       {Severity::DEBUG, fmt::fg(fmt::color::cyan)},
       {Severity::INFO, fmt::fg(fmt::color::green)},
       {Severity::WARN, fmt::fg(fmt::color::gold)},
-      {Severity::ERROR, fmt::fg(fmt::color::red)},
-      {Severity::CRITICAL,
-       fmt::emphasis::bold | fmt::bg(fmt::color::red) | fmt::fg(fmt::color::white)}};
+      {Severity::ERROR, fmt::fg(fmt::color::indian_red)},
+      {Severity::CRITICAL, fmt::emphasis::bold | fmt::fg(fmt::color::orange_red)}};
 
   // This container holds a history of messages to provide a type of "backtrace" functionality
   std::size_t max_history_{15};  // NOLINT
@@ -127,7 +126,7 @@ static void critical(std::string_view msg) { Logger::instance().log(Severity::CR
 
 template <>
 struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {
-  // parse is inherited from formatter<string_view>  
+  // parse is inherited from formatter<string_view>
   auto format(const flexi_cfg::logger::Severity& severity, format_context& ctx) {
     const auto severity_s = magic_enum::enum_name<flexi_cfg::logger::Severity>(severity);
     return formatter<std::string_view>::format(severity_s, ctx);

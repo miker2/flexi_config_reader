@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -10,6 +11,7 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/grammar.h"
+#include "flexi_cfg/config/parser-internal.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
@@ -17,16 +19,15 @@
 namespace {
 
 template <typename INPUT>
-auto parse(INPUT& input) {
-  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::WARN);
-  flexi_cfg::config::ActionData out;
-  return peg::parse<peg::must<flexi_cfg::config::grammar>, flexi_cfg::config::action>(input, out);
+auto parse(INPUT& input, flexi_cfg::config::ActionData out = flexi_cfg::config::ActionData()) {
+  setLevel(flexi_cfg::logger::Severity::WARN);
+  return flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
+                                                flexi_cfg::config::action>(input, out);
 }
 
-template <>
 auto parse(std::filesystem::path& input) {
   peg::file_input cfg_file(input);
-  return parse(cfg_file);
+  return parse(cfg_file, flexi_cfg::config::ActionData{input.parent_path()});
 }
 
 }  // namespace
@@ -348,4 +349,37 @@ TEST(ConfigException, EmptyConfig) {
     peg::file_input in_cfg(in_file);
     EXPECT_THROW(parse(in_cfg), peg::parse_error);
   }
+}
+
+TEST(IncludeTests, DuplicateInclude) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "nested/dupe_include.cfg";
+  EXPECT_THAT([&]() { parse(in_cfg); },
+              Throws<peg::parse_error>(testing::Property(
+                  &peg::parse_error::message, testing::HasSubstr("duplicate includes"))));
+}
+
+TEST(IncludeTests, DuplicateIncludeOnce) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "nested/dupe_include2.cfg";
+  EXPECT_NO_THROW(parse(in_cfg));
+}
+
+TEST(IncludeTests, NonOptionalMissingIncludeThrows) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "optional/optional_config_non_optional.cfg";
+  EXPECT_THAT([&]() { parse(in_cfg); },
+              testing::ThrowsMessage<peg::parse_error>(testing::HasSubstr("Missing include file")));
+}
+
+TEST(IncludeTests, OptionalMissingIncludeIsFine) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "optional/optional_config.cfg";
+  EXPECT_NO_THROW(parse(in_cfg));
+}
+
+TEST(IncludeTests, BothOptionalMissingIncludeIsFine) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "optional/optional_config2.cfg";
+  EXPECT_NO_THROW(parse(in_cfg));
+}
+
+TEST(IncludeTests, OptionalMissingAllIncludesIsFine) {
+  auto in_cfg = std::filesystem::path(EXAMPLE_DIR) / "optional/optional_config3.cfg";
+  EXPECT_NO_THROW(parse(in_cfg));
 }
