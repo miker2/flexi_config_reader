@@ -508,9 +508,9 @@ struct base_include_action {
         }
       }
       out.all_files.insert(cfg_file);
-      logger::info("Begin nested parse: {}", cfg_file.string());
+      logger::debug("Begin nested parse: {}", cfg_file.string());
       internal::parseNestedCore<grammar, action, control>(in.position(), include_file, out);
-      logger::info("End nested parse: {}", cfg_file.string());
+      logger::debug("End nested parse: {}", cfg_file.string());
     } catch (const std::system_error& e) {
       throw peg::parse_error(fmt::format("Include error: {}", e.what()), in.position());
     }
