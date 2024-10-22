@@ -31,7 +31,7 @@ template <typename GRAMMAR, typename T>
 void checkResult(const std::string& input, flexi_cfg::config::types::Type expected_type,
                  std::optional<flexi_cfg::config::ActionData>& out) {
   std::optional<RetType> ret;
-  ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input)));
+  ASSERT_NO_THROW(ret.emplace(runTest<GRAMMAR>(input))) << "INPUT: '" << input << "'";
   ASSERT_TRUE(ret.has_value());
   if (ret.has_value()) {
     ASSERT_TRUE(ret.value().first);
@@ -376,6 +376,29 @@ TEST(ConfigGrammar, STRING) {
   }
 }
 
+const std::vector<std::string> list_test_cases = {
+    "[1, 2, 3]", "[1.0, 2., -3.3]", R"(["one", "two", "three"])", "[0x123, 0Xabc, 0xA1B2F9]",
+    "[0.123, $(ref.var), 3.456]",
+    // TODO(miker2): Add support for expressions in lists
+    // R"([12, {{ 2^14 - 1}}, 0.32])",  // Expressions in lists
+
+    // Verify that lists can contain newlines
+    R"([1,
+      2,
+      3])",
+    // Verify that a list can contain leading and trailing comments:
+    R"([# comment
+      1, 2,   3   # comment
+      # comment
+      ])",
+    "[]",  // Empty lists are supported
+    // Verify that an empty list containing a comment is supported
+    R"([
+      # This is a multi-line
+      # comment
+      ])",
+    "[$(ref.var2), $(ref.var1), 3.456]"};
+
 TEST(ConfigGrammar, LIST) {
   auto checkList = [](const std::string& input) {
     std::optional<flexi_cfg::config::ActionData> out;
@@ -383,30 +406,10 @@ TEST(ConfigGrammar, LIST) {
                 flexi_cfg::config::types::ConfigList>(input, flexi_cfg::config::types::Type::kList,
                                                       out);
   };
-  {
-    const std::string content = "[1, 2, 3]";
+  for (const auto& content : list_test_cases) {
     checkList(content);
   }
-  {
-    const std::string content = "[1.0, 2., -3.3]";
-    checkList(content);
-  }
-  {
-    const std::string content = R"(["one", "two", "three"])";
-    checkList(content);
-  }
-  {
-    const std::string content = "[0x123, 0Xabc, 0xA1B2F9]";
-    checkList(content);
-  }
-  {
-    const std::string content = "[0.123, $(ref.var), 3.456]";
-    checkList(content);
-  }
-  {
-    const std::string content = "[$(ref.var2), $(ref.var1), 3.456]";
-    checkList(content);
-  }
+
   {
     // Non-homogeneous lists are not allowed
     const std::string content = R"([12, "two", 10.2])";
@@ -589,8 +592,11 @@ TEST(ConfigGrammar, PROTOLIST) {
     checkResult<peg::must<flexi_cfg::config::PROTO_LIST, peg::eolf>,
                 flexi_cfg::config::types::ConfigList>(input, flexi_cfg::config::types::Type::kList,
                                                       out);
-    out->print(std::cout);
   };
+  // All valid "LIST" cases are also valid "PROTO_LIST" cases
+  for (const auto& content : list_test_cases) {
+    checkProtoList(content);
+  }
   {
     const std::string content = "[3, 4, ${TEST}]";
     checkProtoList(content);
