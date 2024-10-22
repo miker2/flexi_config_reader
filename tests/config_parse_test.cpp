@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <filesystem>
+#include <latch>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
@@ -102,23 +104,26 @@ TEST_P(InputString, Reader) {
 }
 
 // Ensure we don't get optimized out and force "consuming" the value
+#pragma GCC push_options
+#pragma GCC optimize("-O0")
+#pragma clang optnone push
 template <typename T>
-__attribute__((optimize("O0"))) auto consume(const T& value) -> T {
+auto consume(const T& value) -> T {
   return value;
 }
+#pragma clang optnone pop
+#pragma GCC pop_options
 
 // Multi-threaded map access shouldn't segfault
 TEST_P(InputString, MultiThreadedConfigAccess) {
   setLevel(flexi_cfg::logger::Severity::INFO);
+  std::atomic_bool done{false};
+  constexpr auto thread_count = 6;
   flexi_cfg::logger::info("MultiThreaded Test Start");
   flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
   EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parseFromString(GetParam(), "From String"));
-  auto random_read = [&cfg](const std::stop_token& stop) {
-    while (!stop.stop_requested()) {
-      const auto& vec = cfg.getValue<std::vector<int>>("test2.inner.list");
-      for (const auto& v : vec) {
-        consume(v);
-      }
+  auto random_read = [&cfg, &done] {
+    while (!done) {
       for (const auto& k : cfg.keys()) {
         ASSERT_TRUE(cfg.exists(k));
         switch (cfg.getType(k)) {
@@ -131,9 +136,12 @@ TEST_P(InputString, MultiThreadedConfigAccess) {
           case flexi_cfg::config::types::Type::kBoolean:
             consume(cfg.getValue<bool>(k));
             break;
-          case flexi_cfg::config::types::Type::kList:
-            consume(cfg.getValue<std::vector<int>>(k));
+          case flexi_cfg::config::types::Type::kList: {
+            for (const auto& vec = cfg.getValue<std::vector<int>>(k); const auto& v : vec) {
+              consume(v);
+            }
             break;
+          }
           case flexi_cfg::config::types::Type::kExpression:
           case flexi_cfg::config::types::Type::kValueLookup:
           case flexi_cfg::config::types::Type::kVar:
@@ -150,14 +158,16 @@ TEST_P(InputString, MultiThreadedConfigAccess) {
     }
   };
 
-  std::jthread t1{random_read};
-  std::jthread t2{random_read};
-  std::jthread t3{random_read};
-  std::jthread t4{random_read};
-  std::jthread t5{random_read};
-  std::jthread t6{random_read};
-
+  std::vector<std::thread> threads;
+  threads.reserve(thread_count);
+  for (auto i = 0; i < thread_count; i++) {
+    threads.emplace_back(random_read);
+  }
   std::this_thread::sleep_for(std::chrono::seconds(10));  // NOLINT
+  done = true;
+  for (auto& t : threads) {
+    t.join();
+  }
   flexi_cfg::logger::info("MultiThreaded Test Done");
 }
 
