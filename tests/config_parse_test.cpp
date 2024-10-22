@@ -4,6 +4,7 @@
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
+#include <thread>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
@@ -98,6 +99,66 @@ TEST_P(InputString, Reader) {
     EXPECT_EQ(cfg.getValue<float>(key), 4);
     EXPECT_EQ(cfg.getType(key), flexi_cfg::config::types::Type::kNumber);
   }
+}
+
+// Ensure we don't get optimized out and force "consuming" the value
+template <typename T>
+__attribute__((optimize("O0"))) auto consume(const T& value) -> T {
+  return value;
+}
+
+// Multi-threaded map access shouldn't segfault
+TEST_P(InputString, MultiThreadedConfigAccess) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  flexi_cfg::logger::info("MultiThreaded Test Start");
+  flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
+  EXPECT_NO_THROW(cfg = flexi_cfg::Parser::parseFromString(GetParam(), "From String"));
+  auto random_read = [&cfg](const std::stop_token& stop) {
+    while (!stop.stop_requested()) {
+      const auto& vec = cfg.getValue<std::vector<int>>("test2.inner.list");
+      for (const auto& v : vec) {
+        consume(v);
+      }
+      for (const auto& k : cfg.keys()) {
+        ASSERT_TRUE(cfg.exists(k));
+        switch (cfg.getType(k)) {
+          case flexi_cfg::config::types::Type::kString:
+            consume(cfg.getValue<std::string>(k));
+            break;
+          case flexi_cfg::config::types::Type::kNumber:
+            consume(cfg.getValue<float>(k));
+            break;
+          case flexi_cfg::config::types::Type::kBoolean:
+            consume(cfg.getValue<bool>(k));
+            break;
+          case flexi_cfg::config::types::Type::kList:
+            consume(cfg.getValue<std::vector<int>>(k));
+            break;
+          case flexi_cfg::config::types::Type::kExpression:
+          case flexi_cfg::config::types::Type::kValueLookup:
+          case flexi_cfg::config::types::Type::kVar:
+          case flexi_cfg::config::types::Type::kStruct:
+          case flexi_cfg::config::types::Type::kStructInProto:
+          case flexi_cfg::config::types::Type::kProto:
+          case flexi_cfg::config::types::Type::kReference:
+          case flexi_cfg::config::types::Type::kUnknown:
+          case flexi_cfg::config::types::Type::kValue:
+            // These aren't values
+            break;
+        }
+      }
+    }
+  };
+
+  std::jthread t1{random_read};
+  std::jthread t2{random_read};
+  std::jthread t3{random_read};
+  std::jthread t4{random_read};
+  std::jthread t5{random_read};
+  std::jthread t6{random_read};
+
+  std::this_thread::sleep_for(std::chrono::seconds(10));  // NOLINT
+  flexi_cfg::logger::info("MultiThreaded Test Done");
 }
 
 INSTANTIATE_TEST_SUITE_P(ConfigParse, InputString, testing::Values(std::string(R"(
