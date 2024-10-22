@@ -10,9 +10,10 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
-#include "flexi_cfg/utils.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/utils.h"
 
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
@@ -178,10 +179,13 @@ class ConfigList : public ConfigBaseClonable<ConfigValue, ConfigList> {
 
   void stream(std::ostream& os) const override {
     os << "[";
-    for (size_t i = 0; i < data.size() - 1; ++i) {
-      os << data[i] << ", ";
+    for (auto it = data.begin(); it != data.end(); it = std::next(it)) {
+      os << *it;
+      if (std::next(it) != data.end()) {
+        os << ", ";
+      }
     }
-    os << data.back() << "]";
+    os << "]";
   }
 
   std::vector<std::shared_ptr<ConfigBase>> data;

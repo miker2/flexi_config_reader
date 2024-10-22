@@ -26,7 +26,7 @@ TEST_P(InputString, ParseTree) {
 }
 
 TEST_P(InputString, Parse) {
-  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
+  setLevel(flexi_cfg::logger::Severity::INFO);
   auto parse = []() {
     peg::memory_input in(GetParam(), "From content");
     flexi_cfg::config::ActionData out;
@@ -39,7 +39,7 @@ TEST_P(InputString, Parse) {
 }
 
 TEST_P(InputString, Reader) {
-  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::INFO);
+  setLevel(flexi_cfg::logger::Severity::INFO);
   flexi_cfg::Reader cfg({}, "");  // Nominally, we wouldn't do this, but we need a mechanism to
                                   // capture the output of 'parse' from within the "try/catch" block
 
@@ -63,8 +63,19 @@ TEST_P(InputString, Reader) {
   EXPECT_EQ(cfg.getValue<bool>("test2.n_key"), true);
   EXPECT_EQ(cfg.getType("test2.n_key"), flexi_cfg::config::types::Type::kBoolean);
   EXPECT_TRUE(cfg.exists("test2.inner.list"));
-  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.list"), std::vector<int>({1, 2, 3, 4}));
   EXPECT_EQ(cfg.getType("test2.inner.list"), flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.list"), std::vector({1, 2, 3, 4}));
+  EXPECT_TRUE(cfg.exists("test2.inner.emptyList"));
+  EXPECT_EQ(cfg.getType("test2.inner.emptyList"), flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.emptyList"), std::vector<int>({}));
+  EXPECT_TRUE(cfg.exists("test2.inner.listWithComment"));
+  EXPECT_EQ(cfg.getType("test2.inner.listWithComment"), flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.listWithComment"), std::vector({0, 2}));
+  EXPECT_TRUE(cfg.exists("test2.inner.listWithTrailingComment"));
+  EXPECT_EQ(cfg.getType("test2.inner.listWithTrailingComment"),
+            flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.listWithTrailingComment"),
+            std::vector({0, 2}));
   EXPECT_TRUE(cfg.exists("test2"));
   EXPECT_EQ(cfg.getType("test2"), flexi_cfg::config::types::Type::kStruct);
   EXPECT_TRUE(cfg.exists("test1"));
@@ -111,6 +122,15 @@ struct test2 {
 
     struct inner {
         list = [1, 2, 3, 4]
+        emptyList = []
+        listWithComment = [
+# I don't matter
+        0, 2
+        ]
+        listWithTrailingComment = [
+          0,
+          2# I don't matter
+        ]
     }
 }
 
@@ -139,16 +159,15 @@ auto baseDir() -> const std::filesystem::path& {
 
 auto filenameGenerator() -> std::vector<std::filesystem::path> {
   std::vector<std::filesystem::path> files;
-  auto genFilename = [](std::size_t idx) -> std::filesystem::path {
-    return baseDir() / ("config_example" + std::to_string(idx) + ".cfg");
-  };
-  for (size_t idx = 1;; ++idx) {
-    const auto cfg_file = genFilename(idx);
-    if (!std::filesystem::exists(cfg_file)) {
-      break;
+  for (const auto& entry : std::filesystem::directory_iterator(baseDir())) {
+    if (entry.is_regular_file()) {
+      if (const auto& file = entry.path().filename().string();
+          file.starts_with("config_example") && file.ends_with(".cfg")) {
+        files.emplace_back(file);
+      }
     }
-    files.emplace_back(cfg_file.filename());
   }
+  std::ranges::sort(files);
   return files;
 }
 }  // namespace
@@ -189,7 +208,7 @@ TEST_P(FileInput, ConfigReaderParseRootDir) {
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));
 
 TEST(ConfigParse, ConfigRoot) {
-  flexi_cfg::logger::setLevel(flexi_cfg::logger::Severity::DEBUG);
+  setLevel(flexi_cfg::logger::Severity::DEBUG);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(
       std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
 }
