@@ -1,0 +1,72 @@
+#
+# This helps running all the tests and checks from various compilers we support
+#
+# usage: docker compose up --build -d                                       # checks all compilers
+#        docker compose run --rm clang-14 bash -c "build-and-test;bash"     # interactive
+#        docker compose logs -f gcc-12                                      # gcc-12 build logs
+#        docker compose run gcc-12 bash                                     # shell into gcc-12 to run interactively
+#        docker compose down                                                # stops containers
+#        docker compose run --rm clean                                      # cleans the FetchContent `build/_dep`
+
+services:
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    user: user:user
+    tty: true
+    stdin_open: true
+    restart: no
+    volumes: [ "./:/usr/src/flexi_cfg" ]
+
+  clean:
+    extends:
+      service: base
+    container_name: clean
+    build:
+      target: clean
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/:/usr/src/flexi_cfg_build/_deps" ]
+    profiles: [ donotstart ]
+
+  gcc-12:
+    extends:
+      service: base
+    container_name: gcc-12
+    tty: true
+    stdin_open: true
+    build:
+      target: gcc-12
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/gcc-12:/usr/src/flexi_cfg_build/_deps" ]
+
+  clang-13:
+    extends:
+      service: base
+    container_name: clang-13
+    build:
+      target: clang-13
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-13:/usr/src/flexi_cfg_build/_deps" ]
+
+  clang-13-ubuntu20:
+    extends:
+      service: base
+    container_name: clang-13-ubuntu20
+    build:
+      target: clang-13-ubuntu20
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-13:/usr/src/flexi_cfg_build/_deps" ]
+
+  clang-14:
+    extends:
+      service: base
+    container_name: clang-14
+    build:
+      target: clang-14
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-14:/usr/src/flexi_cfg_build/_deps" ]
+
+  clang-15:
+    extends:
+      service: base
+    container_name: clang-15
+    build:
+      target: clang-15
+    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-15:/usr/src/flexi_cfg_build/_deps" ]
