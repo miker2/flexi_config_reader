@@ -39,10 +39,22 @@ auto isStructLike(const types::BasePtr& el) -> bool;
 auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const std::string& key)
     -> bool;
 
+/// @brief Merge two dictionaries recursively, prioritizing rhs over lhs in the event of a conflict.
+/// @param lhs Base dictionary to merge into
+/// @param rhs Overriding dictionary
+/// @param is_overlay If true, then the merge will be done in an overlay fashion, meaning that all keys in rhs must exist in lhs with the same value type.
+void mergeLeft(types::CfgMap& lhs, const types::CfgMap& rhs, const bool is_overlay = false);
+
 /* Merge dictionaries recursively and keep all nested keys combined between the two dictionaries.
  * Any key/value pairs that already exist in the leaves of cfg1 will be overwritten by the same
  * key/value pairs from cfg2. */
 auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> types::CfgMap;
+
+/// @brief Compare two maps recursively
+/// @param lhs First map
+/// @param rhs Second map
+/// @return true if the two maps are identical
+auto compareNestedMaps(const types::CfgMap& lhs, const types::CfgMap& rhs) -> bool;
 
 auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
                          const std::shared_ptr<types::ConfigProto>& proto)

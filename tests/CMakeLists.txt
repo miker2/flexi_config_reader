@@ -130,3 +130,23 @@ target_include_directories(math_test PRIVATE
 
 add_clang_format(math_test)
 gtest_discover_tests(math_test)
+
+################################################################################
+add_executable(
+  config_merge_test
+  config_merge_test.cpp
+  )
+
+target_link_libraries(
+  config_merge_test
+  flexi_cfg
+  taocpp::pegtl
+  gtest_main
+  )
+
+target_include_directories(config_merge_test PRIVATE
+  ${PROJECT_SOURCE_DIR}/include/
+  )
+
+add_clang_format(config_merge_test)
+gtest_discover_tests(config_merge_test)

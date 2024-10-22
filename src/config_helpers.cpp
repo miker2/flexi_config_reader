@@ -36,7 +36,7 @@ auto isStructLike(const types::BasePtr& el) -> bool {
 // Three cases to check for:
 //   - Both are dictionaries     - This is okay
 //   - Neither are dictionaries  - This is bad - even if the same value, we don't allow duplicates
-//   - Only ones is a dictionary - Also bad. We can't handle this one
+//   - Only one is a dictionary  - Also bad. We can't handle this one
 auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const std::string& key)
     -> bool {
   const auto dict_count =
@@ -58,6 +58,40 @@ auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const 
                     cfg1.at(key)->type, cfg2.at(key)->type);
   }
   return dict_count == 2;  // All good if both are dictionaries (for now);
+}
+
+void mergeLeft(types::CfgMap& lhs, const types::CfgMap& rhs, const bool is_overlay) {
+  std::for_each(std::begin(rhs), std::end(rhs), [&](const auto& rhs_kv) {
+    const auto& rhs_key = rhs_kv.first;
+    const auto& rhs_val = rhs_kv.second;
+    // rhs key not found in lhs, so add it
+    if (!lhs.contains(rhs_key)) {
+      if (is_overlay) {
+        THROW_EXCEPTION(InvalidKeyException,
+                        "Key '{}' not found in lhs, but is required for overlay merge.", rhs_key);
+      }
+      lhs.emplace(rhs_key, rhs_val);
+      return;
+    }
+
+    // If this is an overlay and the types don't match, throw an exception
+    if (is_overlay && (lhs.at(rhs_key)->type != rhs_val->type)) {
+      THROW_EXCEPTION(
+          MismatchTypeException,
+          "Types at key '{}' must match for an overlay merge. lhs is '{}', rhs is '{}'.", rhs_key,
+          lhs.at(rhs_key)->type, rhs_val->type);
+    }
+
+    // Both children are struct-like, so recurse into them
+    if (isStructLike(lhs.at(rhs_key)) && isStructLike(rhs.at(rhs_key))) {
+      mergeLeft(dynamic_pointer_cast<types::ConfigStructLike>(lhs.at(rhs_key))->data,
+                dynamic_pointer_cast<types::ConfigStructLike>(rhs.at(rhs_key))->data, is_overlay);
+      return;
+    }
+
+    // Replace lhs value with rhs value
+    lhs.at(rhs_key) = rhs_val;
+  });
 }
 
 /* Merge dictionaries recursively and keep all nested keys combined between the two dictionaries.
@@ -94,6 +128,40 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
   }
 
   return cfg_out;
+}
+
+auto compareNestedMaps(const types::CfgMap& lhs, const types::CfgMap& rhs) -> bool {
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+
+  bool match = true;
+  std::for_each(std::begin(lhs), std::end(lhs), [&](const auto& lhs_kv) {
+    const auto& k = lhs_kv.first;
+    const auto& lhs_val = lhs_kv.second;
+    // Check that rhs contains the key
+    if (!rhs.contains(k)) {
+      match = false;
+      return;
+    }
+    const auto& rhs_val = rhs.at(k);
+    // Compare types
+    if (lhs_val->type != rhs_val->type) {
+      match = false;
+      return;
+    }
+    // If both are dictionaries, recurse into them
+    if (isStructLike(lhs_val) && isStructLike(rhs_val)) {
+      match =
+          match && compareNestedMaps(dynamic_pointer_cast<types::ConfigStructLike>(lhs_val)->data,
+                                     dynamic_pointer_cast<types::ConfigStructLike>(rhs_val)->data);
+    }
+    // Otherwise, compare the values
+    match = match && (*lhs_val == *rhs_val);
+    return;
+  });
+
+  return match;
 }
 
 auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
