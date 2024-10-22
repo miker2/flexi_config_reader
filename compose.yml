@@ -1,7 +1,7 @@
 #
 # This helps running all the tests and checks from various compilers we support
 #
-# usage: docker compose up --build -d                                       # checks all compilers
+# usage: docker compose up --build --force-recreate -d                      # checks all compilers
 #        docker compose run --rm clang-14 bash -c "build-and-test;bash"     # interactive
 #        docker compose logs -f gcc-12                                      # gcc-12 build logs
 #        docker compose run gcc-12 bash                                     # shell into gcc-12 to run interactively
@@ -45,14 +45,6 @@ services:
     container_name: clang-13
     build:
       target: clang-13
-    volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-13:/usr/src/flexi_cfg_build/_deps" ]
-
-  clang-13-ubuntu20:
-    extends:
-      service: base
-    container_name: clang-13-ubuntu20
-    build:
-      target: clang-13-ubuntu20
     volumes: [ "${HOME}/.cache/flexi_cfg_build_deps/clang-13:/usr/src/flexi_cfg_build/_deps" ]
 
   clang-14:
