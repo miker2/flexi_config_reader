@@ -3,19 +3,21 @@
 #include <fmt/format.h>
 
 #include <array>
-#include <filesystem>
-#include <iostream>
 #include <memory>
+#include <range/v3/range/conversion.hpp>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
-#include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
+#include "flexi_cfg/visitor.h"
+#include "flexi_cfg/visitor-internal.h"
+#include "flexi_cfg/reader.h"
 
 namespace flexi_cfg {
 
@@ -32,6 +34,15 @@ class Reader {
 
   /// \brief Prints the full config to the console
   void dump() const;
+
+  /// \brief Prints the full config to the stream
+  void dump(std::ostream& os) const;
+
+  /// \brief Walks the full config tree
+  template <visitor::TypedVisitor Visitor>
+  void visit(Visitor& visitor) const {
+    return visitor::internal::visitStruct(cfg_data_, visitor);
+  }
 
   /// \brief Checks if an entry with the provided key exists
   /// \param[in] key The name of the key of interest

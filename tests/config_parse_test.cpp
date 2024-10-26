@@ -15,6 +15,8 @@
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
+#include "flexi_cfg/visitor-json.h"
+#include "flexi_cfg/visitor.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -282,4 +284,130 @@ TEST(ConfigParse, ConfigRoot) {
   setLevel(flexi_cfg::logger::Severity::DEBUG);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(
       std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
+}
+
+TEST(ConfigVisitor, JsonConfigVisitor) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config_example16.cfg"), baseDir());
+
+  auto visitor = flexi_cfg::visitor::JsonVisitor();
+  cfg.visit(visitor);
+  std::string json = visitor;
+
+  ASSERT_EQ(
+      "{\"back\":{\"left\":{\"name\":\"back\",\"offset\":[0.15,-9,-0.06,-0.5]},\"right\":{\"name\":"
+      "\"back\",\"offset\":[0.15,9,-0.06]},\"test_list\":[0.123,-0.06,4.567]},\"constants\":{"
+      "\"var1\":0.15,\"var2\":-0.06,\"var3\":9},\"front\":{\"left\":{\"name\":\"front\",\"offset\":"
+      "[0.15,9,-0.06,-0.5]},\"right\":{\"name\":\"front\",\"offset\":[0.15,-9,-0.06]}},\"my_proto_"
+      "as_struct\":{\"my_struct_in_proto\":{\"my_value_float\":1.23,\"my_value_int\":123,\"my_"
+      "value_string\":\"myvalue\"}},\"my_struct\":{\"my_value_float\":1.23,\"my_value_int\":123,"
+      "\"my_value_string\":\"myvalue\"},\"my_value_bool\":true,\"my_value_float\":1.23,\"my_value_"
+      "int\":123,\"my_value_list\":[\"one\",\"two\",\"three\"],\"my_value_list_of_lists\":[[1,2],["
+      "2,3],[4,5,6]],\"my_value_string\":\"myvalue\",\"my_value_uintlist\":[0,1,3,5]}",
+      json);
+}
+
+TEST(ConfigVisitor, PrettyJsonConfigVisitor) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config_example16.cfg"), baseDir());
+
+  auto visitor = flexi_cfg::visitor::PrettyJsonVisitor();
+  cfg.visit(visitor);
+  std::string json = visitor;
+
+  ASSERT_EQ(
+      R"({
+  "back" : {
+    "left" : {
+      "name" : "back",
+      "offset" : [
+        0.15,
+        -9,
+        -0.06,
+        -0.5
+      ]
+    },
+    "right" : {
+      "name" : "back",
+      "offset" : [
+        0.15,
+        9,
+        -0.06
+      ]
+    },
+    "test_list" : [
+      0.123,
+      -0.06,
+      4.567
+    ]
+  },
+  "constants" : {
+    "var1" : 0.15,
+    "var2" : -0.06,
+    "var3" : 9
+  },
+  "front" : {
+    "left" : {
+      "name" : "front",
+      "offset" : [
+        0.15,
+        9,
+        -0.06,
+        -0.5
+      ]
+    },
+    "right" : {
+      "name" : "front",
+      "offset" : [
+        0.15,
+        -9,
+        -0.06
+      ]
+    }
+  },
+  "my_proto_as_struct" : {
+    "my_struct_in_proto" : {
+      "my_value_float" : 1.23,
+      "my_value_int" : 123,
+      "my_value_string" : "myvalue"
+    }
+  },
+  "my_struct" : {
+    "my_value_float" : 1.23,
+    "my_value_int" : 123,
+    "my_value_string" : "myvalue"
+  },
+  "my_value_bool" : true,
+  "my_value_float" : 1.23,
+  "my_value_int" : 123,
+  "my_value_list" : [
+    "one",
+    "two",
+    "three"
+  ],
+  "my_value_list_of_lists" : [
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      4,
+      5,
+      6
+    ]
+  ],
+  "my_value_string" : "myvalue",
+  "my_value_uintlist" : [
+    0,
+    1,
+    3,
+    5
+  ]
+}
+)",
+      json);
 }
