@@ -47,7 +47,6 @@ pytest_discover_tests(
         $<TARGET_FILE_DIR:flexi_cfg_py>
         PYTHON_PATH_PREPEND
         $<TARGET_FILE_DIR:flexi_cfg_py>
-#        TRIM_FROM_NAME "^test_"
         ENVIRONMENT  "EXAMPLES_DIR=${CMAKE_SOURCE_DIR}/examples"
         DEPENDS flexi_cfg_py
 )
