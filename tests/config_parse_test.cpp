@@ -231,7 +231,7 @@ auto baseDir() -> const std::filesystem::path& {
 
 auto filenameGenerator() -> std::vector<std::filesystem::path> {
   // don't try to parse files meant to be included
-  std::regex re_config(R"(config_example_\d+\.cfg)");
+  std::regex re_config(R"(config_example\d+\.cfg)");
   std::vector<std::filesystem::path> files;
   for (const auto& entry : std::filesystem::directory_iterator(baseDir())) {
     if (entry.is_regular_file()) {
