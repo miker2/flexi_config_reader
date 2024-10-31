@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <filesystem>
-#include <latch>
+#include <regex>
 #include <string>
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
@@ -16,7 +16,6 @@
 #include "flexi_cfg/parser.h"
 #include "flexi_cfg/reader.h"
 #include "flexi_cfg/visitor-json.h"
-#include "flexi_cfg/visitor.h"
 
 namespace peg = TAO_PEGTL_NAMESPACE;
 
@@ -231,11 +230,12 @@ auto baseDir() -> const std::filesystem::path& {
 }
 
 auto filenameGenerator() -> std::vector<std::filesystem::path> {
+  // don't try to parse files meant to be included
+  std::regex re_config(R"(config_example_\d+\.cfg)");
   std::vector<std::filesystem::path> files;
   for (const auto& entry : std::filesystem::directory_iterator(baseDir())) {
     if (entry.is_regular_file()) {
-      if (const auto& file = entry.path().filename().string();
-          file.starts_with("config_example") && file.ends_with(".cfg")) {
+      if (const auto& file = entry.path().filename().string(); std::regex_match(file, re_config)) {
         files.emplace_back(file);
       }
     }
