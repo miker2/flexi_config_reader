@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # project root will be mounted at /usr/src/flexi_cfg
 COPY <<EOF /usr/bin/cmake-setup
 #!/bin/bash
+pip3 install -r /usr/src/flexi_cfg/requirements.txt
 cmake /usr/src/flexi_cfg -DCMAKE_BUILD_TYPE=Debug -DENABLE_CLANG_TIDY:BOOL=ON -DCFG_ENABLE_DEBUG:BOOL=ON -DCFG_ENABLE_PARSER_TRACE:BOOL=OFF -DCFG_EXAMPLES:BOOL=ON -DCFG_PYTHON_BINDINGS:BOOL=ON -G Ninja
 EOF
 RUN chmod +x /usr/bin/cmake-setup
@@ -65,7 +66,7 @@ term_handler() {
 # Trap termination signals (SIGTERM, SIGINT)
 trap 'term_handler' SIGTERM SIGINT
 
-sudo chown -R ${USER_UID}:${USER_GID} /usr/src/flexi_cfg_build
+sudo chown -R ${USER_UID}:${USER_GID} /usr/src
 echo "== Executing == \$@ =="
 exec "\$@"
 echo "== DONE =="

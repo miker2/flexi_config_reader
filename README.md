@@ -317,6 +317,58 @@ struct foo {  # A trailing comment works like this
 
 See [`config_example3.cfg`](examples/config_example3.cfg) and [`config_example5.cfg`](examples/config_example5.cfg) for additional examples of comment usage.
 
+## Extras
+
+### JSON Output
+
+When interfacing with other systems and tools that don't support FlexiConfig natively it's often helpful to have a JSON representation of the fully materialized FlexiConfig tree. To export a config to a JSON string, you can use one of the following options:
+
+```cpp
+#include <flexi_cfg/reader.h>
+#include <flexi_cfg/visitor-json.h>
+
+// Parse the config
+auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config.cfg"));
+
+// Human readable indented JSON format
+auto visitor = flexi_cfg::visitor::PrettyJsonVisitor();
+cfg.visit(visitor);
+std::string json = visitor;
+  
+// Compact JSON format
+auto visitor = flexi_cfg::visitor::JsonVisitor();
+cfg.visit(visitor);
+std::string json = visitor;
+```
+
+```python
+import flexi_cfg
+
+# Parse the config
+cfg = flexi_cfg.parse("config.cfg")
+
+# Human readable indented JSON format
+json = cfg.json(pretty=True)
+
+# Compact JSON format
+json = cfg.json()
+```
+
+### Introspection with Visitor API
+
+The C++ API provides a [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern) through `flexi_cfg::Reader.visit(visitor)` to traverse the fully materialized FlexiConfig tree. This API offers a way to examine the configuration structure and data without requiring prior knowledge of specific `keys` or `types` in your code. One example of its utility is the [JSON Output](#JSON Output) functionality; additional formats can be similarly supported with ease.
+
+Implement a visitor `class` that matches one or more of the following [&lt;concepts&gt;](https://en.cppreference.com/w/cpp/language/constraints) and pass it to the `flexi_cfg::Reader` which will then invoke the respective callback functions as it encounters the various FlexiConfig elements the visitor is interested in:
+
+- [flexi_cfg::visitor::KeyVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::IntValueVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::FloatValueVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::StringValueVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::BoolValueVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::ListVisitor](include/flexi_cfg/visitor.h)
+- [flexi_cfg::visitor::StructVisitor](include/flexi_cfg/visitor.h)
+
+
 # Parsers
 
 ## C++

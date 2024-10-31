@@ -1,3 +1,4 @@
-pe
-deepdiff
-pytest
+pe==0.5
+deepdiff==8.0
+pytest==8.3
+pytest-cmake==0.11

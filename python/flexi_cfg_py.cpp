@@ -4,6 +4,7 @@
 #include <flexi_cfg/parser.h>
 #include <flexi_cfg/reader.h>
 #include <flexi_cfg/utils.h>
+#include <flexi_cfg/visitor-json.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
@@ -179,7 +180,20 @@ PYBIND11_MODULE(flexi_cfg, m) {
                                                                       pyFlexiCfgException);
 
   py::class_<flexi_cfg::Reader>(m, "Reader")
-      .def("dump", &flexi_cfg::Reader::dump)
+      .def(
+          "json",
+          [](const flexi_cfg::Reader& r, bool pretty) -> std::string {
+            if (pretty) {
+              auto json_visitor = flexi_cfg::visitor::PrettyJsonVisitor();
+              r.visit(json_visitor);
+              return json_visitor;
+            }
+            auto json_visitor = flexi_cfg::visitor::JsonVisitor();
+            r.visit(json_visitor);
+            return json_visitor;
+          },
+          py::arg("pretty")=false)
+      .def("dump", [](const flexi_cfg::Reader& r) { r.dump(); })
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)
       .def("get_type", &flexi_cfg::Reader::getType)
@@ -202,14 +216,14 @@ PYBIND11_MODULE(flexi_cfg, m) {
       .def("get_value", &getValueGeneric);
 
   py::class_<flexi_cfg::Parser>(m, "Parser")
-      .def_static("parse", &flexi_cfg::Parser::parse, py::arg("cfg_file"), py::arg("root_dir") = std::nullopt)
-      .def_static("parse_from_string",
-                  &flexi_cfg::Parser::parseFromString,
-                  py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
+      .def_static("parse", &flexi_cfg::Parser::parse, py::arg("cfg_file"),
+                  py::arg("root_dir") = std::nullopt)
+      .def_static("parse_from_string", &flexi_cfg::Parser::parseFromString, py::arg("cfg_string"),
+                  py::pos_only(), py::arg("source") = "unknown");
 
   m.def("parse", &flexi_cfg::parse, py::arg("cfg_file"), py::arg("root_dir") = std::nullopt);
-  m.def("parse_from_string", &flexi_cfg::parseFromString,
-        py::arg("cfg_string"), py::pos_only(), py::arg("source") = "unknown");
+  m.def("parse_from_string", &flexi_cfg::parseFromString, py::arg("cfg_string"), py::pos_only(),
+        py::arg("source") = "unknown");
 
   py::class_<Logger> logger_holder(m, "logger");
   py::enum_<flexi_cfg::logger::Severity>(logger_holder, "Severity")

@@ -129,6 +129,9 @@ set(CFG_HEADERS
   include/flexi_cfg/math/actions.h
   include/flexi_cfg/math/grammar.h
   include/flexi_cfg/math/helpers.h
+  include/flexi_cfg/visitor.h
+  include/flexi_cfg/visitor-internal.h
+  include/flexi_cfg/visitor-json.h
   include/flexi_cfg/utils.h)
 
 add_library(flexi_cfg
@@ -161,21 +164,6 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/"
 
 add_subdirectory(src)
 
-if (CFG_PYTHON_BINDINGS)
-  # Get pybind11
-  FetchContent_Declare(
-    pybind11
-    GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG        v2.12.0
-    SYSTEM
-    EXCLUDE_FROM_ALL
-  )
-  FetchContent_MakeAvailable(pybind11)
-
-  message(STATUS "Building python bindings")
-  add_subdirectory(python)
-endif()
-
 if (CFG_ENABLE_TEST)
   # Get gtest
   FetchContent_Declare(
@@ -197,4 +185,19 @@ if (CFG_ENABLE_TEST)
 
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+if (CFG_PYTHON_BINDINGS)
+  # Get pybind11
+  FetchContent_Declare(
+          pybind11
+          GIT_REPOSITORY https://github.com/pybind/pybind11.git
+          GIT_TAG        v2.12.0
+          SYSTEM
+          EXCLUDE_FROM_ALL
+  )
+  FetchContent_MakeAvailable(pybind11)
+
+  message(STATUS "Building python bindings")
+  add_subdirectory(python)
 endif()

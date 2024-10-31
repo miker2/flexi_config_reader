@@ -1,6 +1,7 @@
 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
+find_package(Pytest 8.3 REQUIRED)
 
 # message(STATUS "site-packages (arch):  ${Python_SITEARCH}")
 # message(STATUS "site-packages (lib):   ${Python_SITELIB}")
@@ -15,14 +16,6 @@ pybind11_add_module(flexi_cfg_py flexi_cfg_py.cpp)
 target_link_libraries(flexi_cfg_py PUBLIC flexi_cfg)
 set_target_properties(flexi_cfg_py PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 set_target_properties(flexi_cfg_py PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
-
-add_test(NAME test_flexi_cfg
-  COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
-set_tests_properties(test_flexi_cfg
-  PROPERTIES ENVIRONMENT "EXAMPLES_DIR=${PROJECT_SRC_DIR}/examples")
-
 
 # detect virtualenv and set Pip args accordingly
 if(DEFINED ENV{VIRTUAL_ENV} OR DEFINED ENV{CONDA_PREFIX})
@@ -47,6 +40,17 @@ if (NOT(${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
   add_custom_target(flexi_cfg_py_stubgen ALL DEPENDS ${PROJECT_NAME}/__init__.pyi)
 endif()
 
+if (CFG_ENABLE_TEST)
+pytest_discover_tests(
+        test_flexi_cfg_py
+        LIBRARY_PATH_PREPEND
+        $<TARGET_FILE_DIR:flexi_cfg_py>
+        PYTHON_PATH_PREPEND
+        $<TARGET_FILE_DIR:flexi_cfg_py>
+        ENVIRONMENT  "EXAMPLES_DIR=${CMAKE_SOURCE_DIR}/examples"
+        DEPENDS flexi_cfg_py
+)
+endif()
 
 install(TARGETS flexi_cfg_py
         COMPONENT python

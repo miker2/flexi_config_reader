@@ -1,8 +1,7 @@
-import logging
 import math
 import os
-import pprint
 import unittest
+import json
 
 import flexi_cfg
 
@@ -62,14 +61,16 @@ class TestMyConfig(unittest.TestCase):
 
         cfg_test2 = cfg.get_reader("test2")
         self.assertEqual(sorted(cfg_test2.keys()), sorted(expected_cfg["test2"].keys()))
-        
-    def test_cfg_file(self):
+
+    def parse_cfg_file(self):
         cfg_file = "config_example1.cfg"
         try:
             cfg_file_path = os.path.join(os.environ['EXAMPLES_DIR'], cfg_file)
         except KeyError:
             cfg_file_path = os.path.join("../examples", cfg_file)
+        return flexi_cfg.parse(cfg_file_path)
 
+    def expected_cfg_file(self):
         expected_cfg = {'another_key': "test",
                         'test1': {'f': ['foo', 'bar', 'baz'],
                                   'key1': 'value',
@@ -89,8 +90,11 @@ class TestMyConfig(unittest.TestCase):
                         'c' : 2,
                         'd' : 2,}
         expected_cfg['test2']['var_ref'] = expected_cfg['test1']['key3']
-        
-        cfg = flexi_cfg.parse(cfg_file_path)
+        return expected_cfg;
+
+    def test_cfg_file(self):
+        cfg = self.parse_cfg_file()
+        expected_cfg = self.expected_cfg_file()
 
         self.assertEqual(sorted(cfg.keys()), sorted(expected_cfg.keys()))
         self.assertEqual(cfg.get_float('test1.key3'), cfg.get_float('test2.var_ref'))
@@ -127,6 +131,20 @@ class TestMyConfig(unittest.TestCase):
         self.assertEqual(cfg.get_value('float_list'), expected_cfg['float_list'])
         self.assertEqual(cfg.get_value('uint64'), expected_cfg['uint64'])
 
+    def validate_cfg_file(self, cfg):
+        expected_cfg = self.expected_cfg_file()
+        # deep equals check on config dicts
+        self.assertEqual(cfg, expected_cfg, "JSON parsed config should match the Python dict")
+
+    def test_cfg_file_as_json(self):
+        cfg_reader = self.parse_cfg_file()
+        cfg = json.loads(cfg_reader.json())
+        self.validate_cfg_file(cfg)
+
+    def test_cfg_file_as_json(self):
+        cfg_reader = self.parse_cfg_file()
+        cfg = json.loads(cfg_reader.json(pretty=False))
+        self.validate_cfg_file(cfg)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
