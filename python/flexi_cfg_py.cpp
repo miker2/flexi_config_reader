@@ -192,7 +192,7 @@ PYBIND11_MODULE(flexi_cfg, m) {
             r.visit(json_visitor);
             return json_visitor;
           },
-          py::arg("pretty")=true)
+          py::arg("pretty")=false)
       .def("dump", [](const flexi_cfg::Reader& r) { r.dump(); })
       .def("exists", &flexi_cfg::Reader::exists)
       .def("keys", &flexi_cfg::Reader::keys)

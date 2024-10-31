@@ -22,8 +22,8 @@ class JsonVisitor {
     struct_count_++;
   }
   void endStruct() {
+    stripComma();
     struct_count_--;
-    json_.resize(json_.length() - 1);  // strip last ','
     json_ += "}";
     if (struct_count_ > 0) {
       json_ += ",";
@@ -31,11 +31,16 @@ class JsonVisitor {
   }
   void beginList() { json_ += "["; }
   void endList() {
-    json_.resize(json_.length() - 1);  // strip last ','
+    stripComma();
     json_ += "],";
   }
 
  private:
+  void stripComma() {
+    if (json_.back() == ',') {
+      json_.pop_back();  // strip last ','
+    }
+  }
   std::string json_;
   unsigned int struct_count_{};
 };
@@ -91,8 +96,11 @@ class PrettyJsonVisitor {
  private:
   void updateIndent() { indent_ = std::string(nest_count_ * 2, ' '); }
   void stripComma() {
-    json_.resize(json_.length() - 2);  // strip last ',\n'
-    json_ += "\n";                     // replace with '\n'
+    if (json_.ends_with(",\n")) {  // replace ',\n' with '\n'
+      json_.pop_back();
+      json_.pop_back();
+      json_.push_back('\n');
+    }
   }
   std::string indent_{};
   std::string json_;
