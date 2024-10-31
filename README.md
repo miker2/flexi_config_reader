@@ -376,7 +376,7 @@ The C++ implementation uses the [`taocpp::pegtl`](https://github.com/taocpp/PEGT
 `PEGTL` uses a templatized syntax to define the grammar (which can be found [here](cpp/config_grammar.h)).  This is used
 for parsing the raw config file, along with a set of [actions](cpp/config_actions.h) which define how to act on the parse
 output.  Once the raw config files are parsed, there is a second pass that does the following:
-1. Finds all protos defined in the parsed output<
+1. Finds all protos defined in the parsed output
 2. Merges all nested structs into a single struct
 3. Resolves all references (and their associated variables), turning references to `proto`s into `struct`s.
 4. Unflattens any flat key/value pairs
