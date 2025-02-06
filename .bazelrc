@@ -1,0 +1,6 @@
+# Set C++20 as the default C++ standard
+build --cxxopt='-std=c++20'
+
+# Optional: Add other common compiler flags
+build --cxxopt='-Wall'
+build --cxxopt='-Wextra' 
