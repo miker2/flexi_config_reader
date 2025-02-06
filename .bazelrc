@@ -1,3 +1,5 @@
+common --enable_bzlmod
+
 # Set C++20 as the default C++ standard
 build --cxxopt='-std=c++20'
 
