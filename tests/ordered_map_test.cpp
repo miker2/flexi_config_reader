@@ -424,7 +424,7 @@ TEST(OrderedMap, find) {
 TEST(OrderedMap, size_t_test) {
   // This test ensures that we can create an ordered_map that uses the same type for the key_type
   // and value_type and that when using a size_t all of the functions work. With some of the
-  // initiali implementation the iterator overload resolution was failing.
+  // initial implementation the iterator overload resolution was failing.
   flexi_cfg::details::ordered_map<size_t, size_t> map = {{0, 3}, {1, 2}, {2, 1}, {3, 0}};
   EXPECT_EQ(map.size(), 4);
 
