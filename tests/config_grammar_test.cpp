@@ -703,7 +703,13 @@ TEST(ConfigGrammar, PAIR) {
     checkPair(fmt::format(content, "[override] "), Type::kNumber, true);
   }
   {
-    constexpr std::string_view content = "key{}= \"value\"";
+    // NOTE: Extra {} required due to the usage of `fmt::format`
+    constexpr std::string_view content = "key    {}  = {{{{ 2 * pi }}}}";
+    checkPair(fmt::format(content, " "), Type::kExpression, false);
+    checkPair(fmt::format(content, "[override] "), Type::kExpression, true);
+  }
+  {
+    constexpr std::string_view content = R"(key{}= "value")";
     checkPair(fmt::format(content, "\t"), Type::kString, false);
     checkPair(fmt::format(content, "\t[override]\t"), Type::kString, true);
   }
