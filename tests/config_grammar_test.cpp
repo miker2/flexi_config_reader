@@ -789,11 +789,36 @@ TEST(ConfigGrammar, FULLPAIR) {
       EXPECT_EQ(cfg_map->at(keys.back())->type, expected_type);
     }
   };
+  using flexi_cfg::config::types::Type;
 
   {
-    const std::string content = flat_key + "   =  5.37e+6";
-    checkFullPair(content, flexi_cfg::config::types::Type::kNumber, false);
-    checkFullPair(flat_key + " [override] = 5.37e+6", flexi_cfg::config::types::Type::kNumber, true);
+    const auto value = 123;
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
+  }
+  {
+    const auto value = "0x123";
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
+  }
+  {
+    const auto value = 5.37e-3;
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
+  }
+  {
+    const auto value = "{{ 2 * pi }}";
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kExpression, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kExpression, true);
+  }
+  {
+    const auto value = "value";
+    checkFullPair(fmt::format("{} = \"{}\"", flat_key, value), Type::kString, false);
+    checkFullPair(fmt::format("{} [override] = \"{}\"", flat_key, value), Type::kString, true);
+  }
+  {
+    checkFullPair(fmt::format("{} = true", flat_key), Type::kBoolean, false);
+    checkFullPair(fmt::format("{} [override] = true", flat_key), Type::kBoolean, true);
   }
 }
 
