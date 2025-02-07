@@ -797,7 +797,7 @@ TEST(ConfigGrammar, FULLPAIR) {
     checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
   }
   {
-    const auto value = "0x123";
+    const auto *const value = "0x123";
     checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
     checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
   }
@@ -807,12 +807,12 @@ TEST(ConfigGrammar, FULLPAIR) {
     checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
   }
   {
-    const auto value = "{{ 2 * pi }}";
+    const auto *const value = "{{ 2 * pi }}";
     checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kExpression, false);
     checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kExpression, true);
   }
   {
-    const auto value = "value";
+    const auto *const value = "value";
     checkFullPair(fmt::format("{} = \"{}\"", flat_key, value), Type::kString, false);
     checkFullPair(fmt::format("{} [override] = \"{}\"", flat_key, value), Type::kString, true);
   }
