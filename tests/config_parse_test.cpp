@@ -87,6 +87,16 @@ TEST_P(InputString, Reader) {
   EXPECT_TRUE(cfg.exists("test2.inner"));
   EXPECT_EQ(cfg.getType("test2.inner"), flexi_cfg::config::types::Type::kStruct);
 
+  // Coverage for expression override. The values below should match the value on the line
+  // struct test2 {
+  //   struct inner {
+  //     expression [override] = {{ 2**-0.5 }}
+  //   }
+  // }
+  EXPECT_TRUE(cfg.exists("test2.inner.expression"));
+  EXPECT_EQ(cfg.getType("test2.inner.expression"), flexi_cfg::config::types::Type::kNumber);
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("test2.inner.expression"), 1.f / sqrt(2.0f));
+
   // Coverage for override. The values below should match the value on the following line:
   //  a [override] = 2
   // All of the following variables should match the override value:
@@ -181,6 +191,12 @@ struct test1 {
     f = "none"
 }
 
+struct test2 {
+    struct inner {
+        expression [override] = {{ 2**-0.5 }}
+    }
+}
+
 reference p as q {
   $A = $(a)
 }
@@ -194,6 +210,7 @@ struct test2 {
 
     struct inner {
         list = [1, 2, 3, 4]
+        expression = {{ 2 * pi }}
         emptyList = []
         listWithComment = [
 # I don't matter
