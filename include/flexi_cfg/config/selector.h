@@ -66,13 +66,13 @@ struct selector<INCLUDE> : std::true_type {
       new_tree->children.pop_back();
       n->remove_content();
       n = std::move(c);
-      logger::trace("c={}", fmt::ptr(c));
+      logger::trace("c={}", fmt::ptr(c.get()));
       logger::trace(
           "n={}\n"
           " --- n has {} children.\n"
           " --- Source: {}\n"
           " ------ size: {}",
-          fmt::ptr(n), n->children.size(), n->source, n->source.size());
+          fmt::ptr(n.get()), n->children.size(), n->source, n->source.size());
     } else {
       logger::error("Failed to properly parse {}", include_path.string());
     }
