@@ -48,7 +48,7 @@ else(magic_enum_FOUND)
 endif(magic_enum_FOUND)
 
 # FMT tag 10.1.1
-set(FMT_VERSION_REQUIRED 10.1.1)
+set(FMT_VERSION_REQUIRED 11.1.3)
 FetchContent_Declare(
   fmt
   GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
