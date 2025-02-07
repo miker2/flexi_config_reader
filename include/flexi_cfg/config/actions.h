@@ -319,6 +319,7 @@ struct action<LIST::element> {
                       out.lists.back()->list_element_type, out.lists.back()->type);
     }
     out.lists.back()->data.push_back(std::move(out.obj_res));
+    // Set the moved object to null so it isn't left in an invalid state
     out.obj_res = nullptr;
   }
 };
@@ -347,6 +348,7 @@ struct action<PROTO_LIST::element> {
                       out.lists.back()->list_element_type, out.lists.back()->type);
     }
     out.lists.back()->data.push_back(std::move(out.obj_res));
+    // Set the moved object to null so it isn't left in an invalid state
     out.obj_res = nullptr;
   }
 };
@@ -625,9 +627,11 @@ struct action<PAIR> {
       }
       CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", flat_key, out.obj_res);
       out.override_values[flat_key] = std::move(out.obj_res);
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
     } else {
       data[out.keys.back()] = std::move(out.obj_res);
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
     }
 
@@ -665,11 +669,13 @@ struct action<FULLPAIR> {
       CONFIG_ACTION_TRACE("Adding to override_values: '{} = {}'", out.flat_keys.back(),
                           out.obj_res);
       out.override_values[out.flat_keys.back()] = std::move(out.obj_res);
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
     } else {
       auto keys = utils::split(out.flat_keys.back(), '.');
       const auto c_map = config::helpers::unflatten(std::span{keys}.subspan(0, keys.size() - 1),
                                                     {{keys.back(), std::move(out.obj_res)}});
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
       out.cfg_res.emplace_back(c_map);
     }
@@ -707,10 +713,12 @@ struct action<PROTO_PAIR> {
     if (out.obj_res->type == types::Type::kVar) {
       auto proto = dynamic_pointer_cast<types::ConfigStructLike>(out.objects.back());
       auto proto_var = std::move(dynamic_pointer_cast<types::ConfigVar>(out.obj_res));
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
       proto->data[out.keys.back()] = proto_var;
     } else {
       out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
+      // Set the moved object to null so it isn't left in an invalid state
       out.obj_res = nullptr;
     }
 
@@ -743,6 +751,7 @@ struct action<REF_ADDKVP> {
     CONFIG_ACTION_TRACE("In REF_ADDKVP action: '+{} = {}'", out.keys.back(), out.obj_res);
 
     out.objects.back()->data[out.keys.back()] = std::move(out.obj_res);
+    // Set the moved object to null so it isn't left in an invalid state
     out.obj_res = nullptr;
 
     out.keys.pop_back();
@@ -763,6 +772,7 @@ struct action<REF_VARDEF> {
 
     auto ref = dynamic_pointer_cast<types::ConfigReference>(out.objects.back());
     ref->ref_vars[out.result] = std::move(out.obj_res);
+    // Set the moved object to null so it isn't left in an invalid state
     out.obj_res = nullptr;
 
     out.result = DEFAULT_RES;
