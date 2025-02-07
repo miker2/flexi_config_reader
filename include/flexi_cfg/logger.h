@@ -105,7 +105,7 @@ static void critical(std::string_view msg) { Logger::instance().log(Severity::CR
 template <>
 struct fmt::formatter<flexi_cfg::logger::Severity> : formatter<std::string_view> {
   // parse is inherited from formatter<string_view>
-  auto format(const flexi_cfg::logger::Severity& severity, format_context& ctx) {
+  auto format(const flexi_cfg::logger::Severity& severity, format_context& ctx) const {
     const auto severity_s = magic_enum::enum_name<flexi_cfg::logger::Severity>(severity);
     return formatter<std::string_view>::format(severity_s, ctx);
   }

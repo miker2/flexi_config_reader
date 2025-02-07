@@ -723,7 +723,13 @@ TEST(ConfigGrammar, PAIR) {
     checkPair(fmt::format(content, "[override] "), Type::kNumber, true);
   }
   {
-    constexpr std::string_view content = "key{}= \"value\"";
+    // NOTE: Extra {} required due to the usage of `fmt::format`
+    constexpr std::string_view content = "key    {}  = {{{{ 2 * pi }}}}";
+    checkPair(fmt::format(content, " "), Type::kExpression, false);
+    checkPair(fmt::format(content, "[override] "), Type::kExpression, true);
+  }
+  {
+    constexpr std::string_view content = R"(key{}= "value")";
     checkPair(fmt::format(content, "\t"), Type::kString, false);
     checkPair(fmt::format(content, "\t[override]\t"), Type::kString, true);
   }
@@ -755,29 +761,85 @@ TEST(ConfigGrammar, PAIR) {
 }
 
 TEST(ConfigGrammar, FULLPAIR) {
-  const std::string flat_key = "float.my.value";
-  const std::string content = flat_key + "   =  5.37e+6";
+  const std::string flat_key = "my.flat.value";
 
-  auto ret = runTest<peg::must<flexi_cfg::config::FULLPAIR, peg::eolf>>(content);
-  EXPECT_TRUE(ret.first);
-  // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
-  // keys are resolved into structs.
-  ret.second.cfg_res.erase(
-      std::remove_if(std::begin(ret.second.cfg_res), std::end(ret.second.cfg_res),
-                     [](const auto& m) { return m.empty(); }),
-      std::end(ret.second.cfg_res));
-  ASSERT_EQ(ret.second.cfg_res.size(), 1);
-  flexi_cfg::config::types::CfgMap* cfg_map = &ret.second.cfg_res.front();
-  const auto keys = flexi_cfg::utils::split(flat_key, '.');
-  for (const auto& key : keys) {
-    ASSERT_TRUE(cfg_map->contains(key));
-    auto struct_like =
-        dynamic_pointer_cast<flexi_cfg::config::types::ConfigStructLike>(cfg_map->at(key));
-    if (struct_like != nullptr) {
-      cfg_map = &struct_like->data;
+  auto checkFullPair = [&flat_key](const std::string& input, flexi_cfg::config::types::Type expected_type,
+                         bool is_override) {
+    std::cout << "input: '" << input << "'\n";
+    auto ret = runTest<peg::must<flexi_cfg::config::FULLPAIR, peg::eolf>>(input);
+    ASSERT_TRUE(ret.first);
+    auto& out = ret.second;
+
+    fmt::print("out: {}\n", ret.first);
+    out.print(std::cout);
+
+    EXPECT_EQ(out.is_override, is_override);
+    if (is_override) {
+      EXPECT_TRUE(out.cfg_res.front().empty());
+
+      EXPECT_EQ(out.override_values.size(), 1);
+      const auto& [key, value] = *out.override_values.begin();
+      EXPECT_EQ(key, flat_key);
+      EXPECT_EQ(value->type, expected_type);
+    } else {
+      // Not an override, so there should be no override values:
+      EXPECT_TRUE(out.override_values.empty());
+
+      // Eliminate any vector elements with an empty map. This may be the case due to the way that flat
+      // keys are resolved into structs.
+      // After this cleanup, there should be exactly one map left.
+      out.cfg_res.erase(
+          std::remove_if(std::begin(out.cfg_res), std::end(out.cfg_res),
+                        [](const auto& m) { return m.empty(); }),
+          std::end(out.cfg_res));
+      ASSERT_EQ(out.cfg_res.size(), 1);
+      // Check the keys that exist in the map and find the leaf node.
+      flexi_cfg::config::types::CfgMap* cfg_map = &out.cfg_res.front();
+      const auto keys = flexi_cfg::utils::split(flat_key, '.');
+      for (const auto& key : keys) {
+        ASSERT_TRUE(cfg_map->contains(key));
+        auto struct_like =
+            dynamic_pointer_cast<flexi_cfg::config::types::ConfigStructLike>(cfg_map->at(key));
+        if (struct_like != nullptr) {
+          cfg_map = &struct_like->data;
+        }
+      }
+      // There should only be a single leaf node left in the map.
+      EXPECT_EQ(cfg_map->size(), 1);
+      EXPECT_EQ(cfg_map->at(keys.back())->type, expected_type);
     }
+  };
+  using flexi_cfg::config::types::Type;
+
+  {
+    const auto value = 123;
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
   }
-  EXPECT_EQ(cfg_map->at(keys.back())->type, flexi_cfg::config::types::Type::kNumber);
+  {
+    const auto *const value = "0x123";
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
+  }
+  {
+    const auto value = 5.37e-3;
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kNumber, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kNumber, true);
+  }
+  {
+    const auto *const value = "{{ 2 * pi }}";
+    checkFullPair(fmt::format("{} = {}", flat_key, value), Type::kExpression, false);
+    checkFullPair(fmt::format("{} [override] = {}", flat_key, value), Type::kExpression, true);
+  }
+  {
+    const auto *const value = "value";
+    checkFullPair(fmt::format("{} = \"{}\"", flat_key, value), Type::kString, false);
+    checkFullPair(fmt::format("{} [override] = \"{}\"", flat_key, value), Type::kString, true);
+  }
+  {
+    checkFullPair(fmt::format("{} = true", flat_key), Type::kBoolean, false);
+    checkFullPair(fmt::format("{} [override] = true", flat_key), Type::kBoolean, true);
+  }
 }
 
 TEST(ConfigGrammar, INCLUDE_ABSOLUTE) {
