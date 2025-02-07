@@ -167,6 +167,12 @@ auto main(int argc, char* argv[]) -> int {  // NOLINT(bugprone-exception-escape)
         flexi_cfg::logger::warn("Key '{}' does not exist", test_key);
       }
     }
+    {
+      // Ensure that expressions in lists are evaluated correctly
+      const auto* const my_nested_list_key = "outer.inner.test1.with_expression";
+      const auto out = cfg.getValue<std::vector<float>>(my_nested_list_key);
+      fmt::print("Value of '{}' is: {}\n", my_nested_list_key, fmt::join(out, ", "));
+    }
   } catch (const std::exception& e) {
     fmt::print(fmt::fg(fmt::color::red), "{}\n", e.what());
     return EXIT_FAILURE;

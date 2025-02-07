@@ -75,11 +75,21 @@ TEST_P(InputString, Reader) {
   EXPECT_TRUE(cfg.exists("test2.inner.listWithComment"));
   EXPECT_EQ(cfg.getType("test2.inner.listWithComment"), flexi_cfg::config::types::Type::kList);
   EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.listWithComment"), std::vector({0, 2}));
+
   EXPECT_TRUE(cfg.exists("test2.inner.listWithTrailingComment"));
   EXPECT_EQ(cfg.getType("test2.inner.listWithTrailingComment"),
             flexi_cfg::config::types::Type::kList);
   EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.listWithTrailingComment"),
             std::vector({0, 2}));
+
+  EXPECT_TRUE(cfg.exists("test2.inner.listWithVarRef"));
+  EXPECT_EQ(cfg.getType("test2.inner.listWithVarRef"), flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<int>>("test2.inner.listWithVarRef"), std::vector({1, 2, 4}));
+
+  EXPECT_TRUE(cfg.exists("test2.inner.listWithExpression"));
+  EXPECT_EQ(cfg.getType("test2.inner.listWithExpression"), flexi_cfg::config::types::Type::kList);
+  EXPECT_EQ(cfg.getValue<std::vector<float>>("test2.inner.listWithExpression"), std::vector<float>({1, 4096, 1.342}));
+
   EXPECT_TRUE(cfg.exists("test2"));
   EXPECT_EQ(cfg.getType("test2"), flexi_cfg::config::types::Type::kStruct);
   EXPECT_TRUE(cfg.exists("test1"));
@@ -203,6 +213,8 @@ struct test2 {
           0,
           2# I don't matter
         ]
+        listWithVarRef = [1, 2, $(b)]
+        listWithExpression = [1, {{ 2^12 }}, $(test1.key2)]
     }
 }
 
