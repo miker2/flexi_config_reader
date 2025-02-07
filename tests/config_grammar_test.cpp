@@ -377,11 +377,18 @@ TEST(ConfigGrammar, STRING) {
 }
 
 const std::vector<std::string> list_test_cases = {
-    "[1, 2, 3]", "[1.0, 2., -3.3]", R"(["one", "two", "three"])", "[0x123, 0Xabc, 0xA1B2F9]",
+    // Verify that a list of integers is supported
+    "[1, 2, 3]",
+    // Verify that a list of floats is supported
+    "[1.0, 2., -3.3]",
+    // Verify that a list of strings is supported
+    R"(["one", "two", "three"])",
+    // Verify that a list of hex values is supported
+    "[0x123, 0Xabc, 0xA1B2F9]",
+    // Verify that a list of floats and a variable reference is supported
     "[0.123, $(ref.var), 3.456]",
-    // TODO(miker2): Add support for expressions in lists
-    // R"([12, {{ 2^14 - 1}}, 0.32])",  // Expressions in lists
-
+    // Verify that expressions in lists is supported
+    R"([12, {{ 2^14 - 1}}, 0.32])",
     // Verify that lists can contain newlines
     R"([1,
       2,
@@ -397,7 +404,11 @@ const std::vector<std::string> list_test_cases = {
       # This is a multi-line
       # comment
       ])",
-    "[$(ref.var2), $(ref.var1), 3.456]"};
+    // Verify that a list of variables is supported
+    "[$(ref.var2), $(ref.var1), 3.456]",
+    // Verify that a mix of variables, expressions and numbers is supported
+    R"([$(ref.var2), {{ 2^14 - 1}}, 0.32])",
+    };
 
 TEST(ConfigGrammar, LIST) {
   auto checkList = [](const std::string& input) {
@@ -413,6 +424,15 @@ TEST(ConfigGrammar, LIST) {
   {
     // Non-homogeneous lists are not allowed
     const std::string content = R"([12, "two", 10.2])";
+    std::optional<RetType> ret;
+    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::LIST, peg::eolf>>(content)),
+                 flexi_cfg::config::InvalidTypeException);
+  }
+  {
+    // Another form of non-homogeneous list that is not allowed.
+    // An expression always evaluates to a number, so this list is not allowed because it would mix
+    // numbers and strings.
+    const std::string content = R"(["TWO", {{ pi }}, "0.32"])";
     std::optional<RetType> ret;
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::LIST, peg::eolf>>(content)),
                  flexi_cfg::config::InvalidTypeException);

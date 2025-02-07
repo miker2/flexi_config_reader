@@ -601,10 +601,17 @@ void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
 
 auto listElementValid(const std::shared_ptr<types::ConfigList>& list, types::Type type) -> bool {
   bool valid = true;
-  if (type == types::Type::kVar || type == types::Type::kValueLookup ||
-      type == types::Type::kExpression) {
+  if (type == types::Type::kVar || type == types::Type::kValueLookup) {
     // This is a VAR or VALUE_LOOKUP, so we'll just continue. It's okay to mix these. We'll resolve
     // them later.
+  } else if (type == types::Type::kExpression) {
+    // An EXPRESSION is only valid if the type is kUnknown or a number (because an expression
+    // ultimately evaluates to a kNumber type)
+    if (list->list_element_type == types::Type::kUnknown) {
+      list->list_element_type = types::Type::kNumber;
+    } else if (list->list_element_type != types::Type::kNumber) {
+      valid = false;
+    }
   } else if (list->list_element_type == types::Type::kUnknown) {
     list->list_element_type = type;
   } else if (list->list_element_type != type) {
