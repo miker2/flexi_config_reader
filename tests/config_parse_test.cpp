@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <cmath>
 #include <filesystem>
 #include <regex>
 #include <string>
@@ -95,7 +96,7 @@ TEST_P(InputString, Reader) {
   // }
   EXPECT_TRUE(cfg.exists("test2.inner.expression"));
   EXPECT_EQ(cfg.getType("test2.inner.expression"), flexi_cfg::config::types::Type::kNumber);
-  EXPECT_FLOAT_EQ(cfg.getValue<float>("test2.inner.expression"), 1.F / sqrt(2.0F));
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("test2.inner.expression"), 1.F / std::sqrt(2.0F));
 
   // Coverage for override. The values below should match the value on the following line:
   //  a [override] = 2
