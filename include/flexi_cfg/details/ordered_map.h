@@ -382,15 +382,19 @@ class ordered_map {
   // TODO: Figure out how to make the parameter a 'const_iterator'
   node_type extract(const iterator& position) {
     if (position == end()) {
-      return node_type();
+      return {};
     }
     const auto key = position->first;
-    keys_.erase(std::find(keys_.cbegin(), keys_.cend(), key));
+    const auto it = std::find(keys_.cbegin(), keys_.cend(), key);
+    keys_.erase(it);
     return map_.extract(key);
   }
 
   node_type extract(const Key& k) {
-    keys_.erase(std::find(keys_.begin(), keys_.end(), k));
+    auto it = std::find(keys_.begin(), keys_.end(), k);
+    if (it != keys_.end()) {
+      keys_.erase(it);
+    }
     return map_.extract(k);
   }
 

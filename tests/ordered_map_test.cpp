@@ -1,6 +1,7 @@
 #include "flexi_cfg/details/ordered_map.h"
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
 #include <range/v3/view/map.hpp>
@@ -291,31 +292,54 @@ TEST(OrderedMap, erase) {
 // TEST(OrderedMap, swap) {}
 
 TEST(OrderedMap, extract) {
+  fmt::print("Testing extract\n");
   {
+    fmt::print("Testing key version\n");
     // Test "key" version
-    OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
-    EXPECT_EQ(map.size(), 4);
-    const auto node = map.extract("two");
-    EXPECT_EQ(node.key(), "two");
-    EXPECT_EQ(node.mapped(), 2);
-    EXPECT_EQ(map.size(), 3);
-    EXPECT_FALSE(map.contains("two"));
+    OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}, {"baz", 5}});
+    EXPECT_EQ(map.size(), 5);
+
+    {
+      const auto node = map.extract("two");
+      EXPECT_EQ(node.key(), "two");
+      EXPECT_EQ(node.mapped(), 2);
+      EXPECT_EQ(map.size(), 4);
+      EXPECT_FALSE(map.contains("two"));
+    }
+    {
+      // Extract another key that is past the previously extracted key
+      const auto node = map.extract("bar");
+      EXPECT_EQ(node.key(), "bar");
+      EXPECT_EQ(node.mapped(), 4);
+      EXPECT_EQ(map.size(), 3);
+      EXPECT_FALSE(map.contains("bar"));
+    }
 
     // Try extracting a key that doesn't exist
     const auto node2 = map.extract("foo");
     EXPECT_TRUE(node2.empty());
   }
   {
+    fmt::print("Testing iterator version\n");
     // Test "iterator" version
     OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
     EXPECT_EQ(map.size(), 4);
-    const auto it = map.find("two");
-    const auto node = map.extract(it);
-    EXPECT_EQ(node.key(), "two");
-    EXPECT_EQ(node.mapped(), 2);
-    EXPECT_EQ(map.size(), 3);
-    EXPECT_FALSE(map.contains("two"));
-
+    {
+      const auto it = map.find("two");
+      const auto node = map.extract(it);
+      EXPECT_EQ(node.key(), "two");
+      EXPECT_EQ(node.mapped(), 2);
+      EXPECT_EQ(map.size(), 3);
+      EXPECT_FALSE(map.contains("two"));
+    }
+    {
+      const auto it = map.find("bar");
+      const auto node = map.extract(it);
+      EXPECT_EQ(node.key(), "bar");
+      EXPECT_EQ(node.mapped(), 4);
+      EXPECT_EQ(map.size(), 2);
+      EXPECT_FALSE(map.contains("bar"));
+    }
     // Try extracting an iterator that doesn't exist
     auto it2 = map.find("foo");
     const auto node2 = map.extract(it2);
@@ -450,7 +474,7 @@ TEST(OrderedMap, Ranges) {
 
   auto empty = std::empty(map);
 
-  // fmt::print("Keys: {}\n", fmt::join(ranges::views::keys(map), ", "));
+  fmt::print("Keys: {}\n", fmt::join(ranges::views::keys(map), ", "));
 
-  // fmt::print("Values: {}\n", fmt::join(ranges::views::values(map), ", "));
+  fmt::print("Values: {}\n", fmt::join(ranges::views::values(map), ", "));
 }
