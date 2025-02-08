@@ -398,7 +398,7 @@ TEST(OrderedMap, at) {
   EXPECT_THROW(map.at("four"), std::out_of_range);
 }
 
-TEST(OrderedMap, operator_square_brackets) {
+TEST(OrderedMap, operator_square_brackets_access) {
   OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"two", 4}});
   EXPECT_EQ(map["one"], 1);
   EXPECT_EQ(map["two"], 2);
@@ -407,6 +407,16 @@ TEST(OrderedMap, operator_square_brackets) {
   // zero initialized.
   // This is the same behavior as std::map.
   EXPECT_EQ(map["four"], 0);
+}
+
+TEST(OrderedMap, operator_square_brackets_insertion) {
+  OMap map({{"one", 1}, {"two", 2}});
+  EXPECT_EQ(map["one"], 1);
+  EXPECT_EQ(map["two"], 2);
+  map["three"] = 3;
+  EXPECT_EQ(map["three"], 3);
+  EXPECT_EQ(map.size(), 3);
+  EXPECT_EQ(map.at("three"), 3);
 }
 
 TEST(OrderedMap, count) {

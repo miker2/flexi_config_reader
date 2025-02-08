@@ -39,7 +39,9 @@ class ordered_map {
   // explicit ordered_map(size_type n) : map_(n), keys_(n){};
 
   template <typename InputIterator>
-  ordered_map(InputIterator first, InputIterator last) : map_(first, last) {}
+  ordered_map(InputIterator first, InputIterator last) : map_(first, last) {
+    std::transform(first, last, std::back_inserter(keys_), [](const auto& value) { return value.first; });
+  }
 
   // Copy constructor
   ordered_map(const ordered_map&) = default;
@@ -72,7 +74,7 @@ class ordered_map {
 
   [[nodiscard]] bool empty() const noexcept { return map_.empty(); }
 
-  [[nodiscard]] size_type size() const noexcept { return map_.size(); }
+  [[nodiscard]] size_type size() const noexcept { return keys_.size(); }
 
   [[nodiscard]] size_type max_size() const noexcept {
     return min(map_.max_size(), keys_.max_size());
@@ -127,8 +129,7 @@ class ordered_map {
     using reference = typename Base::reference;
     using pointer = typename Base::pointer;
 
-    iterator_(Map* map, OrderedKeys* keys, size_type index)
-        : Base(map, keys, index) {}
+    iterator_(Map* map, OrderedKeys* keys, size_type index) : Base(map, keys, index) {}
 
     iterator_() = default;
 
@@ -462,9 +463,19 @@ class ordered_map {
 
   const T& at(const Key& key) const { return map_.at(key); }
 
-  T& operator[](const Key& key) { return map_[key]; }
+  T& operator[](const Key& key) {
+    if (!map_.contains(key)) {
+      keys_.push_back(key);
+    }
+    return map_[key];
+  }
 
-  T& operator[](Key&& key) { return map_[key]; }
+  T& operator[](Key&& key) {
+    if (!map_.contains(key)) {
+      keys_.push_back(key);
+    }
+    return map_[key];
+  }
 
   size_type count(const Key& key) const { return map_.count(key); }
 
