@@ -398,15 +398,12 @@ class ordered_map {
     return map_.extract(k);
   }
 
-  // TODO: IMPLEMENT MERGE
 #if 1
   template <class H2, class P2>
   void merge(ordered_map<Key, T, H2, P2, Alloc>& source) {
     std::vector<Key> extracted_keys;
     for (auto& v : source) {
-      std::cout << "Examining key: '" << v.first << "' : " << v.second << std::endl;
       if (!map_.contains(v.first)) {
-        std::cout << "  + New key found!" << std::endl;
         extracted_keys.emplace_back(v.first);
         insert(std::move(source.map_.extract(v.first)));
       }
@@ -414,7 +411,6 @@ class ordered_map {
 
     // Need to remove the keys from the source map that have been extracted
     for (const auto& k : extracted_keys) {
-      std::cout << "Removing key: '" << k << "' from source" << std::endl;
       source.keys_.erase(std::find(source.keys_.begin(), source.keys_.end(), k));
     }
   }
@@ -514,6 +510,7 @@ class ordered_map {
   OrderedKeys& keys() { return keys_; }
   Map& map() { return map_; }
 #endif
+
  protected:
   size_t get_index(const Key& key) const {
     const auto key_it = std::find(std::begin(keys_), std::end(keys_), key);

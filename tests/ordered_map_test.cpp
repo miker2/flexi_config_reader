@@ -292,9 +292,9 @@ TEST(OrderedMap, erase) {
 // TEST(OrderedMap, swap) {}
 
 TEST(OrderedMap, extract) {
-  fmt::print("Testing extract\n");
+  SCOPED_TRACE("Testing extract");
   {
-    fmt::print("Testing key version\n");
+    SCOPED_TRACE("Testing key version");
     // Test "key" version
     OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}, {"baz", 5}});
     EXPECT_EQ(map.size(), 5);
@@ -320,7 +320,7 @@ TEST(OrderedMap, extract) {
     EXPECT_TRUE(node2.empty());
   }
   {
-    fmt::print("Testing iterator version\n");
+    SCOPED_TRACE("Testing iterator version");
     // Test "iterator" version
     OMap map({{"one", 1}, {"two", 2}, {"three", 3}, {"bar", 4}});
     EXPECT_EQ(map.size(), 4);
@@ -403,7 +403,10 @@ TEST(OrderedMap, operator_square_brackets) {
   EXPECT_EQ(map["one"], 1);
   EXPECT_EQ(map["two"], 2);
   EXPECT_EQ(map["three"], 3);
-  EXPECT_EQ(map["four"], 0);  // This passes, but is it really the right value?
+  // This passes. Because "four" doesn't already exist in the map, it is inserted and the value is
+  // zero initialized.
+  // This is the same behavior as std::map.
+  EXPECT_EQ(map["four"], 0);
 }
 
 TEST(OrderedMap, count) {
