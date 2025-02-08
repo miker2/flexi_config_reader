@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+
 namespace flexi_cfg::details {
 
 template <typename Key, typename T, typename Hash = std::hash<Key>,
@@ -80,11 +81,16 @@ class ordered_map {
   // Custom iterator for the ordered_map object.
   // This iterator should iterate over the keys in the order they were inserted
   template <typename MapType, typename OrderedKeysType>
-  class iterator_base
-      : public std::iterator<std::forward_iterator_tag, typename MapType::value_type> {
+  class iterator_base {
     friend class const_iterator_;
 
    public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = typename MapType::value_type;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = value_type&;
+
     iterator_base(MapType* map, OrderedKeysType* keys, size_type index)
         : map_(map), keys_(keys), index_(index), key_(get_key()) {
       // Check that the offset is within bounds
@@ -117,16 +123,16 @@ class ordered_map {
     friend class const_iterator_;
 
    public:
-    using pointer = value_type*;
-    using reference = value_type&;
+    using Base = iterator_base<Map, OrderedKeys>;
+    using reference = typename Base::reference;
+    using pointer = typename Base::pointer;
 
     iterator_(Map* map, OrderedKeys* keys, size_type index)
-        : iterator_base<Map, OrderedKeys>(map, keys, index) {}
+        : Base(map, keys, index) {}
 
     iterator_() = default;
 
     reference operator*() const { return *this->map_->find(this->key_); }
-
     pointer operator->() const { return &(*this->map_->find(this->key_)); }
 
     // Prefix increment
@@ -162,27 +168,17 @@ class ordered_map {
   // This iterator should iterate over the keys in the order they were inserted
   class const_iterator_ : public iterator_base<const Map, const OrderedKeys> {
    public:
-    using const_pointer = const value_type*;
-    using const_reference = const value_type&;
+    using Base = iterator_base<const Map, const OrderedKeys>;
+    using reference = typename Map::value_type const&;
+    using pointer = typename Map::value_type const*;
 
     const_iterator_(const Map* map, const OrderedKeys* keys, size_type index)
-        : iterator_base<const Map, const OrderedKeys>(map, keys, index) {}
+        : Base(map, keys, index) {}
 
     const_iterator_() = default;
 
-    /*
-    // Construct a const_iterator from a non-const iterator
-    const_iterator_(const iterator_& it)
-        : iterator_base<const Map, const OrderedKeys>(it.map_, it.keys_, it.index_) {
-          std::cout << "creating const_iterator from iterator\n";
-          std::cout << " index: " << this->index_ << ", key: '" << this->get_key() << "'" <<
-    std::endl;
-        }
-    */
-
-    const_reference operator*() const { return *this->map_->find(this->key_); }
-
-    const_pointer operator->() const { return &(*this->map_->find(this->key_)); }
+    reference operator*() const { return *this->map_->find(this->key_); }
+    pointer operator->() const { return &(*this->map_->find(this->key_)); }
 
     // Prefix increment
     const_iterator_& operator++() {

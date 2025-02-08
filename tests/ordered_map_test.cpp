@@ -450,7 +450,7 @@ TEST(OrderedMap, Ranges) {
 
   auto empty = std::empty(map);
 
-  fmt::print("Keys: {}\n", fmt::join(ranges::views::keys(map), ", "));
+  // fmt::print("Keys: {}\n", fmt::join(ranges::views::keys(map), ", "));
 
-  fmt::print("Values: {}\n", fmt::join(ranges::views::values(map), ", "));
+  // fmt::print("Values: {}\n", fmt::join(ranges::views::values(map), ", "));
 }
