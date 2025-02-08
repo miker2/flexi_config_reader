@@ -130,3 +130,24 @@ target_include_directories(math_test PRIVATE
 
 add_clang_format(math_test)
 gtest_discover_tests(math_test)
+
+################################################################################
+add_executable(
+  ordered_map_test
+  ordered_map_test.cpp
+  )
+
+target_link_libraries(
+  ordered_map_test
+  flexi_cfg
+  fmt::fmt
+  range-v3::range-v3
+  gtest_main
+  )
+
+target_include_directories(ordered_map_test PRIVATE
+  ${PROJECT_SOURCE_DIR}/include/
+  )
+
+add_clang_format(ordered_map_test)
+gtest_discover_tests(ordered_map_test)

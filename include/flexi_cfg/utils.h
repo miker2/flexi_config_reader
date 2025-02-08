@@ -1,12 +1,19 @@
 #pragma once
 
+#if defined(__GNUC__) || defined(__clang__)
+#include <cxxabi.h>
+#endif
+
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <numeric>
 #include <span>
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "flexi_cfg/details/type_traits.h"
 
 namespace flexi_cfg::utils {
 /// \brief Removes all instances of any char foundi in `sep` from the beginning and end of `s`
@@ -159,6 +166,43 @@ class ScopedOverride {
   T* field_{};
   T orig_value_;
 };
+
+/// \brief Demangles a mangled function/typename into a human-readable name
+/// \param[in] name The object name (often provided by 'typeeid(T).name()')
+/// \return A human-readable function/type name.
+inline std::string demangle(const char* name) {
+  // See https://stackoverflow.com/a/4541470 for source
+
+#if defined(__GNUC__) || defined(__clang__)
+  int status{-1};  // assume __cxa_demangle is unsuccessful
+
+  std::unique_ptr<char, decltype(&std::free)> res{
+      abi::__cxa_demangle(name, nullptr, nullptr, &status), std::free};
+
+  return (status == 0) ? res.get() : name;
+#else
+  // If not supported, return the input name. Support MSVC explicitly?
+  return name;
+#endif
+}
+
+/// \brief Returns the type of an object as a string
+/// \param[in] obj The instance of the object
+/// \return The type of the object as a string
+template <typename T>
+std::string getTypeName(const T& obj) {
+  if constexpr (std::is_pointer_v<T> || details::type_traits::is_smart_pointer_v<T>) {
+    return demangle(typeid(*obj).name());
+  }
+  return demangle(typeid(obj).name());
+}
+
+/// \brief Returns a string representation of a type
+/// \tparam T The type
+template <typename T>
+std::string getTypeName() {
+  return demangle(typeid(T).name());
+}
 
 }  // namespace flexi_cfg::utils
 

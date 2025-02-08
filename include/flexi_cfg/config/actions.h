@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <range/v3/view/map.hpp>
 #include <span>
@@ -72,7 +72,7 @@ struct ActionData {
 #if 0
   // I'd prefer something like this that provides a bit more type safety, but this map can't be
   // implicitly convert to a CfgMap object.
-  std::map<std::string, std::shared_ptr<types::ConfigValueLookup>>
+  std::unordered_map<std::string, std::shared_ptr<types::ConfigValueLookup>>
       value_lookups;  // This is purely for keeping track of any value lookup objects that might be
                       // contained within an expression object.
 #else

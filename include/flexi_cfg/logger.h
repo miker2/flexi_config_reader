@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <deque>
 #include <magic_enum.hpp>
-#include <map>
+#include <unordered_map>
 #include <string_view>
 
 namespace flexi_cfg::logger {
@@ -38,7 +38,7 @@ class Logger {
  private:
   Severity log_level_{Severity::INFO};
 
-  const std::map<Severity, fmt::text_style> fg_color_ = {
+  const std::unordered_map<Severity, fmt::text_style> fg_color_ = {
       {Severity::TRACE, fmt::fg(fmt::color::magenta)},
       {Severity::DEBUG, fmt::fg(fmt::color::cyan)},
       {Severity::INFO, fmt::fg(fmt::color::green)},

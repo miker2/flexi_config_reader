@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <range/v3/algorithm/find.hpp>
 #include <range/v3/view/drop_last.hpp>
@@ -64,8 +63,13 @@ auto checkForErrors(const types::CfgMap& cfg1, const types::CfgMap& cfg2, const 
  * Any key/value pairs that already exist in the leaves of cfg1 will be overwritten by the same
  * key/value pairs from cfg2. */
 auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> types::CfgMap {
+  logger::setLevel(logger::Severity::TRACE);
+  logger::debug("Begin mergeNestedMaps ---------------------");
+  logger::trace("cfg1 keys: {}", cfg1 | ranges::views::keys);
+  logger::trace("cfg2 keys: {}", cfg2 | ranges::views::keys);
   const auto common_keys =
       ranges::views::set_intersection(cfg1 | ranges::views::keys, cfg2 | ranges::views::keys);
+  logger::trace("Common keys: {}", common_keys | ranges::views::all);
 
   for (const auto& k : common_keys) {
     checkForErrors(cfg1, cfg2, k);
@@ -76,7 +80,12 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
   types::CfgMap cfg_out{};
   std::copy(std::begin(cfg1), std::end(cfg1), std::inserter(cfg_out, cfg_out.end()));
   std::copy(std::begin(cfg2), std::end(cfg2), std::inserter(cfg_out, cfg_out.end()));
-  for (auto& el : cfg_out) {
+  logger::trace("Merged top-level keys: {}", cfg_out | ranges::views::keys);
+  std::vector<std::string> tmp_keys;
+  std::transform(std::begin(cfg_out), std::end(cfg_out), std::back_inserter(tmp_keys),
+                 [](const auto& el) { return el.first; });
+  logger::trace("Merged top-level keys: {}", tmp_keys);
+  for (const auto& el : cfg_out) {
     const auto& key = el.first;
     if (ranges::find(std::begin(common_keys), std::end(common_keys), key) !=
         std::end(common_keys)) {
@@ -92,7 +101,7 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
       }
     }
   }
-
+  logger::warn("End mergeNestedMaps ---------------------");
   return cfg_out;
 }
 
@@ -109,7 +118,10 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   }
 
   // Next, move the data from the reference to the struct:
-  struct_out->data.merge(ref->data);
+  // struct_out->data.merge(ref->data);
+  struct_out->data.insert(std::make_move_iterator(std::begin(ref->data)),
+                          std::make_move_iterator(std::end(ref->data)));
+  ref->data.clear();
   if (CONFIG_HELPERS_DEBUG) {
     logger::debug("Data added: \n{}", struct_out);
   }
@@ -190,9 +202,9 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
     return ret;
   };
 
-  for (auto& kv : cfg_map) {
+  for (const auto& kv : cfg_map) {
     const auto& k = kv.first;
-    auto& v = kv.second;
+    const auto& v = kv.second;
     if (CONFIG_HELPERS_DEBUG) {
       logger::trace("At: {} = {} | type: {}", k, v, v->type);
     }
@@ -407,7 +419,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
     assert(expression.get() != nullptr);
     logger::trace("Calling resolve_expression_vars with expression={}, src_key={}", expression,
                   src_key);
-    for (auto& kvl : expression->value_lookups) {
+    for (const auto& kvl : expression->value_lookups) {
       if (kvl.second->type == types::Type::kNumber) {
         // We may have already resolved this variable, so no need to do anything
         continue;
@@ -495,7 +507,7 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
 }
 
 void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {
-  for (auto& kv : cfg) {
+  for (const auto& kv : cfg) {
     const auto key = utils::makeName(parent_key, kv.first);
     if (kv.second && kv.second->type == types::Type::kExpression) {
       // Evaluate expression
@@ -581,7 +593,7 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
 
 void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
   std::vector<std::remove_reference_t<decltype(cfg)>::key_type> to_erase{};
-  for (auto& kv : cfg) {
+  for (const auto& kv : cfg) {
     if (kv.second->type == types::Type::kStruct || kv.second->type == types::Type::kStructInProto) {
       auto s = dynamic_pointer_cast<types::ConfigStruct>(kv.second);
       s->depth = depth;

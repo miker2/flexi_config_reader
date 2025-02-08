@@ -5,6 +5,7 @@
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
+#include "flexi_cfg/logger.h"
 
 namespace {
 template <typename T, typename... Args>
@@ -160,6 +161,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     }
   }
   {
+    flexi_cfg::logger::error("-----------------------------------------------------");
     // This test should fail due to an exception
     const std::string key = "key";
     const std::vector<std::string> inner_keys = {"key1", "key2", "key3"};
@@ -175,7 +177,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     cfg1_struct->data = std::move(cfg1_inner);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
-    // cfg1 is:
+    // cfg2 is:
     //  struct key
     //    key3 = ""
     //    key2 = ""  <-- Duplicate key here, will fail.
@@ -189,8 +191,9 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
     flexi_cfg::config::types::CfgMap cfg_out{};
-    ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
+    EXPECT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
                  flexi_cfg::config::DuplicateKeyException);
+    flexi_cfg::logger::error("-----------------------------------------------------");
   }
   {
     // Test a multi-nested map
