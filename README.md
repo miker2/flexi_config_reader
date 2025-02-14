@@ -356,7 +356,7 @@ json = cfg.json()
 
 ### Introspection with Visitor API
 
-The C++ API provides a [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern) through `flexi_cfg::Reader.visit(visitor)` to traverse the fully materialized FlexiConfig tree. This API offers a way to examine the configuration structure and data without requiring prior knowledge of specific `keys` or `types` in your code. One example of its utility is the [JSON Output](#JSON Output) functionality; additional formats can be similarly supported with ease.
+The C++ API provides a [visitor pattern](https://en.wikipedia.org/wiki/Visitor_pattern) through `flexi_cfg::Reader.visit(visitor)` to traverse the fully materialized FlexiConfig tree. This API offers a way to examine the configuration structure and data without requiring prior knowledge of specific `keys` or `types` in your code. One example of its utility is the [JSON Output](#json-output) functionality; additional formats can be similarly supported with ease.
 
 Implement a visitor `class` that matches one or more of the following [&lt;concepts&gt;](https://en.cppreference.com/w/cpp/language/constraints) and pass it to the `flexi_cfg::Reader` which will then invoke the respective callback functions as it encounters the various FlexiConfig elements the visitor is interested in:
 

@@ -98,6 +98,8 @@ struct BOOLEAN : peg::sor<TRUE, FALSE> {};
 
 struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'"'>> {};
 
+struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
+
 template <typename Element>
 struct LIST_CONTENT_ : peg::list<Element, peg::seq<COMMA, TAIL>, peg::space> { using element = Element; };
 
@@ -112,13 +114,11 @@ struct LIST_ : peg::seq<SBo, TAIL, peg::opt<Content>, TAIL, SBc> {
 
 struct LIST;
 struct VALUE_LOOKUP;
-struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, VALUE_LOOKUP, LIST> {};
+struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, VALUE_LOOKUP, EXPRESSION, LIST> {};
 // 'seq' is used here so that the 'VALUE' action will collect the location information.
 struct LIST_ELEMENT : peg::seq<VALUE> {};
 struct LIST_CONTENT : LIST_CONTENT_<LIST_ELEMENT> {};
 struct LIST : LIST_<LIST_CONTENT> {};
-
-struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
 
 // Account for all reserved keywords when looking for keys
 struct KEY : peg::seq<peg::not_at<RESERVED>, peg::lower, peg::star<peg::identifier_other>> {};
