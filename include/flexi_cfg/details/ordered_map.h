@@ -40,7 +40,8 @@ class ordered_map {
 
   template <typename InputIterator>
   ordered_map(InputIterator first, InputIterator last) : map_(first, last) {
-    std::transform(first, last, std::back_inserter(keys_), [](const auto& value) { return value.first; });
+    std::transform(first, last, std::back_inserter(keys_),
+                   [](const auto& value) { return value.first; });
   }
 
   // Copy constructor
@@ -65,12 +66,16 @@ class ordered_map {
   // List assignment operator
   ordered_map& operator=(std::initializer_list<value_type> l) {
     map_ = l;
+    keys_.clear();  // Clear old keys
     std::transform(std::begin(l), std::end(l), std::back_inserter(keys_),
                    [](const value_type& value) { return value.first; });
     return *this;
   }
 
   allocator_type get_allocator() const noexcept { return map_.get_allocator(); }
+
+  hasher hash_function() const noexcept { return map_.hash_function(); }
+  key_equal key_eq() const noexcept { return map_.key_eq(); }
 
   [[nodiscard]] bool empty() const noexcept { return map_.empty(); }
 
@@ -85,6 +90,8 @@ class ordered_map {
   template <typename MapType, typename OrderedKeysType>
   class iterator_base {
     friend class const_iterator_;
+    friend class reverse_iterator_;
+    friend class const_reverse_iterator_;
 
    public:
     using iterator_category = std::forward_iterator_tag;
@@ -121,53 +128,12 @@ class ordered_map {
     }
   };
 
-  class iterator_ : public iterator_base<Map, OrderedKeys> {
-    friend class const_iterator_;
-
-   public:
-    using Base = iterator_base<Map, OrderedKeys>;
-    using reference = typename Base::reference;
-    using pointer = typename Base::pointer;
-
-    iterator_(Map* map, OrderedKeys* keys, size_type index) : Base(map, keys, index) {}
-
-    iterator_() = default;
-
-    reference operator*() const { return *this->map_->find(this->key_); }
-    pointer operator->() const { return &(*this->map_->find(this->key_)); }
-
-    // Prefix increment
-    iterator_& operator++() {
-      ++this->index_;
-      this->key_ = this->get_key();
-      return *this;
-    }
-
-    // Postfix increment
-    iterator_ operator++(int) {
-      auto tmp = *this;
-      ++this->index_;
-      this->key_ = this->get_key();
-      return tmp;
-    }
-
-    iterator_ operator--() {
-      --this->index_;
-      this->key_ = this->get_key();
-      return *this;
-    }
-
-    iterator_ operator--(int) {
-      auto tmp = *this;
-      --this->index_;
-      this->key_ = this->get_key();
-      return tmp;
-    }
-  };
-
   // Custom iterator for the ordered_map object.
   // This iterator should iterate over the keys in the order they were inserted
   class const_iterator_ : public iterator_base<const Map, const OrderedKeys> {
+    friend class reverse_iterator_;
+    friend class const_reverse_iterator_;
+
    public:
     using Base = iterator_base<const Map, const OrderedKeys>;
     using reference = typename Map::value_type const&;
@@ -196,7 +162,7 @@ class ordered_map {
       return tmp;
     }
 
-    const_iterator_ operator--() {
+    const_iterator_& operator--() {
       --this->index_;
       this->key_ = this->get_key();
       return *this;
@@ -210,11 +176,186 @@ class ordered_map {
     }
   };
 
+  class iterator_ : public iterator_base<Map, OrderedKeys> {
+    friend class const_iterator_;
+    friend class reverse_iterator_;
+    friend class const_reverse_iterator_;
+
+   public:
+    using Base = iterator_base<Map, OrderedKeys>;
+    using reference = typename Base::reference;
+    using pointer = typename Base::pointer;
+
+    iterator_(Map* map, OrderedKeys* keys, size_type index) : Base(map, keys, index) {}
+
+    iterator_() = default;
+
+    reference operator*() const { return *this->map_->find(this->key_); }
+    pointer operator->() const { return &(*this->map_->find(this->key_)); }
+
+    // Prefix increment
+    iterator_& operator++() {
+      ++this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    // Postfix increment
+    iterator_ operator++(int) {
+      auto tmp = *this;
+      ++this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    iterator_& operator--() {
+      --this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    iterator_ operator--(int) {
+      auto tmp = *this;
+      --this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    operator const_iterator_() const {
+      return const_iterator_(this->map_, this->keys_, this->index_);
+    }
+  };
+
+  template <typename MapType, typename OrderedKeysType>
+  class reverse_iterator_base {
+    friend class iterator_;
+    friend class const_iterator_;
+
+   public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using value_type = typename MapType::value_type;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = value_type&;
+
+    reverse_iterator_base(MapType* map, OrderedKeysType* keys, size_type index)
+        : map_(map), keys_(keys), index_(index), key_(get_key()) {
+      // Check that the offset is within bounds
+      if (index_ > keys_->size()) {
+        throw std::out_of_range("Index out of range");
+      }
+    }
+
+    reverse_iterator_base() = default;
+    bool operator==(const reverse_iterator_base& other) const { return index_ == other.index_; }
+    bool operator!=(const reverse_iterator_base& other) const { return index_ != other.index_; }
+
+   protected:
+    MapType* map_{nullptr};
+    OrderedKeysType* keys_{nullptr};
+    size_type index_{0};
+    typename OrderedKeysType::value_type key_;
+
+    typename OrderedKeysType::value_type get_key() const {
+      if (index_ < 0 || index_ >= keys_->size()) {
+        // If the index is out of range, return the last key
+        return {};
+      }
+      return (*keys_)[index_];
+    }
+  };
+
+  class const_reverse_iterator_ : public reverse_iterator_base<const Map, const OrderedKeys> {
+    public:
+     using Base = reverse_iterator_base<const Map, const OrderedKeys>;
+     using reference = typename Base::value_type const&;
+     using pointer = typename Base::value_type const*;
+
+     const_reverse_iterator_(const Map* map, const OrderedKeys* keys, size_type index)
+         : Base(map, keys, index) {}
+     const_reverse_iterator_() = default;
+
+     reference operator*() const { return *this->map_->find(this->key_); }
+     pointer operator->() const { return &(*this->map_->find(this->key_)); }
+
+     const_reverse_iterator_& operator++() {
+       --this->index_;
+       this->key_ = this->get_key();
+       return *this;
+     }
+
+     const_reverse_iterator_ operator++(int) {
+       auto tmp = *this;
+       --this->index_;
+       this->key_ = this->get_key();
+       return tmp;
+     }
+
+     const_reverse_iterator_& operator--() {
+       ++this->index_;
+       this->key_ = this->get_key();
+       return *this;
+     }
+
+     const_reverse_iterator_ operator--(int) {
+       auto tmp = *this;
+       ++this->index_;
+       this->key_ = this->get_key();
+       return tmp;
+     }
+   };
+
+   class reverse_iterator_ : public reverse_iterator_base<Map, OrderedKeys> {
+    friend class const_reverse_iterator_;
+
+   public:
+    using Base = reverse_iterator_base<Map, OrderedKeys>;
+    using reference = typename Base::reference;
+    using pointer = typename Base::pointer;
+
+    reverse_iterator_(Map* map, OrderedKeys* keys, size_type index) : Base(map, keys, index) {}
+
+    reverse_iterator_() = default;
+
+    reference operator*() const { return *this->map_->find(this->key_)->second; }
+    pointer operator->() const { return &(*this->map_->find(this->key_)); }
+
+    reverse_iterator_& operator++() {
+      --this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    reverse_iterator_ operator++(int) {
+      auto tmp = *this;
+      --this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    reverse_iterator_& operator--() {
+      ++this->index_;
+      this->key_ = this->get_key();
+      return *this;
+    }
+
+    reverse_iterator_ operator--(int) {
+      auto tmp = *this;
+      ++this->index_;
+      this->key_ = this->get_key();
+      return tmp;
+    }
+
+    operator const_reverse_iterator_() const {
+      return const_reverse_iterator_(this->map_, this->keys_, this->index_);
+    }
+  };
+
   // Iterators
   using iterator = iterator_;
   using const_iterator = const_iterator_;
-  // using reverse_iterator = ;
-  // using const_reverse_iterator = ;
+  using reverse_iterator = reverse_iterator_;
+  using const_reverse_iterator = const_reverse_iterator_;
 
   iterator begin() noexcept { return iter_from_index(0); }
   const_iterator begin() const noexcept { return iter_from_index(0); }
@@ -223,6 +364,14 @@ class ordered_map {
   iterator end() noexcept { return {&map_, &keys_, keys_.size()}; }
   const_iterator end() const noexcept { return {&map_, &keys_, keys_.size()}; }
   const_iterator cend() const noexcept { return end(); }
+
+  reverse_iterator rbegin() noexcept { return {&map_, &keys_, keys_.size() - 1}; }
+  const_reverse_iterator rbegin() const noexcept { return {&map_, &keys_, keys_.size() - 1}; }
+  const_reverse_iterator crbegin() const noexcept { return rbegin(); }
+
+  reverse_iterator rend() noexcept { return {&map_, &keys_, (size_type)-1}; }
+  const_reverse_iterator rend() const noexcept { return {&map_, &keys_, (size_type)-1}; }
+  const_reverse_iterator crend() const noexcept { return rend(); }
 
   struct insert_return_type {
     iterator position;
@@ -265,8 +414,19 @@ class ordered_map {
   }
 
   iterator insert(const iterator pos, const value_type& value) {
-    assert(false && "Not implemented yet");
-    return {};
+    if (map_.contains(value.first)) {
+      return find(value.first);
+    }
+    // Get the index where we want to insert the element
+    auto insert_at = std::distance(begin(), pos);
+    // Bound check
+    assert(insert_at >= 0 && insert_at <= keys_.size() && "Iterator position is out of range");
+
+    // Insert the new key at the given position in the ordered keys
+    keys_.insert(keys_.begin() + insert_at, value.first);
+    // Insert into the map
+    map_.insert(value);
+    return iter_from_key(value.first);
   }
 
   template <typename Pair>
@@ -367,7 +527,10 @@ class ordered_map {
   }
 
   // TODO: Implement this erase - which handles a range of iterators
-  // iterator erase(const_iterator first, const_iterator last);
+  iterator erase(const_iterator first, const_iterator last) {
+    assert(false && "Not implemented yet");
+    return {};
+  }
 
   size_type erase(const Key& key) {
     const auto& it = find(key);
