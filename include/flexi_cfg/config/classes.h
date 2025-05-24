@@ -6,7 +6,7 @@
 #include <any>
 #include <iosfwd>
 #include <magic_enum.hpp>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -24,10 +24,10 @@ constexpr std::size_t tw{4};  // The width of the indentation
 class ConfigBase;
 using BasePtr = std::shared_ptr<ConfigBase>;
 
-using CfgMap = std::map<std::string, BasePtr>;
-using RefMap = std::map<std::string, BasePtr>;
+using CfgMap = std::unordered_map<std::string, BasePtr>;
+using RefMap = std::unordered_map<std::string, BasePtr>;
 class ConfigProto;
-using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
+using ProtoMap = std::unordered_map<std::string, std::shared_ptr<ConfigProto>>;
 
 class ConfigValue;
 using ValuePtr = std::shared_ptr<ConfigValue>;
@@ -106,7 +106,7 @@ inline auto operator<<(std::ostream& os, const std::shared_ptr<T>& cfg) -> std::
 
 class ConfigStructLike;
 template <typename Key, typename Value>
-inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> std::ostream& {
+inline auto operator<<(std::ostream& os, const std::unordered_map<Key, Value>& data) -> std::ostream& {
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       os << kv.second << "\n";
@@ -124,7 +124,7 @@ inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> st
 // See here for a potentially better solution:
 //    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
 template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>& data,
+inline void pprint(std::ostream& os, const std::unordered_map<Key, std::shared_ptr<Value>>& data,
                    std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
@@ -142,7 +142,7 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
 }
 
 template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size_t depth) {
+inline void pprint(std::ostream& os, const std::unordered_map<Key, Value>& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     os << ws << kv.first << " = " << kv.second
