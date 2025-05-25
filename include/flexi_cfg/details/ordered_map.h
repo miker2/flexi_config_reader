@@ -32,8 +32,23 @@ concept IsTransparentKey =
       { p(k, key) } -> std::convertible_to<bool>;    // Can we compare K and Key
     });
 
-template <typename Key, typename T, typename Hash = std::hash<Key>,
-          typename Pred = std::equal_to<>,
+struct string_hash : public std::hash<std::string_view> {
+  using is_transparent = void;
+
+  auto operator()(const std::string& str) const -> size_t {
+    return std::hash<std::string_view>::operator()(str);
+  }
+
+  auto operator()(const std::string_view& str) const -> size_t {
+    return std::hash<std::string_view>::operator()(str);
+  }
+
+  auto operator()(const char* str) const -> size_t {
+    return std::hash<std::string_view>::operator()(str);
+  }
+};
+
+template <typename Key, typename T, typename Hash = std::hash<Key>, typename Pred = std::equal_to<>,
           typename Alloc = std::allocator<std::pair<const Key, T>>>
 class ordered_map {
   using Map = std::unordered_map<Key, T, Hash, Pred, Alloc>;

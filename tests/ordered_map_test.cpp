@@ -8,11 +8,9 @@
 #include <range/v3/view/map.hpp>
 #include <string>
 
-#include "flexi_cfg/utils.h"
-
 namespace {
 using MyMap = std::unordered_map<std::string, int>;
-using OMap = flexi_cfg::details::ordered_map<std::string, int>;
+using OMap = flexi_cfg::details::ordered_map<std::string, int, flexi_cfg::details::string_hash>;
 }  // namespace
 
 namespace fmt {
@@ -789,14 +787,14 @@ TEST(OrderedMap, TransparentLookup) {
 
   // Test with string_view (converting to string)
   std::string_view sv = "one";
-  EXPECT_EQ(map.count(std::string(sv)), 1);
-  EXPECT_TRUE(map.contains(std::string(sv)));
-  EXPECT_NE(map.find(std::string(sv)), map.end());
+  EXPECT_EQ(map.count(sv), 1);
+  EXPECT_TRUE(map.contains(sv));
+  EXPECT_NE(map.find(sv), map.end());
 
   // Test with const char* (converting to string)
-  EXPECT_EQ(map.count(std::string("two")), 1);
-  EXPECT_TRUE(map.contains(std::string("two")));
-  EXPECT_NE(map.find(std::string("two")), map.end());
+  EXPECT_EQ(map.count("two"), 1);
+  EXPECT_TRUE(map.contains("two"));
+  EXPECT_NE(map.find("two"), map.end());
 }
 
 TEST(OrderedMap, NodeHandle) {
