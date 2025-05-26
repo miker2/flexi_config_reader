@@ -126,6 +126,12 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   }
 
   // Next, move the data from the reference to the struct:
+  // Check to ensure there are no overlapping keys:
+  for (const auto& el : ref->data) {
+    if (struct_out->data.contains(el.first)) {
+      checkForErrors(struct_out->data, ref->data, el.first);
+    }
+  }
   struct_out->data.merge(ref->data);
   if (CONFIG_HELPERS_DEBUG) {
     logger::debug("Data added: \n{}", struct_out);
