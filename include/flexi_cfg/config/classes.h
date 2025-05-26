@@ -12,11 +12,12 @@
 #include <string>
 #include <vector>
 
+#include "flexi_cfg/details/ordered_map.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
 
 #define DEBUG_CLASSES 0
-#define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
+#define PRINT_SRC 1  // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace flexi_cfg::config::types {
 constexpr std::size_t tw{4};  // The width of the indentation
@@ -24,7 +25,7 @@ constexpr std::size_t tw{4};  // The width of the indentation
 class ConfigBase;
 using BasePtr = std::shared_ptr<ConfigBase>;
 
-using CfgMap = std::map<std::string, BasePtr>;
+using CfgMap = details::ordered_map<std::string, BasePtr, details::string_hash>;
 using RefMap = std::map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
@@ -105,17 +106,36 @@ inline auto operator<<(std::ostream& os, const std::shared_ptr<T>& cfg) -> std::
 }
 
 class ConfigStructLike;
-template <typename Key, typename Value>
-inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> std::ostream& {
+
+// Concept for map-like containers that can be streamed
+template <typename T>
+concept MapLike = requires(const T& map) {
+  typename T::key_type;
+  typename T::mapped_type;
+  { map.begin() } -> std::input_iterator;
+  { map.end() } -> std::input_iterator;
+  requires requires(typename T::const_iterator it) {
+    { it->first } -> std::convertible_to<const typename T::key_type&>;
+    { it->second } -> std::convertible_to<const typename T::mapped_type&>;
+  };
+};
+
+template <typename T>
+concept SharedPtrMap =
+    MapLike<T> &&
+    std::is_same_v<typename T::mapped_type, std::shared_ptr<typename T::mapped_type::element_type>>;
+
+template <MapLike MapType>
+inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       os << kv.second << "\n";
     } else {
-      os << kv.first << " = " << kv.second
-#if PRINT_SRC
-         << "  # " << kv.second->loc()
-#endif
-         << "\n";
+      os << kv.first << " = " << kv.second;
+      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
+        os << "  # " << kv.second->loc();
+      }
+      os << "\n";
     }
   }
   return os;
@@ -123,26 +143,27 @@ inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> st
 
 // See here for a potentially better solution:
 //    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
-template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>& data,
-                   std::size_t depth) {
+template <SharedPtrMap MapType>
+inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       // Don't add extra whitespace, as this is handled entirely by the StructLike objects
       os << kv.second << "\n";
     } else {
-      os << ws << kv.first << " = " << kv.second
-#if PRINT_SRC
-         << "  # " << kv.second->loc()
-#endif
-         << "\n";
+      os << ws << kv.first << " = " << kv.second;
+      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
+        os << "  # " << kv.second->loc();
+      }
+      os << "\n";
     }
   }
 }
 
-template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size_t depth) {
+// More generic pprint that requires a map-like object, but not a std::shared_ptr<T> as the
+// value_type
+template <MapLike MapType>
+inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     os << ws << kv.first << " = " << kv.second
@@ -175,7 +196,7 @@ class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
 
 class ConfigList : public ConfigBaseClonable<ConfigValue, ConfigList> {
  public:
-  ConfigList(std::string value_in = "") : ConfigBaseClonable(std::move(value_in), Type::kList){};
+  ConfigList(std::string value_in = "") : ConfigBaseClonable(std::move(value_in), Type::kList) {};
 
   void stream(std::ostream& os) const override {
     os << "[";
@@ -296,7 +317,7 @@ class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike>
 class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
  public:
   ConfigStruct(std::string name, std::size_t depth, Type type = Type::kStruct)
-      : ConfigBaseClonable(type, std::move(name), depth){};
+      : ConfigBaseClonable(type, std::move(name), depth) {};
 
   void stream(std::ostream& os) const override {
     const auto ws = std::string(depth * tw, ' ');
