@@ -89,7 +89,8 @@ TEST_P(InputString, Reader) {
 
   EXPECT_TRUE(cfg.exists("test2.inner.listWithExpression"));
   EXPECT_EQ(cfg.getType("test2.inner.listWithExpression"), flexi_cfg::config::types::Type::kList);
-  EXPECT_EQ(cfg.getValue<std::vector<float>>("test2.inner.listWithExpression"), std::vector<float>({1, 4096, 1.342}));
+  EXPECT_EQ(cfg.getValue<std::vector<float>>("test2.inner.listWithExpression"),
+            std::vector<float>({1, 4096, 1.342}));
 
   EXPECT_TRUE(cfg.exists("test2"));
   EXPECT_EQ(cfg.getType("test2"), flexi_cfg::config::types::Type::kStruct);
@@ -324,7 +325,8 @@ TEST(ConfigVisitor, JsonConfigVisitor) {
   cfg.visit(visitor);
   std::string json = visitor;
 
-  ASSERT_EQ("{"
+  ASSERT_EQ(
+      "{"
       "\"my_struct\":{"
       "\"my_value_string\":\"myvalue-override\","
       "\"my_value_int\":1234,"
