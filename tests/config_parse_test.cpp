@@ -324,26 +324,36 @@ TEST(ConfigVisitor, JsonConfigVisitor) {
   cfg.visit(visitor);
   std::string json = visitor;
 
-  ASSERT_EQ(
-      "{\"back\":{\"left\":{\"name\":\"back\",\"offset\":[0.15,-9,-0.06,-0.5]},\"right\":{\"name\":"
-      "\"back\",\"offset\":[0.15,9,-0.06]},\"test_list\":[0.123,-0.06,4.567]},\"constants\":{"
-      "\"var1\":0.15,\"var2\":-0.06,\"var3\":9},\"front\":{\"left\":{\"name\":\"front\",\"offset\":"
-      "[0.15,9,-0.06,-0.5]},\"right\":{\"name\":\"front\",\"offset\":[0.15,-9,-0.06]}},\"my_proto_"
-      "as_struct\":{\"my_struct_in_proto\":{\"my_value_boollist\":[true,false,true],\"my_value_"
-      "empty_list\":[],\"my_value_float\":1.23,\"my_value_int\":123,\"my_value_list\":[\"one\","
-      "\"two\",\"three\"],\"my_value_list_of_lists\":[[1,2],[2,3],[4,5,6]],\"my_value_string\":"
-      "\"myvalue\",\"my_value_uintlist\":[0,1,3,5]}},\"my_struct\":{\"my_value_bool\":false,\"my_"
-      "value_boollist\":[true,false,true],\"my_value_empty_list\":[],\"my_value_float\":1.234,\"my_"
-      "value_int\":1234,\"my_value_list\":[\"one\",\"two\",\"three\"],\"my_value_list_of_lists\":[["
-      "1,2],[2,3],[4,5,6]],\"my_value_string\":\"myvalue-override\",\"my_value_uintlist\":[0,1,3,5]"
-      "},\"my_value_bool\":true,\"my_value_boollist\":[true,false,true],\"my_value_empty_list\":[],"
-      "\"my_value_float\":1.23,\"my_value_int\":123,\"my_value_list\":[\"one\",\"two\",\"three\"],"
-      "\"my_value_list_of_lists\":[[1,2],[2,3],[],[4,5,6]],\"my_value_list_of_structs\":[{\"my_"
-      "value_bool\":false,\"my_value_boollist\":[true,false,true],\"my_value_empty_list\":[],\"my_"
-      "value_float\":1.234,\"my_value_int\":1234,\"my_value_list\":[\"one\",\"two\",\"three\"],"
-      "\"my_value_list_of_lists\":[[1,2],[2,3],[4,5,6]],\"my_value_string\":\"myvalue-override\","
-      "\"my_value_uintlist\":[0,1,3,5]},{\"var1\":0.15,\"var2\":-0.06,\"var3\":9}],\"my_value_"
-      "string\":\"myvalue\",\"my_value_uintlist\":[0,1,3,5]}",
+  ASSERT_EQ("{"
+      "\"my_struct\":{\"my_value_string\":\"myvalue-override\",\"my_value_int\":1234,\"my_value_float\":1.234,\"my_value_bool\":false,"
+      "\"my_value_list\":[\"one\",\"two\",\"three\"],\"my_value_uintlist\":[0,1,3,5],\"my_value_boollist\":[true,false,true],"
+      "\"my_value_list_of_lists\":[[1,2],[2,3],[4,5,6]],\"my_value_empty_list\":[]},"
+
+      "\"my_value_string\":\"myvalue\","
+      "\"my_value_int\":123,\"my_value_float\":1.23,\"my_value_bool\":true,\"my_value_list\":[\"one\",\"two\",\"three\"],"
+      "\"my_value_uintlist\":[0,1,3,5],\"my_value_boollist\":[true,false,true],\"my_value_list_of_lists\":[[1,2],[2,3],[],[4,5,6]],"
+      "\"my_value_empty_list\":[],"
+
+      "\"my_value_list_of_structs\":["
+      "{\"my_value_string\":\"myvalue-override\",\"my_value_int\":1234,\"my_value_float\":1.234,\"my_value_bool\":false,"
+      "\"my_value_list\":[\"one\",\"two\",\"three\"],\"my_value_uintlist\":[0,1,3,5],"
+      "\"my_value_boollist\":[true,false,true],\"my_value_list_of_lists\":[[1,2],[2,3],[4,5,6]],\"my_value_empty_list\":[]},"
+      "{\"var1\":0.15,\"var2\":-0.06,\"var3\":9}],"
+
+      "\"my_proto_as_struct\":{\"my_struct_in_proto\":{"
+      "\"my_value_string\":\"myvalue\",\"my_value_int\":123,\"my_value_float\":1.23,"
+      "\"my_value_list\":[\"one\",\"two\",\"three\"],\"my_value_uintlist\":[0,1,3,5],"
+      "\"my_value_boollist\":[true,false,true],\"my_value_list_of_lists\":[[1,2],[2,3],[4,5,6]],"
+      "\"my_value_empty_list\":[]}},"
+
+      "\"constants\":{\"var1\":0.15,\"var2\":-0.06,\"var3\":9},"
+
+      "\"front\":{\"left\":{\"name\":\"front\",\"offset\":[0.15,9,-0.06,-0.5]},"
+      "\"right\":{\"name\":\"front\",\"offset\":[0.15,-9,-0.06]}},"
+
+      "\"back\":{\"test_list\":[0.123,-0.06,4.567],\"left\":{\"name\":\"back\",\"offset\":[0.15,-9,-0.06,-0.5]},"
+      "\"right\":{\"name\":\"back\",\"offset\":[0.15,9,-0.06]}}"
+      "}",
       json);
 }
 
