@@ -60,7 +60,7 @@ class TestMyConfig(unittest.TestCase):
         self.assertEqual(cfg.get_type("my_list"), flexi_cfg.Type.LIST)
 
         cfg_test2 = cfg.get_reader("test2")
-        self.assertEqual(cfg_test2.keys(), expected_cfg["test2"].keys())
+        self.assertEqual(sorted(cfg_test2.keys()), sorted(expected_cfg["test2"].keys()))
 
     def parse_cfg_file(self):
         cfg_file = "config_example1.cfg"
