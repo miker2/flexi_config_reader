@@ -114,12 +114,6 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
     logger::debug("New struct: \n{}", struct_out);
   }
 
-  // Next, move the data from the reference to the struct:
-  struct_out->data.merge(ref->data);
-  if (CONFIG_HELPERS_DEBUG) {
-    logger::debug("Data added: \n{}", struct_out);
-  }
-
   // Next, we need to copy the values from the proto into the reference (need a deep-copy here so
   // that modifying the `std::shared_ptr` objects copied into the reference don't affect those in
   // the proto.
@@ -130,6 +124,13 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
     // types::BasePtr value = el.second->clone();
     struct_out->data[el.first] = el.second->clone();
   }
+
+  // Next, move the data from the reference to the struct:
+  struct_out->data.merge(ref->data);
+  if (CONFIG_HELPERS_DEBUG) {
+    logger::debug("Data added: \n{}", struct_out);
+  }
+
   return struct_out;
 }
 

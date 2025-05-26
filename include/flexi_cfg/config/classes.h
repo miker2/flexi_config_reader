@@ -17,7 +17,7 @@
 #include "flexi_cfg/details/ordered_map.h"
 
 #define DEBUG_CLASSES 0
-#define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
+#define PRINT_SRC 1  // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace flexi_cfg::config::types {
 constexpr std::size_t tw{4};  // The width of the indentation
@@ -130,11 +130,11 @@ inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       os << kv.second << "\n";
     } else {
-      os << kv.first << " = " << kv.second
-#if PRINT_SRC
-         << "  # " << kv.second->loc()
-#endif
-         << "\n";
+      os << kv.first << " = " << kv.second;
+      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
+         os << "  # " << kv.second->loc();
+      }
+      os << "\n";
     }
   }
   return os;
@@ -150,11 +150,11 @@ inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
       // Don't add extra whitespace, as this is handled entirely by the StructLike objects
       os << kv.second << "\n";
     } else {
-      os << ws << kv.first << " = " << kv.second
-#if PRINT_SRC
-         << "  # " << kv.second->loc()
-#endif
-         << "\n";
+      os << ws << kv.first << " = " << kv.second;
+      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
+         os << "  # " << kv.second->loc();
+      }
+      os << "\n";
     }
   }
 }
