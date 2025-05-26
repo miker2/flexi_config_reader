@@ -120,6 +120,10 @@ concept MapLike = requires(const T& map) {
   };
 };
 
+template <typename T>
+concept SharedPtrMap = MapLike<T> &&
+  std::is_same_v<typename T::mapped_type, std::shared_ptr<typename T::mapped_type::element_type>>;
+
 template <MapLike MapType>
 inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
   for (const auto& kv : data) {
@@ -138,9 +142,8 @@ inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
 
 // See here for a potentially better solution:
 //    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
-template <typename Key, typename Value, typename Hash>
-inline void pprint(std::ostream& os, const details::ordered_map<Key, std::shared_ptr<Value>, Hash>& data,
-                   std::size_t depth) {
+template <SharedPtrMap MapType>
+inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
@@ -156,24 +159,7 @@ inline void pprint(std::ostream& os, const details::ordered_map<Key, std::shared
   }
 }
 
-template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>& data,
-                   std::size_t depth) {
-  const auto ws = std::string(depth * tw, ' ');
-  for (const auto& kv : data) {
-    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
-      // Don't add extra whitespace, as this is handled entirely by the StructLike objects
-      os << kv.second << "\n";
-    } else {
-      os << ws << kv.first << " = " << kv.second
-#if PRINT_SRC
-         << "  # " << kv.second->loc()
-#endif
-         << "\n";
-    }
-  }
-}
-
+// More generic pprint that requires a map-like object, but not a std::shared_ptr<T> as the value_type
 template <MapLike MapType>
 inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
