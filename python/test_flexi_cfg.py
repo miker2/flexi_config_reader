@@ -33,14 +33,15 @@ class TestMyConfig(unittest.TestCase):
         my_list = [1.0, -2, 4.2]
         '''
 
-        expected_cfg = {'test1': {'f': 'none',
-                                  'key1': 'value',
+        expected_cfg = {'test1': {'key1': 'value',
                                   'key2': 1.342,
-                                  'key3': 10},
+                                  'key3': 10,
+                                  'f': 'none',
+                                  },
                         'test2': {'my_key': 'foo',
                                   'n_key': 1,
-                                  'my_hex': 0x4539,
                                   'bool_key': False,
+                                  'my_hex': 0x4539,
                                   'var_ref': 10},
                         'my_list': [1.0, -2, 4.2]}
         cfg = flexi_cfg.parse_from_string(my_config_example, "example_cfg")
@@ -60,7 +61,7 @@ class TestMyConfig(unittest.TestCase):
         self.assertEqual(cfg.get_type("my_list"), flexi_cfg.Type.LIST)
 
         cfg_test2 = cfg.get_reader("test2")
-        self.assertEqual(sorted(cfg_test2.keys()), sorted(expected_cfg["test2"].keys()))
+        self.assertEqual(cfg_test2.keys(), expected_cfg["test2"].keys())
 
     def parse_cfg_file(self):
         cfg_file = "config_example1.cfg"
