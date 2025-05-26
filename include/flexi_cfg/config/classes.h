@@ -14,6 +14,7 @@
 
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/utils.h"
+#include "flexi_cfg/details/ordered_map.h"
 
 #define DEBUG_CLASSES 0
 #define PRINT_SRC 0  // NOLINT(cppcoreguidelines-macro-usage)
@@ -24,7 +25,7 @@ constexpr std::size_t tw{4};  // The width of the indentation
 class ConfigBase;
 using BasePtr = std::shared_ptr<ConfigBase>;
 
-using CfgMap = std::map<std::string, BasePtr>;
+using CfgMap = details::ordered_map<std::string, BasePtr, details::string_hash>;
 using RefMap = std::map<std::string, BasePtr>;
 class ConfigProto;
 using ProtoMap = std::map<std::string, std::shared_ptr<ConfigProto>>;
@@ -105,8 +106,22 @@ inline auto operator<<(std::ostream& os, const std::shared_ptr<T>& cfg) -> std::
 }
 
 class ConfigStructLike;
-template <typename Key, typename Value>
-inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> std::ostream& {
+
+// Concept for map-like containers that can be streamed
+template <typename T>
+concept MapLike = requires(const T& map) {
+  typename T::key_type;
+  typename T::mapped_type;
+  { map.begin() } -> std::input_iterator;
+  { map.end() } -> std::input_iterator;
+  requires requires(typename T::const_iterator it) {
+    { it->first } -> std::convertible_to<const typename T::key_type&>;
+    { it->second } -> std::convertible_to<const typename T::mapped_type&>;
+  };
+};
+
+template <MapLike MapType>
+inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
   for (const auto& kv : data) {
     if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
       os << kv.second << "\n";
@@ -123,6 +138,24 @@ inline auto operator<<(std::ostream& os, const std::map<Key, Value>& data) -> st
 
 // See here for a potentially better solution:
 //    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
+template <typename Key, typename Value, typename Hash>
+inline void pprint(std::ostream& os, const details::ordered_map<Key, std::shared_ptr<Value>, Hash>& data,
+                   std::size_t depth) {
+  const auto ws = std::string(depth * tw, ' ');
+  for (const auto& kv : data) {
+    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
+      // Don't add extra whitespace, as this is handled entirely by the StructLike objects
+      os << kv.second << "\n";
+    } else {
+      os << ws << kv.first << " = " << kv.second
+#if PRINT_SRC
+         << "  # " << kv.second->loc()
+#endif
+         << "\n";
+    }
+  }
+}
+
 template <typename Key, typename Value>
 inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>& data,
                    std::size_t depth) {
@@ -141,8 +174,8 @@ inline void pprint(std::ostream& os, const std::map<Key, std::shared_ptr<Value>>
   }
 }
 
-template <typename Key, typename Value>
-inline void pprint(std::ostream& os, const std::map<Key, Value>& data, std::size_t depth) {
+template <MapLike MapType>
+inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
   const auto ws = std::string(depth * tw, ' ');
   for (const auto& kv : data) {
     os << ws << kv.first << " = " << kv.second
