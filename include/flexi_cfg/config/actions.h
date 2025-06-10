@@ -482,10 +482,9 @@ struct base_include_action {
         // This makes include_relative behave like a normal include when the source isn't a file.
         if (!current_file_source.empty() && current_file_source.has_parent_path()) {
           path_base = current_file_source.parent_path();
-        } else {
-          // Fallback to out.base_dir if source is not a usable path (e.g. "from_content" or just a filename)
-          path_base = out.base_dir;
         }
+        // If the condition above is false, path_base remains out.base_dir (its initial value).
+        // This correctly handles the fallback for unusable sources like "from_content" or just a filename.
       }
 
       const auto cfg_file =
