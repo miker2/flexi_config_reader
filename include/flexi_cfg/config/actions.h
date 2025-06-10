@@ -480,7 +480,7 @@ struct base_include_action {
         // or if it doesn't have a discernible parent directory,
         // a relative include should be resolved against out.base_dir.
         // This makes include_relative behave like a normal include when the source isn't a file.
-        if (!current_file_source.empty() && current_file_source.has_parent_path() && !current_file_source.parent_path().empty()) {
+        if (!current_file_source.empty() && current_file_source.has_parent_path()) {
           path_base = current_file_source.parent_path();
         } else {
           // Fallback to out.base_dir if source is not a usable path (e.g. "from_content" or just a filename)
