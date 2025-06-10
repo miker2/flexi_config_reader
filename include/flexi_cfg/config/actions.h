@@ -472,11 +472,26 @@ struct base_include_action {
       CONFIG_ACTION_DEBUG("Basedir: {}", out.base_dir.string());
 
       const auto is_absolute = std::filesystem::path(incl.file).is_absolute();
+      std::filesystem::path path_base = out.base_dir;
+
+      if (incl.is_relative) {
+        std::filesystem::path current_file_source(in.position().source);
+        // If current_file_source is not a file path (e.g., "from_content" for string inputs),
+        // or if it doesn't have a discernible parent directory,
+        // a relative include should be resolved against out.base_dir.
+        // This makes include_relative behave like a normal include when the source isn't a file.
+        if (!current_file_source.empty() && current_file_source.has_parent_path() && !current_file_source.parent_path().empty()) {
+          path_base = current_file_source.parent_path();
+        } else {
+          // Fallback to out.base_dir if source is not a usable path (e.g. "from_content" or just a filename)
+          path_base = out.base_dir;
+        }
+      }
 
       const auto cfg_file =
-          absolute(is_absolute ? std::filesystem::path(incl.file) : out.base_dir / incl.file);
+          absolute(is_absolute ? std::filesystem::path(incl.file) : path_base / incl.file);
 
-      CONFIG_ACTION_DEBUG("Resolved include: {}", cfg_file.string());
+      CONFIG_ACTION_DEBUG("Resolved include: {} (is_relative: {}, is_absolute: {}, path_base: {})", cfg_file.string(), incl.is_relative, is_absolute, path_base.string());
 
       if (!exists(cfg_file)) {
         if (incl.is_optional) {

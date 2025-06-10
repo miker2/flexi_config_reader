@@ -26,10 +26,9 @@ namespace {
 constexpr bool STRIP_PROTOS{true};
 
 template <typename INPUT>
-auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
-  bool success;  // NOLINT
+auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) {
   try {
-    success = flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
+    bool success = flexi_cfg::config::internal::parseCore<peg::must<flexi_cfg::config::grammar>,
                                                      flexi_cfg::config::action,
                                                      flexi_cfg::config::control>(input, output);
     // If parsing is successful, all of these containers should be empty (consumed into
@@ -56,10 +55,10 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
       // Print a trace if a failure occured.
       // input.restart();
       // peg::standard_trace<flexi_cfg::config::grammar>(input);
-      return success;
+      THROW_EXCEPTION(flexi_cfg::config::InvalidConfigException, "Parse failure at {}:{}",
+                      position.source, position.line);
     }
   } catch (const peg::parse_error& e) {
-    success = false;  // TODO(jayv) this should probably throw
     flexi_cfg::logger::critical("!!!");
     flexi_cfg::logger::critical("  Parser failure!");
     flexi_cfg::logger::critical("{}\n", e.what());
@@ -75,11 +74,13 @@ auto parseCommon(INPUT& input, flexi_cfg::config::ActionData& output) -> bool {
     }
     std::stringstream ss;
     output.print(ss);
-    flexi_cfg::logger::critical("\nPartial output: \n{}", ss.str());
+    flexi_cfg::logger::debug("\nPartial output: \n{}", ss.str());
     flexi_cfg::logger::critical("!!!");
-    return success;
+    THROW_EXCEPTION(flexi_cfg::config::InvalidConfigException,
+                    "Parse failure at {}:{}",
+                    e.positions().front().source,
+                    e.positions().front().line);
   }
-  return success;
 }
 
 auto mergeNested(const std::vector<flexi_cfg::config::types::CfgMap>& in)
@@ -129,7 +130,7 @@ auto Parser::parse(const std::filesystem::path& cfg_filename,
   peg::file_input cfg_file(input_file);
   config::ActionData state{base_dir};
 
-  // TODO(miker2): Do something smarter if "parseCommon" fails!
+  // Will throw InvalidConfigException if parsing fails.
   parseCommon(cfg_file, state);
 
   Parser parser;
@@ -140,7 +141,7 @@ auto Parser::parseFromString(std::string_view cfg_string, std::string_view sourc
   peg::memory_input cfg_file(cfg_string, source);
   config::ActionData state;
 
-  // TODO(miker2): Do something smarter if "parseCommon" fails!
+  // Will throw InvalidConfigException if parsing fails.
   parseCommon(cfg_file, state);
 
   Parser parser;
