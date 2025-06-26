@@ -417,8 +417,8 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
                       src_key, src, fmt::join(refs, " -> "));
     }
     // Get the new value based on the kValueLookup object.
-    value = getConfigValue(root, kv_lookup);
-    value->origins.push_back(kv_lookup); // Add the lookup to the origins
+    value = getConfigValue(root, kv_lookup)->clone();
+    value->origins.push_back(kv_lookup);  // Add the lookup to the origins
     logger::trace("{} points to {}", kv_lookup, value);
     // Add this key to the list of references/dependencies
     refs.emplace_back(kv_lookup->var());
@@ -521,8 +521,10 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
                                                                                         math);
   auto result_value = std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
                                                           math.res);
-  result_value->origins = expression->origins; // Inherit origins from the original expression
-  result_value->origins.push_back(expression); // Add the expression itself to origins
+  result_value->origins = expression->origins;  // Inherit origins from the original expression
+  result_value->origins.push_back(expression);  // Add the expression itself to origins
+  result_value->line = expression->line;
+  result_value->source = expression->source;
   return result_value;
 }
 
