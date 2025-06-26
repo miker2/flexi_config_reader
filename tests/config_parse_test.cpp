@@ -317,6 +317,18 @@ TEST(ConfigParse, ConfigRoot) {
       std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
 }
 
+TEST(ConfigParse, LocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example13.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  EXPECT_THAT(output, testing::HasSubstr("var_ref1 = \"test\"  # /Users/michael/repos/flexi_config_reader/examples/env/env_example1.cfg:1 (from /Users/michael/repos/flexi_config_reader/examples/config_example13.cfg:5)"));
+  EXPECT_THAT(output, testing::HasSubstr("var_ref2 = \"test\"  # /Users/michael/repos/flexi_config_reader/examples/env/env_example2.cfg:2 (from /Users/michael/repos/flexi_config_reader/examples/config_example13.cfg:6)"));
+}
+
 TEST(ConfigVisitor, JsonConfigVisitor) {
   setLevel(flexi_cfg::logger::Severity::INFO);
   auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config_example16.cfg"), baseDir());
