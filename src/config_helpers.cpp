@@ -228,6 +228,11 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       }
       auto resolved_var = ref_vars.at(v_var->name)->clone();
       resolved_var->origins.push_back(v_var); // Add the original var to the origins
+      // If the resolved variable doesn't have location info, inherit from the original variable
+      if (resolved_var->line == 0 && resolved_var->source.empty()) {
+        resolved_var->line = v_var->line;
+        resolved_var->source = v_var->source;
+      }
       return resolved_var;
     };
 
@@ -272,6 +277,17 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                           k, v_list->loc(), v_list->list_element_type, e->type);
         }
         // If this is any other type, we're going to skip it
+      }
+      // Ensure the list inherits location info if it doesn't have any
+      if (v_list->line == 0 && v_list->source.empty()) {
+        // Find a representative element to inherit location from
+        for (const auto& e : v_list->data) {
+          if (e->line != 0 || !e->source.empty()) {
+            v_list->line = e->line;
+            v_list->source = e->source;
+            break;
+          }
+        }
       }
       logger::trace("Resolved list: {}", v_list);
     } else if (v->type == types::Type::kExpression) {

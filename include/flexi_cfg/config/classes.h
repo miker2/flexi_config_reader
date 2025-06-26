@@ -409,7 +409,11 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
   ConfigReference(const std::string& name, std::string proto_name, std::size_t depth)
       : ConfigBaseClonable(Type::kReference, name, depth), proto{std::move(proto_name)} {
     // Create the required key to easily reference the parent name.
-    ref_vars["$PARENT_NAME"] = std::make_shared<ConfigValue>(name, Type::kString);
+    auto parent_name_var = std::make_shared<ConfigValue>(name, Type::kString);
+    // Inherit location information from this reference
+    parent_name_var->line = this->line;
+    parent_name_var->source = this->source;
+    ref_vars["$PARENT_NAME"] = parent_name_var;
   }
 
   void stream(std::ostream& os) const override {
