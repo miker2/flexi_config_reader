@@ -64,12 +64,26 @@ class ConfigBase {
 
   [[nodiscard]] virtual auto clone() const -> BasePtr = 0;
 
-  [[nodiscard]] auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
+  [[nodiscard]] auto loc() const -> std::string {
+    std::string s = fmt::format("{}:{}", source, line);
+    if (!origins.empty()) {
+      s += " (from ";
+      for (size_t i = 0; i < origins.size(); ++i) {
+        s += fmt::format("{}:{}", origins[i]->source, origins[i]->line);
+        if (i < origins.size() - 1) {
+          s += " <-";
+        }
+      }
+      s += ")";
+    }
+    return s;
+  }
 
   const Type type;
 
   std::size_t line{0};
   std::string source{};
+  std::vector<std::shared_ptr<ConfigBase>> origins{};
 
  protected:
   explicit ConfigBase(const Type in_type) : type{in_type} {}
