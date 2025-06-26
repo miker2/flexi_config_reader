@@ -10,6 +10,8 @@
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <thread>
 
+#include <fmt/format.h>
+
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/parser-internal.h"
@@ -326,8 +328,13 @@ TEST(ConfigParse, LocationReporting) {
   cfg.dump(ss);
   std::string output = ss.str();
 
-  EXPECT_THAT(output, testing::HasSubstr("var_ref1 = \"test\"  # /Users/michael/repos/flexi_config_reader/examples/env/env_example1.cfg:1 (from /Users/michael/repos/flexi_config_reader/examples/config_example13.cfg:5)"));
-  EXPECT_THAT(output, testing::HasSubstr("var_ref2 = \"test\"  # /Users/michael/repos/flexi_config_reader/examples/env/env_example2.cfg:2 (from /Users/michael/repos/flexi_config_reader/examples/config_example13.cfg:6)"));
+  const auto base_path = baseDir();
+  const auto expected_loc1 = (base_path / "env/env_example1.cfg").string();
+  const auto config_path = (base_path / "config_example13.cfg").string();
+  const auto expected_loc2 = (base_path / "env/env_example2.cfg").string();
+
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref1 = \"test\"  # {}:1 (from {}:5)", expected_loc1, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref2 = \"test\"  # {}:2 (from {}:6)", expected_loc2, config_path)));
 }
 
 TEST(ConfigVisitor, JsonConfigVisitor) {
