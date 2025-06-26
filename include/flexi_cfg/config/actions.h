@@ -819,10 +819,15 @@ struct action<PROTOs> {
 
 template <>
 struct action<REFs> {
-  static void apply0(ActionData& out) {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("reference {} as {}", out.flat_keys.back(), out.keys.back());
-    out.objects.push_back(std::make_shared<types::ConfigReference>(
-        out.keys.back(), out.flat_keys.back(), out.depth++));
+    auto ref = std::make_shared<types::ConfigReference>(
+        out.keys.back(), out.flat_keys.back(), out.depth++);
+    // Set location information for the reference
+    ref->line = in.position().line;
+    ref->source = in.position().source;
+    out.objects.push_back(ref);
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }

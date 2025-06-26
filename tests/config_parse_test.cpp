@@ -337,6 +337,54 @@ TEST(ConfigParse, LocationReporting) {
   EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref2 = \"test\"  # {}:2 (from {}:6)", expected_loc2, config_path)));
 }
 
+TEST(ConfigParse, ProtoLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example9.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example9.cfg").string();
+
+  // Test that proto variable substitution preserves location information
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:9 (from {}:9)", config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:9 (from {}:9)", config_path, config_path)));
+  
+  // Test that lists in protos have proper location information
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10", config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, -9.000000, -0.06]  # {}:14", config_path)));
+}
+
+TEST(ConfigParse, ValueLookupLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example1.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example1.cfg").string();
+
+  // Test value lookup references show origin location
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref = -0.392699  # {}:6 (from {}:13 <- {}:6)", config_path, config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("b = 2  # {}:24 (from {}:36)", config_path, config_path)));
+}
+
+TEST(ConfigParse, ExpressionLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example2.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example2.cfg").string();
+
+  // Test expression evaluation preserves location information
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("expression = -6159999999.329000  # {}:17 (from {}:17)", config_path, config_path)));
+}
+
 TEST(ConfigVisitor, JsonConfigVisitor) {
   setLevel(flexi_cfg::logger::Severity::INFO);
   auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config_example16.cfg"), baseDir());
