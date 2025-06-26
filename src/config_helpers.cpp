@@ -291,9 +291,14 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       state.obj_res->line = v->line;
       state.obj_res->source = v->source;
       state.obj_res->origins = v->origins; // Inherit origins from the original expression
-      // Add the resolved variables to the origins of the new expression
+      // Add only the resolved variables that were actually used in the expression
       for (const auto& rkv : ref_vars) {
-        state.obj_res->origins.push_back(rkv.second);
+        const auto& rk = rkv.first;
+        // Check if this variable was actually used in the expression
+        if (expression->value.find(rk) != std::string::npos ||
+            expression->value.find(std::regex_replace(rk, std::regex("\\$(.+)"), "${$1}")) != std::string::npos) {
+          state.obj_res->origins.push_back(rkv.second);
+        }
       }
       auto contains_var = str_contains_var(out.value());
       logger::debug("{} has var? {}", out.value(), contains_var);

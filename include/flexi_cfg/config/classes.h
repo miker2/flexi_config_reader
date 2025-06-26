@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 
 #include <any>
 #include <iosfwd>
@@ -68,12 +69,12 @@ class ConfigBase {
     std::string s = fmt::format("{}:{}", source, line);
     if (!origins.empty()) {
       s += " (from ";
-      for (size_t i = 0; i < origins.size(); ++i) {
-        s += fmt::format("{}:{}", origins[i]->source, origins[i]->line);
-        if (i < origins.size() - 1) {
-          s += " <-";
-        }
+      std::vector<std::string> origin_locs;
+      origin_locs.reserve(origins.size());
+      for (const auto& origin : origins) {
+        origin_locs.push_back(fmt::format("{}:{}", origin->source, origin->line));
       }
+      s += fmt::format("{}", fmt::join(origin_locs, " <- "));
       s += ")";
     }
     return s;
