@@ -18,7 +18,7 @@ jobs:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
-      CLANG_DEFAULT: 13
+      CLANG_DEFAULT: 17
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +28,7 @@ jobs:
           ubuntu-22.04-clang-13,
           ubuntu-22.04-clang-14,
           ubuntu-22.04-clang-15,
+          ubuntu-24.04-clang-17,
           mac-os-latest
         ]
 
@@ -52,6 +53,11 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "15"
+
+          - name: ubuntu-24.04-clang-17
+            os: ubuntu-24.04
+            compiler: clang
+            version: "17"
 
           - name: mac-os-latest
             os: macos-latest
