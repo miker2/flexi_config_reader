@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"

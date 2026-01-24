@@ -21,7 +21,7 @@ using RetType = std::pair<bool, flexi_cfg::config::ActionData>;
 template <typename GTYPE, template <typename...> class Control = peg::normal>
 auto runTest(const std::string& test_str) -> RetType {
   peg::memory_input in(test_str, "from_content");
-  flexi_cfg::config::ActionData out(std::filesystem::path(EXAMPLE_DIR));
+  flexi_cfg::config::ActionData out{std::filesystem::path(EXAMPLE_DIR)};
   const auto ret =
       flexi_cfg::config::internal::parseCore<GTYPE, flexi_cfg::config::action, Control>(in, out);
   return {ret, out};

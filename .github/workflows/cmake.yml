@@ -18,7 +18,7 @@ jobs:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
-      CLANG_DEFAULT: 13
+      CLANG_DEFAULT: 17
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +28,7 @@ jobs:
           ubuntu-22.04-clang-13,
           ubuntu-22.04-clang-14,
           ubuntu-22.04-clang-15,
+          ubuntu-24.04-clang-17,
           mac-os-latest
         ]
 
@@ -52,6 +53,11 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "15"
+
+          - name: ubuntu-24.04-clang-17
+            os: ubuntu-24.04
+            compiler: clang
+            version: "17"
 
           - name: mac-os-latest
             os: macos-latest
@@ -127,29 +133,41 @@ jobs:
         cache: 'pip'
     - run: pip install -r requirements.txt
 
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 'lts/*'
+    - name: Install bazelisk
+      run: npm install -g @bazel/bazelisk
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
+      run: cmake -B ${{github.workspace}}/flexi_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/flexi_build --config ${{env.BUILD_TYPE}}
 
     - name: Test
-      working-directory: ${{github.workspace}}/build
+      working-directory: ${{github.workspace}}/flexi_build
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         export TEST_DIR=env
         ctest -C ${{env.BUILD_TYPE}}
-        ${{github.workspace}}/build/src/include_file_test
+        ${{github.workspace}}/flexi_build/src/include_file_test
         for i in `seq 1 15`; do
-          ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
+          ${{github.workspace}}/flexi_build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
 
     - name: Run python tests
       run: |
-        pushd ${{github.workspace}}/build/python
+        pushd ${{github.workspace}}/flexi_build/python
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
+
+    - name: Bazel build and test
+      run: |
+        rm -rf ${{github.workspace}}/flexi_build
+        bazel build //...
+        bazel test //...

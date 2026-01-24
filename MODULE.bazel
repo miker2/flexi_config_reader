@@ -1,0 +1,22 @@
+module(
+    name = "flexi_cfg",
+    version = "0.8.1",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.16")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "rules_python", version = "1.8.1")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "pybind11_bazel", version = "3.0.0")
+bazel_dep(name = "googletest", version = "1.17.0.bcr.2", repo_name = "com_google_googletest")
+
+bazel_dep(name = "pegtl", version = "3.2.8")
+bazel_dep(name = "magic_enum", version = "0.9.7")
+single_version_override(
+    module_name = "magic_enum",
+    version = "0.9.7",
+    patches = ["//3rdparty/magic_enum:magic_enum.patch"],
+    patch_strip = 1,
+)
+bazel_dep(name = "fmt", version = "12.1.0")
+bazel_dep(name = "range-v3", version = "0.12.0")

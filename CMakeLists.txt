@@ -27,7 +27,7 @@ FetchContent_Declare(
   )
 FetchContent_MakeAvailable(taocpp_pegtl)
 
-# magic_enum tag v0.8.1
+# magic_enum tag v0.9.7
 option(CFG_MAGIC_ENUM_DIR "Specify the location of magic_enum headers" "")
 find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum.hpp HINTS ${CFG_MAGIC_ENUM_DIR})
 find_package_handle_standard_args(magic_enum DEFAULT_MSG MAGIC_ENUM_INCLUDE_DIR)
@@ -39,7 +39,7 @@ else(magic_enum_FOUND)
   FetchContent_Declare(
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-    GIT_TAG        v0.9.3
+    GIT_TAG        v0.9.7
     SYSTEM
     EXCLUDE_FROM_ALL
     )
