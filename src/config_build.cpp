@@ -3,7 +3,7 @@
 
 #include <exception>
 #include <filesystem>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <span>
 
 #include "flexi_cfg/logger.h"
