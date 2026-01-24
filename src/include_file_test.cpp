@@ -33,7 +33,7 @@ template <typename GTYPE, typename SOURCE>
 auto runTest(SOURCE& src, bool pdot = true) -> bool {
   std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
   std::cout << "Parsing: " << src.source() << "\n----- content -----\n";
-  std::cout << std::string_view(src.begin(), src.size()) << std::endl;
+  std::cout << std::string_view(src.begin(), src.size()) << "\n";
   std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
 
   bool ret{false};
@@ -53,7 +53,7 @@ auto runTest(SOURCE& src, bool pdot = true) -> bool {
     // re-use the input here for convenience.
     src.restart();
     ret = peg::parse<GTYPE>(src);
-    std::cout << "  Parse " << (ret ? std::string("success") : "failure") << std::endl;
+    std::cout << "  Parse " << (ret ? std::string("success") : "failure") << "\n";
   } catch (const peg::parse_error& e) {
     std::cout << "!!!\n";
     std::cout << "  Parser failure!\n";
@@ -76,10 +76,8 @@ auto runTest(size_t idx, const std::string& test_str, bool pdot = true) -> bool 
 }
 
 auto main() -> int {
-  const bool pdot = false;
-
   if (peg::analyze<flexi_cfg::filename::grammar>() != 0) {
-    std::cout << "Something in the grammar is broken!" << std::endl;
+    std::cout << "Something in the grammar is broken!\n";
     return 1;
   }
 
