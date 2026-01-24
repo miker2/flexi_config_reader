@@ -12,5 +12,11 @@ bazel_dep(name = "googletest", version = "1.17.0.bcr.2", repo_name = "com_google
 
 bazel_dep(name = "pegtl", version = "3.2.8")
 bazel_dep(name = "magic_enum", version = "0.9.7")
+single_version_override(
+    module_name = "magic_enum",
+    version = "0.9.7",
+    patches = ["//3rdparty/magic_enum:magic_enum.patch"],
+    patch_strip = 1,
+)
 bazel_dep(name = "fmt", version = "12.1.0")
 bazel_dep(name = "range-v3", version = "0.12.0")
