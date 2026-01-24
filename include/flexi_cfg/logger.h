@@ -6,7 +6,7 @@
 
 #include <cstdint>
 #include <deque>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <unordered_map>
 #include <string_view>
 
