@@ -165,3 +165,8 @@ jobs:
         pushd ${{github.workspace}}/build/python
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
+
+    - name: Bazel build and test
+      run: |
+        bazel build //...
+        bazel test //...
