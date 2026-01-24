@@ -133,7 +133,7 @@ jobs:
         cache: 'pip'
     - run: pip install -r requirements.txt
 
-    - uses: actions/node@v3
+    - uses: actions/setup-node@v3
       with:
         node-version: 'lts/*'
     - name: Install bazelisk
