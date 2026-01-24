@@ -68,7 +68,7 @@ class TestMyConfig(unittest.TestCase):
         try:
             cfg_file_path = os.path.join(os.environ['EXAMPLES_DIR'], cfg_file)
         except KeyError:
-            cfg_file_path = os.path.join("../examples", cfg_file)
+            cfg_file_path = os.path.join("examples", cfg_file)
         return flexi_cfg.parse(cfg_file_path)
 
     def expected_cfg_file(self):
