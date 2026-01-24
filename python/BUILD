@@ -10,8 +10,8 @@ pybind_extension(
 py_test(
     name = "test_flexi_cfg",
     srcs = ["test_flexi_cfg.py"],
-    imports = ["."],
     data = ["//examples:test_configs"],
-    deps = [":flexi_cfg"],
+    imports = ["."],
     main = "test_flexi_cfg.py",
+    deps = [":flexi_cfg"],
 )
