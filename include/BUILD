@@ -6,7 +6,7 @@ cc_library(
     includes = ["."],
     visibility = ["//visibility:public"],
     deps = [
-        "@magic_enum",
         "@fmt",
+        "@magic_enum",
     ],
 )
