@@ -155,7 +155,7 @@ jobs:
       run: |
         export TEST_DIR=env
         ctest -C ${{env.BUILD_TYPE}}
-        ${{github.workspace}}/build/src/include_file_test
+        ${{github.workspace}}/flexi_build/src/include_file_test
         for i in `seq 1 15`; do
           ${{github.workspace}}/flexi_build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
         done
