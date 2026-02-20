@@ -257,7 +257,7 @@ As mentioned above, a leaf key can be specified once and only once in the config
 that was previously specified in the config to be overridden with a new value. In order to use 
 `[override]` the key/value pair must exist elsewhere in the config (using `[override]` on a key not previously defined will result in an error). In addition, the type of the override must match the previously defined value. 
 
-An example of usage can be found in [example_config1.cfg](examples/config_example1.cfg) and is shown below:
+An example of usage can be found in [config_example1.cfg](examples/config_example1.cfg) and is shown below:
 
 ```
 struct foo {
@@ -373,8 +373,8 @@ Implement a visitor `class` that matches one or more of the following [&lt;conce
 
 ## C++
 The C++ implementation uses the [`taocpp::pegtl`](https://github.com/taocpp/PEGTL) library to define the grammar.
-`PEGTL` uses a templatized syntax to define the grammar (which can be found [here](cpp/config_grammar.h)).  This is used
-for parsing the raw config file, along with a set of [actions](cpp/config_actions.h) which define how to act on the parse
+`PEGTL` uses a templatized syntax to define the grammar (which can be found [here](include/flexi_cfg/config/grammar.h)).  This is used
+for parsing the raw config file, along with a set of [actions](include/flexi_cfg/config/actions.h) which define how to act on the parse
 output.  Once the raw config files are parsed, there is a second pass that does the following:
 1. Finds all protos defined in the parsed output
 2. Merges all nested structs into a single struct
@@ -430,7 +430,7 @@ directory. See the googletest documentation for options.
 
 In addition to the tests, there are a number of simple applications that provide example code for the library usage.
 
- *  [`config_build`](src/config_build.cpp) - This application can be used to parse a config file and build the resulting config tree. Usage: `./src/config_reader ../example/config_example5.cfg`.
+ *  [`config_build`](src/config_build.cpp) - This application can be used to parse a config file and build the resulting config tree. Usage: `./src/config_build ../examples/config_example5.cfg`.
  *  [`config_reader_example`](src/config_reader_example.cpp) - This reads the [`config_example5.cfg`](examples/config_example5.cfg) configuration file and attempts to read a variety of variables from it. This uses a verbose mode, which generates a lot of debug printouts, tracing the parsing and construction of the config data.
 
 ## Python
