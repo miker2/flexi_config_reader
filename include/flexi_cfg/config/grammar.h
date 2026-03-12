@@ -101,7 +101,7 @@ struct STRING : peg::seq<peg::one<'"'>, peg::plus<peg::not_one<'"'>>, peg::one<'
 struct EXPRESSION : peg::seq<Eo, math::expression, Ec> {};
 
 template <typename Element>
-struct LIST_CONTENT_ : peg::list<Element, peg::seq<COMMA, TAIL>, peg::space> { using element = Element; };
+struct LIST_CONTENT_ : peg::list_tail<Element, peg::seq<COMMA, TAIL>, peg::space> { using element = Element; };
 
 template <typename Content>
 // TODO: Figure out how to support 'peg::if_must<>' here instead of 'peg::seq<>' so that we can get

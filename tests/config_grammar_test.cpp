@@ -408,6 +408,17 @@ const std::vector<std::string> list_test_cases = {
     "[$(ref.var2), $(ref.var1), 3.456]",
     // Verify that a mix of variables, expressions and numbers is supported
     R"([$(ref.var2), {{ 2^14 - 1}}, 0.32])",
+
+    // Verify that a list with a trailing comma is supported
+    "[0x123, 0Xabc, 0xA1B2F9,]",
+    // Verify that a list of lists with a trailing comma is supported
+    "[[1, 2, 3], [4, 5, 6,], [7, 8, 9],]",
+    // Verify that a list with a trailing comma and a trailing comment is supported
+    R"([
+        0x123,         # Another comment here with a comma,
+        0Xabc, 0xA1B2F9, # a trailing comma and a trailingcomment
+        # comment
+        ])",
     };
 
 TEST(ConfigGrammar, LIST) {
@@ -436,13 +447,6 @@ TEST(ConfigGrammar, LIST) {
     std::optional<RetType> ret;
     EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::LIST, peg::eolf>>(content)),
                  flexi_cfg::config::InvalidTypeException);
-  }
-  {
-    // Fails due to the trailing comma
-    const std::string content = "[0x123, 0Xabc, 0xA1B2F9,]";
-    std::optional<RetType> ret;
-    EXPECT_THROW(ret.emplace(runTest<peg::must<flexi_cfg::config::LIST, peg::eolf>>(content)),
-                 tao::pegtl::parse_error);
   }
   {
     // Fails due to containing a VAR
