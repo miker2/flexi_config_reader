@@ -384,6 +384,20 @@ output.  Once the raw config files are parsed, there is a second pass that does 
 
 `PEGTL` also provides some additional functionality to analyze the defined grammar and to generate a parse-tree from a supplied configuration file.
 
+### Supported toolchains
+
+The library is C++20 and requires CMake 3.28 or newer. CI builds and tests every release against:
+
+| | Oldest supported | Newest tested |
+|---|---|---|
+| GCC | 12 | 14 |
+| Clang | 16 | 22 |
+| Apple Clang | whatever ships with the current `macos-latest` runner | |
+
+Newer toolchains are also built in a non-blocking job that tracks the latest stable LLVM release, so
+breakage tends to show up here before it reaches you. Older compilers than the ones listed may work
+but are not tested; the floor rose to GCC 12 / Clang 16 when the Ubuntu 22.04 CI images were retired.
+
 ### Dependencies
 
 The following dependencies are required in order to compile the code:
