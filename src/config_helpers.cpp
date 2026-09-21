@@ -392,6 +392,8 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
   // Follow the kValueLookup objects until:
   //  (a) A terminal value is found, upon which the value is used.
   //  (b) A cycle is found, upon which an exception is thrown.
+  // The first lookup must always be performed, so a do-while is the right shape.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
   do {
     auto kv_lookup = dynamic_pointer_cast<types::ConfigValueLookup>(value);
     if (utils::contains(refs, kv_lookup->var())) {

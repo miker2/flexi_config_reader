@@ -95,6 +95,9 @@ TEST(ConfigException, DuplicateKeyException) {
     EXPECT_THROW(flexi_cfg::Parser::parseFromString(ref_proto_failure, "ref_proto_failure"),
                  flexi_cfg::config::DuplicateKeyException);
   }
+// This block is kept deliberately: it documents behaviour that depends on the
+// FULLPAIR action, which is not currently implemented.
+// NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if)
 #if 0  // See FULLPAIR action
   {
     const std::string_view duplicate_full_pair =

@@ -18,7 +18,7 @@ jobs:
       # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
-      CLANG_DEFAULT: 13
+      CLANG_DEFAULT: 17
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +28,7 @@ jobs:
           ubuntu-22.04-clang-13,
           ubuntu-22.04-clang-14,
           ubuntu-22.04-clang-15,
+          ubuntu-24.04-clang-17,
           mac-os-latest
         ]
 
@@ -52,6 +53,11 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "15"
+
+          - name: ubuntu-24.04-clang-17
+            os: ubuntu-24.04
+            compiler: clang
+            version: "17"
 
           - name: mac-os-latest
             os: macos-latest
@@ -144,8 +150,10 @@ jobs:
         export TEST_DIR=env
         ctest -C ${{env.BUILD_TYPE}}
         ${{github.workspace}}/build/src/include_file_test
-        for i in `seq 1 15`; do
-          ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
+        for cfg in ${{github.workspace}}/examples/config_example*.cfg; do
+          # Fragments pulled in by config_example16.cfg; not standalone configs.
+          case "$cfg" in *_base.cfg|*_overlay.cfg) continue ;; esac
+          ${{github.workspace}}/build/src/config_build "$cfg"
         done
 
     - name: Run python tests
@@ -153,3 +161,40 @@ jobs:
         pushd ${{github.workspace}}/build/python
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
+
+  bazel:
+    name: bazel-${{ matrix.bazel }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+        # The repo pins a default in .bazelversion; check the other supported
+        # major here so neither one regresses.
+        bazel: ["8.5.0", "9.2.0"]
+
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Call bazelisk directly rather than `bazel`: the runner images ship a real
+    # Bazel binary under that name, which would ignore USE_BAZEL_VERSION and
+    # quietly test the same version twice.
+    - name: Report Bazel version
+      run: bazelisk --version
+
+    - name: Cache Bazel
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/bazel-disk
+        key: bazel-${{ matrix.os }}-${{ matrix.bazel }}-${{ hashFiles('MODULE.bazel') }}
+        restore-keys: |
+          bazel-${{ matrix.os }}-${{ matrix.bazel }}-
+
+    - name: Build
+      run: bazelisk build --disk_cache="$HOME/.cache/bazel-disk" //...
+
+    - name: Test
+      run: bazelisk test --disk_cache="$HOME/.cache/bazel-disk" //...

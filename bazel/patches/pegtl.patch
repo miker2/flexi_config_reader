@@ -1,0 +1,24 @@
+Bazel 9 removed the native `cc_library` rule, but the PEGTL module in the
+Bazel Central Registry (3.2.8, the only published version) still relies on it
+being available implicitly. Add the missing `load()` statement, plus the
+`rules_cc` dependency it needs to resolve, so the build works on Bazel 8 and 9
+alike without `--incompatible_autoload_externally`.
+
+diff --git a/BUILD.bazel b/BUILD.bazel
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -1,3 +1,5 @@
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
+ cc_library(
+     name = "pegtl",
+     hdrs = glob(["include/**/*.hpp"]),
+diff --git a/MODULE.bazel b/MODULE.bazel
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -3,3 +3,5 @@ module(
+     version = "3.2.8",
+     compatibility_level = 0,
+ )
++
++bazel_dep(name = "rules_cc", version = "0.2.25")
