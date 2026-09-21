@@ -179,8 +179,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # Bazelisk ships on the GitHub runner images as `bazel`, and honours
-    # USE_BAZEL_VERSION.
+    # Call bazelisk directly rather than `bazel`: the runner images ship a real
+    # Bazel binary under that name, which would ignore USE_BAZEL_VERSION and
+    # quietly test the same version twice.
+    - name: Report Bazel version
+      run: bazelisk --version
+
     - name: Cache Bazel
       uses: actions/cache@v4
       with:
@@ -190,7 +194,7 @@ jobs:
           bazel-${{ matrix.os }}-${{ matrix.bazel }}-
 
     - name: Build
-      run: bazel build --disk_cache="$HOME/.cache/bazel-disk" //...
+      run: bazelisk build --disk_cache="$HOME/.cache/bazel-disk" //...
 
     - name: Test
-      run: bazel test --disk_cache="$HOME/.cache/bazel-disk" //...
+      run: bazelisk test --disk_cache="$HOME/.cache/bazel-disk" //...
