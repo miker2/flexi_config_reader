@@ -147,6 +147,11 @@ target_include_directories(flexi_cfg PUBLIC
   $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>
   ${magic_enum_INCLUDE_DIR})
 target_compile_features(flexi_cfg INTERFACE cxx_std_20)
+# range-v3's meta.hpp forward-declares standard containers itself whenever Apple
+# clang is detected. Those declarations do not compile against recent libc++,
+# which dropped `_LIBCPP_TEMPLATE_VIS`. Opt out and let it include the real
+# headers instead. No-op for the toolchains that skip that block.
+target_compile_definitions(flexi_cfg PUBLIC META_NO_STD_FORWARD_DECLARATIONS)
 set_target_properties(flexi_cfg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 target_link_libraries(flexi_cfg
