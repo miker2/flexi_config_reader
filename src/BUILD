@@ -9,6 +9,11 @@ cc_library(
         "config_reader.cpp",
         "math_helpers.cpp",
     ],
+    # range-v3's meta.hpp forward-declares standard containers itself whenever
+    # Apple clang is detected. Those declarations do not compile against recent
+    # libc++, which dropped `_LIBCPP_TEMPLATE_VIS`. Opt out and let it include
+    # the real headers instead. No-op for the toolchains that skip that block.
+    defines = ["META_NO_STD_FORWARD_DECLARATIONS"],
     visibility = ["//visibility:public"],
     deps = [
         "//include:flexi_cfg_hdrs",
