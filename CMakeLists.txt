@@ -143,6 +143,9 @@ set(CFG_HEADERS
   include/flexi_cfg/config/trace-internal.h
   include/details/ordered_map.h
   include/flexi_cfg/logger.h
+  include/flexi_cfg/render.h
+  include/flexi_cfg/render-fmt.h
+  include/flexi_cfg/render-ostream.h
   include/flexi_cfg/math/actions.h
   include/flexi_cfg/math/grammar.h
   include/flexi_cfg/math/helpers.h

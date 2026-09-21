@@ -794,8 +794,8 @@ struct action<STRUCTs> {
   static void apply0(ActionData& out) {
     types::Type struct_type = out.in_proto ? types::Type::kStructInProto : types::Type::kStruct;
     CONFIG_ACTION_DEBUG("struct {} - type: {}", out.keys.back(), struct_type);
-    out.objects.push_back(
-        std::make_shared<types::ConfigStruct>(out.keys.back(), out.depth++, struct_type));
+    out.objects.push_back(std::make_shared<types::ConfigStruct>(out.keys.back(), struct_type));
+    out.depth++;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }
@@ -806,12 +806,13 @@ struct action<PROTOs> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("proto {}", out.keys.back());
-    auto proto = std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++);
+    auto proto = std::make_shared<types::ConfigProto>(out.keys.back());
     // Set location information for the proto. structFromReference pushes the proto into the
     // origins of every value it contributes, so without this those chains report ':0'.
     proto->line = in.position().line;
     proto->source = in.position().source;
     out.objects.push_back(proto);
+    out.depth++;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
     out.in_proto = true;
@@ -824,8 +825,7 @@ struct action<REFs> {
   template <typename ActionInput>
   static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("reference {} as {}", out.flat_keys.back(), out.keys.back());
-    auto ref = std::make_shared<types::ConfigReference>(
-        out.keys.back(), out.flat_keys.back(), out.depth++);
+    auto ref = std::make_shared<types::ConfigReference>(out.keys.back(), out.flat_keys.back());
     // Set location information for the reference
     ref->line = in.position().line;
     ref->source = in.position().source;
@@ -834,6 +834,7 @@ struct action<REFs> {
     parent_name->line = ref->line;
     parent_name->source = ref->source;
     out.objects.push_back(ref);
+    out.depth++;
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }

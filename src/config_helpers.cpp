@@ -158,7 +158,7 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   // an existing reference and proto object.
 
   // First, create the new struct based on the reference data.
-  auto struct_out = std::make_shared<types::ConfigStruct>(ref->name, ref->depth);
+  auto struct_out = std::make_shared<types::ConfigStruct>(ref->name);
   // Populate origins for the new struct
   struct_out->origins = proto->origins; // Inherit origins from proto
   struct_out->origins.push_back(ref); // Add the reference itself to origins
@@ -625,7 +625,7 @@ auto unflatten(const std::span<std::string> keys, const types::CfgMap& cfg) -> t
     return cfg;
   }
 
-  auto new_struct = std::make_shared<types::ConfigStruct>(keys.back(), keys.size() - 1);
+  auto new_struct = std::make_shared<types::ConfigStruct>(keys.back());
   new_struct->data = cfg;
   return unflatten(keys.subspan(0, keys.size() - 1), {{keys.back(), new_struct}});
 }
@@ -633,8 +633,7 @@ auto unflatten(const std::span<std::string> keys, const types::CfgMap& cfg) -> t
 /// \brief Turns a flat key/value pair into a nested structure
 /// \param[in] flat_key - The dot-separated key
 /// \param[in/out] cfg - The root of the existing data structure
-/// \param[in] depth - The current depth level of the data structure
-void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t depth) {
+void unflatten(const std::string& flat_key, types::CfgMap& cfg) {
   // Split off the first element of the flat key
   const auto [head, tail] = utils::splitHead(flat_key);
 
@@ -660,7 +659,7 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
   } else {
     // The key doesn't exist in our map. We need to create a new struct and add it to the map.
     logger::debug("Creating key '{}'", head);
-    auto new_struct = std::make_shared<types::ConfigStruct>(head, depth);
+    auto new_struct = std::make_shared<types::ConfigStruct>(head);
     cfg[head] = new_struct;
     // Extract the map from our new struct and assign its address to our pointer.
     next_cfg = &(new_struct->data);
@@ -673,16 +672,15 @@ void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t dept
   cfg.erase(flat_key);
 
   // Step a layer deeper with any remaining tail.
-  unflatten(tail, *next_cfg, depth + 1);
+  unflatten(tail, *next_cfg);
 }
 
-void cleanupConfig(types::CfgMap& cfg, std::size_t depth) {
+void cleanupConfig(types::CfgMap& cfg) {
   std::vector<std::remove_reference_t<decltype(cfg)>::key_type> to_erase{};
   for (const auto& kv : cfg) {
     if (kv.second->type == types::Type::kStruct || kv.second->type == types::Type::kStructInProto) {
       auto s = dynamic_pointer_cast<types::ConfigStruct>(kv.second);
-      s->depth = depth;
-      cleanupConfig(s->data, depth + 1);
+      cleanupConfig(s->data);
       if (s->data.empty()) {
         logger::debug(" !!! Removing {} !!!", kv.first);
         to_erase.push_back(kv.first);

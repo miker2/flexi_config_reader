@@ -62,7 +62,11 @@ Reader::Reader(config::types::CfgMap cfg, std::string parent)
 
 void Reader::dump() const { dump(std::cout); }
 
-void Reader::dump(std::ostream& os) const { os << cfg_data_; }
+void Reader::dump(std::ostream& os) const { dump(os, DumpOptions{}); }
+
+void Reader::dump(std::ostream& os, const DumpOptions& opts) const {
+  render_map(std::ostreambuf_iterator<char>(os), cfg_data_, opts, opts.base_indent);
+}
 
 auto Reader::exists(const std::string& key) const -> bool {
   try {
