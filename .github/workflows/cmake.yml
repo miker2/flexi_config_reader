@@ -133,41 +133,64 @@ jobs:
         cache: 'pip'
     - run: pip install -r requirements.txt
 
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 'lts/*'
-    - name: Install bazelisk
-      run: npm install -g @bazel/bazelisk
-
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/flexi_build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/flexi_build --config ${{env.BUILD_TYPE}}
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test
-      working-directory: ${{github.workspace}}/flexi_build
+      working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         export TEST_DIR=env
         ctest -C ${{env.BUILD_TYPE}}
-        ${{github.workspace}}/flexi_build/src/include_file_test
-        for i in `seq 1 15`; do
-          ${{github.workspace}}/flexi_build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
+        ${{github.workspace}}/build/src/include_file_test
+        for cfg in ${{github.workspace}}/examples/config_example*.cfg; do
+          # Fragments pulled in by config_example16.cfg; not standalone configs.
+          case "$cfg" in *_base.cfg|*_overlay.cfg) continue ;; esac
+          ${{github.workspace}}/build/src/config_build "$cfg"
         done
 
     - name: Run python tests
       run: |
-        pushd ${{github.workspace}}/flexi_build/python
+        pushd ${{github.workspace}}/build/python
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
 
-    - name: Bazel build and test
-      run: |
-        rm -rf ${{github.workspace}}/flexi_build
-        bazel build //...
-        bazel test //...
+  bazel:
+    name: bazel-${{ matrix.bazel }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+        # The repo pins a default in .bazelversion; check the other supported
+        # major here so neither one regresses.
+        bazel: ["8.5.0", "9.2.0"]
+
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Bazelisk ships on the GitHub runner images as `bazel`, and honours
+    # USE_BAZEL_VERSION.
+    - name: Cache Bazel
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/bazel-disk
+        key: bazel-${{ matrix.os }}-${{ matrix.bazel }}-${{ hashFiles('MODULE.bazel') }}
+        restore-keys: |
+          bazel-${{ matrix.os }}-${{ matrix.bazel }}-
+
+    - name: Build
+      run: bazel build --disk_cache="$HOME/.cache/bazel-disk" //...
+
+    - name: Test
+      run: bazel test --disk_cache="$HOME/.cache/bazel-disk" //...

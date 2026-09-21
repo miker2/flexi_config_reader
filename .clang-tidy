@@ -2,7 +2,6 @@
 
 Checks: '-*,
          cppcore*,
-         cppcoreguidelines-cppcoreguidelines-missing-std-forward,
          clang-analyzer-*,
          google-*
          -google-runtime-references,
