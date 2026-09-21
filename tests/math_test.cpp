@@ -50,7 +50,7 @@ TEST_F(MathExpressionTest, evaluate) {
   };
 
   for (const auto& input : test_strings) {
-    std::cout << "Input: " << input.first << std::endl;
+    std::cout << "Input: " << input.first << "\n";
     double result{0};
     EXPECT_NO_THROW(result = test_input(input.first));
     EXPECT_FLOAT_EQ(result, input.second);
@@ -58,7 +58,7 @@ TEST_F(MathExpressionTest, evaluate) {
 
   // We'll intentionally omit the var_ref_map here to ensure a failure occurs
   for (const auto& input : test_w_var_ref) {
-    std::cout << "Input: " << std::get<0>(input) << std::endl;
+    std::cout << "Input: " << std::get<0>(input) << "\n";
     EXPECT_THROW(test_input(std::get<0>(input)), std::runtime_error);
   }
 }
@@ -76,7 +76,7 @@ TEST_F(MathExpressionTest, evaluate_var_ref) {
   };
 
   for (const auto& input : test_w_var_ref) {
-    std::cout << "Input: " << std::get<0>(input) << std::endl;
+    std::cout << "Input: " << std::get<0>(input) << "\n";
     double result{0};
     EXPECT_NO_THROW(result = test_input(std::get<0>(input), std::get<2>(input)));
     EXPECT_FLOAT_EQ(result, std::get<1>(input));

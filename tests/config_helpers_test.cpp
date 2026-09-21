@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <magic_enum/magic_enum.hpp>
+#include <utility>
 
 #include "flexi_cfg/config/classes.h"
 #include "flexi_cfg/config/exceptions.h"
@@ -10,7 +11,7 @@
 namespace {
 template <typename T, typename... Args>
 void testIsStructLike(Args&&... args) {
-  const auto obj = std::make_shared<T>(args...);
+  const auto obj = std::make_shared<T>(std::forward<Args>(args)...);
   EXPECT_EQ(flexi_cfg::config::helpers::isStructLike(obj),
             dynamic_pointer_cast<flexi_cfg::config::types::ConfigStructLike>(obj) != nullptr);
 }
