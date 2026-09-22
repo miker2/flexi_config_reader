@@ -347,9 +347,10 @@ TEST(ConfigParse, ProtoLocationReporting) {
 
   const auto config_path = (baseDir() / "config_example9.cfg").string();
 
-  // Test that proto variable substitution preserves location information
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:9 (from {}:9)", config_path, config_path)));
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:9 (from {}:9)", config_path, config_path)));
+  // Test that proto variable substitution preserves location information. An origin equal to the
+  // value's own location adds nothing, so no "(from ...)" suffix is emitted.
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:9\n", config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:9\n", config_path)));
   
   // Test that lists in protos have proper location information
   EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10", config_path)));
@@ -367,7 +368,8 @@ TEST(ConfigParse, ValueLookupLocationReporting) {
   const auto config_path = (baseDir() / "config_example1.cfg").string();
 
   // Test value lookup references show origin location
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref = -0.392699  # {}:6 (from {}:13 <- {}:6)", config_path, config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref = -0.392699  # {}:6 (from {}:13)\n",
+                                                     config_path, config_path)));
   EXPECT_THAT(output, testing::HasSubstr(fmt::format("b = 2  # {}:24 (from {}:36)", config_path, config_path)));
 }
 
@@ -382,7 +384,31 @@ TEST(ConfigParse, ExpressionLocationReporting) {
   const auto config_path = (baseDir() / "config_example2.cfg").string();
 
   // Test expression evaluation preserves location information
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("expression = -6159999999.329000  # {}:17 (from {}:17)", config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(
+                          fmt::format("expression = -6159999999.329000  # {}:17\n", config_path)));
+}
+
+TEST(ConfigParse, LocSkipsRedundantOrigins) {
+  namespace types = flexi_cfg::config::types;
+  const auto at = [](std::size_t line, const std::string& source) -> types::BasePtr {
+    auto v = std::make_shared<types::ConfigValue>("1", types::Type::kNumber);
+    v->line = line;
+    v->source = source;
+    return v;
+  };
+
+  auto value = at(5, "a.cfg");
+  EXPECT_EQ(value->loc(), "a.cfg:5");
+
+  // An origin at the node's own location adds nothing, so no suffix is emitted at all.
+  value->origins = {at(5, "a.cfg"), at(5, "a.cfg")};
+  EXPECT_EQ(value->loc(), "a.cfg:5");
+
+  // Self entries are dropped and consecutive repeats collapse, but genuine origins keep their
+  // order. The same line in a different file is a genuine origin.
+  value->origins = {at(9, "b.cfg"), at(9, "b.cfg"), at(5, "a.cfg"),
+                    at(9, "b.cfg"), at(5, "b.cfg"), at(2, "a.cfg")};
+  EXPECT_EQ(value->loc(), "a.cfg:5 (from b.cfg:9 <- b.cfg:5 <- a.cfg:2)");
 }
 
 TEST(ConfigVisitor, JsonConfigVisitor) {

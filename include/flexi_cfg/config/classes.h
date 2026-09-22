@@ -67,15 +67,22 @@ class ConfigBase {
 
   [[nodiscard]] auto loc() const -> std::string {
     std::string s = fmt::format("{}:{}", source, line);
-    if (!origins.empty()) {
-      s += " (from ";
-      std::vector<std::string> origin_locs;
-      origin_locs.reserve(origins.size());
-      for (const auto& origin : origins) {
-        origin_locs.push_back(fmt::format("{}:{}", origin->source, origin->line));
+    // Only report origins that add information: skip any that point back at this node's own
+    // location, and collapse consecutive repeats of the same location.
+    std::vector<std::string> origin_locs;
+    origin_locs.reserve(origins.size());
+    for (const auto& origin : origins) {
+      if (origin->line == line && origin->source == source) {
+        continue;
       }
-      s += fmt::format("{}", fmt::join(origin_locs, " <- "));
-      s += ")";
+      auto origin_loc = fmt::format("{}:{}", origin->source, origin->line);
+      if (!origin_locs.empty() && origin_locs.back() == origin_loc) {
+        continue;
+      }
+      origin_locs.push_back(std::move(origin_loc));
+    }
+    if (!origin_locs.empty()) {
+      s += fmt::format(" (from {})", fmt::join(origin_locs, " <- "));
     }
     return s;
   }
