@@ -403,8 +403,11 @@ struct action<PARENTNAMEk> {
     // When this action is invoked, we create a ConfigValue (of type kString) whose value matches
     // the name/key of the parent object. This allows us to easily reference the name of the parent
     // object where required.
-    out.obj_res =
-        std::make_shared<types::ConfigValue>(out.objects.back()->name, types::Type::kString);
+    const auto& parent = out.objects.back();
+    out.obj_res = std::make_shared<types::ConfigValue>(parent->name, types::Type::kString);
+    // The name is defined where the parent object is declared, so report that location.
+    out.obj_res->line = parent->line;
+    out.obj_res->source = parent->source;
   }
 };
 
@@ -827,6 +830,10 @@ struct action<REFs> {
     // Set location information for the reference
     ref->line = in.position().line;
     ref->source = in.position().source;
+    // The constructor creates '$PARENT_NAME' before the location is known, so propagate it here.
+    auto& parent_name = ref->ref_vars.at("$PARENT_NAME");
+    parent_name->line = ref->line;
+    parent_name->source = ref->source;
     out.objects.push_back(ref);
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());

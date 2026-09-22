@@ -347,10 +347,12 @@ TEST(ConfigParse, ProtoLocationReporting) {
 
   const auto config_path = (baseDir() / "config_example9.cfg").string();
 
-  // Test that proto variable substitution preserves location information. An origin equal to the
-  // value's own location adds nothing, so no "(from ...)" suffix is emitted.
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:9\n", config_path)));
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:9\n", config_path)));
+  // Test that proto variable substitution preserves location information. '$PARENT = $PARENT_NAME'
+  // takes its value from the 'reference' line, and is used via '$PARENT' on line 9.
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:18 (from {}:9)\n",
+                                                     config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:24 (from {}:9)\n",
+                                                     config_path, config_path)));
   
   // Test that lists in protos have proper location information
   EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10", config_path)));
@@ -386,6 +388,30 @@ TEST(ConfigParse, ExpressionLocationReporting) {
   // Test expression evaluation preserves location information
   EXPECT_THAT(output, testing::HasSubstr(
                           fmt::format("expression = -6159999999.329000  # {}:17\n", config_path)));
+}
+
+TEST(ConfigParse, ParentNameLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // The value of $PARENT_NAME is the name given on the 'reference' line, so that is where it should
+  // be reported as coming from, whether it is used directly or through a reference var.
+  constexpr std::string_view cfg_str = R"(proto p {
+  name = $PARENT_NAME
+  alias = $PN
+}
+
+reference p as foo {
+  $PN = $PARENT_NAME
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "parent.cfg");
+  EXPECT_EQ(cfg.getValue<std::string>("foo.name"), "foo");
+  EXPECT_EQ(cfg.getValue<std::string>("foo.alias"), "foo");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  EXPECT_THAT(output, testing::HasSubstr("name = foo  # parent.cfg:6 (from parent.cfg:2)\n"));
+  EXPECT_THAT(output, testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:3)\n"));
 }
 
 TEST(ConfigParse, LocSkipsRedundantOrigins) {
