@@ -2,7 +2,10 @@ __pycache__
 .ipynb_checkpoints
 
 sandbox
-build
+# Anchored and directory-only on purpose. A bare `build` also matches every
+# Bazel `BUILD` file on case-insensitive filesystems (macOS default), which
+# silently hides new packages from git.
+/build/
 build-debug
 # CLion
 cmake-build*

@@ -23,3 +23,19 @@ build:macos --host_macos_minimum_os=11.0
 build:macos --cxxopt=-UDEBUG
 
 test --test_output=errors
+
+# AddressSanitizer + UndefinedBehaviorSanitizer:  bazel test --config=sanitize //...
+# Mirrors the CFG_SANITIZE option in CMakeLists.txt. The compiler flags below
+# must stay identical to that list; scripts/check_sanitizer_flags.py enforces
+# it in CI.
+build:sanitize --copt=-fsanitize=address,undefined
+build:sanitize --copt=-fno-omit-frame-pointer
+build:sanitize --copt=-fno-sanitize-recover=undefined
+build:sanitize --linkopt=-fsanitize=address,undefined
+build:sanitize --strip=never
+# Leak detection is on by default where LSan is supported (Linux), and left
+# unset here so this config also runs on macOS.
+# Targets tagged no_sanitize (the python bindings test) are skipped.
+test:sanitize --test_tag_filters=-no_sanitize
+test:sanitize --test_env=ASAN_OPTIONS=strict_string_checks=1:abort_on_error=1
+test:sanitize --test_env=UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1

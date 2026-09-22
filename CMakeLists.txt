@@ -10,6 +10,20 @@ project (flexi_cfg LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set before any dependency is fetched so that everything in the build is
+# instrumented consistently; mixing instrumented and uninstrumented code can
+# produce false container-overflow reports.
+option(CFG_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer." OFF)
+if(CFG_SANITIZE)
+  # -fno-sanitize-recover=undefined makes UBSan abort rather than just print,
+  # so a finding fails the test instead of scrolling past in the log.
+  set(_cfg_sanitize_flags
+    -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined)
+  add_compile_options(${_cfg_sanitize_flags})
+  add_link_options(${_cfg_sanitize_flags})
+  message(STATUS "Enabling AddressSanitizer + UndefinedBehaviorSanitizer")
+endif()
+
 include(${CMAKE_SOURCE_DIR}/cmake/colours.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/add_clang_format.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
