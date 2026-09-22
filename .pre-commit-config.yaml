@@ -1,0 +1,17 @@
+# Enable once per clone with:
+#
+#   pip install pre-commit && pre-commit install
+#
+# CI runs these exact hooks (see the `buildifier` job in
+# .github/workflows/cmake.yml), so the buildifier version is pinned in exactly
+# one place: the `rev` below. The hook downloads that release and verifies its
+# SHA-256, so there is nothing to install by hand.
+repos:
+  - repo: https://github.com/keith/pre-commit-buildifier
+    rev: 10.0.1
+    hooks:
+      # Formats and auto-fixes lint. Fails the commit if it had to change
+      # anything, so the fix gets reviewed and re-staged.
+      - id: buildifier
+      # Fails on any lint warning that could not be fixed automatically.
+      - id: buildifier-lint

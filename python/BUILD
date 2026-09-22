@@ -13,5 +13,8 @@ py_test(
     data = ["//examples:test_configs"],
     imports = ["."],
     main = "test_flexi_cfg.py",
+    # A sanitized extension module needs the ASan runtime preloaded into the
+    # interpreter, which is a separate exercise; --config=sanitize skips it.
+    tags = ["no_sanitize"],
     deps = [":flexi_cfg"],
 )

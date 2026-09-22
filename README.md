@@ -455,6 +455,28 @@ Note that CMake and Bazel can share a source tree: [`.bazelignore`](.bazelignore
 directory names so that Bazel does not try to load the `BUILD` files that CMake's fetched dependencies bring with
 them. If you use a build directory that is not listed there, add it.
 
+#### Sanitizers
+
+Both build systems can run the suite under AddressSanitizer and UndefinedBehaviorSanitizer:
+
+```
+cmake -B build -DCFG_SANITIZE=ON -DCMAKE_BUILD_TYPE=Debug && cmake --build build && (cd build && ctest)
+bazel test --config=sanitize //...
+```
+
+The two flag lists are declared separately (in `CMakeLists.txt` and `.bazelrc`) and
+`scripts/check_sanitizer_flags.py` fails CI if they ever differ.
+
+#### Pre-commit hooks
+
+Bazel `BUILD` and `.bzl` files are checked with [buildifier](https://github.com/bazelbuild/buildtools).
+CI fails on any formatting or lint problem; to catch it before pushing, enable the same hooks locally:
+
+```
+pip install pre-commit
+pre-commit install
+```
+
 ### Tests
 
 All C++-based tests can be found in the the [`tests`](tests) directory. Any new tests should be added here as well.

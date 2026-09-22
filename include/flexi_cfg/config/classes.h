@@ -90,8 +90,13 @@ class ConfigBaseClonable : public Base {
   [[nodiscard]] auto clone() const -> BasePtr override {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
-    struct make_shared_enabler : public Derived {};
-    return std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+    // The object is a Derived (CRTP), never a make_shared_enabler, so it must
+    // not be cast to one; UBSan flags that as an invalid downcast. Instead let
+    // the enabler copy-construct its Derived base from *this.
+    struct make_shared_enabler : public Derived {
+      explicit make_shared_enabler(const Derived& d) : Derived(d) {}
+    };
+    return std::make_shared<make_shared_enabler>(static_cast<const Derived&>(*this));
   }
 };
 
@@ -333,10 +338,12 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
   [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
-    struct make_shared_enabler : public ConfigStruct {};
-    auto cloned =
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+    // See ConfigBaseClonable::clone for why the enabler is built from the
+    // base rather than *this being cast to the enabler type.
+    struct make_shared_enabler : public ConfigStruct {
+      explicit make_shared_enabler(const ConfigStruct& c) : ConfigStruct(c) {}
+    };
+    auto cloned = std::make_shared<make_shared_enabler>(*this);
     for (const auto& kv : data) {
       (*cloned)[kv.first] = kv.second->clone();
     }
@@ -370,10 +377,12 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
   [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
     // See: https://stackoverflow.com/a/25069711
-    struct make_shared_enabler : public ConfigProto {};
-    auto cloned =
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        std::make_shared<make_shared_enabler>(static_cast<const make_shared_enabler&>(*this));
+    // See ConfigBaseClonable::clone for why the enabler is built from the
+    // base rather than *this being cast to the enabler type.
+    struct make_shared_enabler : public ConfigProto {
+      explicit make_shared_enabler(const ConfigProto& c) : ConfigProto(c) {}
+    };
+    auto cloned = std::make_shared<make_shared_enabler>(*this);
     for (const auto& kv : data) {
       (*cloned)[kv.first] = kv.second->clone();
     }
