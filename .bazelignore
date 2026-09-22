@@ -1,0 +1,11 @@
+# CMake build trees (and their fetched dependencies) contain BUILD/.bzl files
+# that Bazel must not try to load. Keep these in sync with .gitignore.
+build
+build-debug
+cmake_build
+cmake-build
+cmake-build-debug
+cmake-build-release
+flexi_build
+third_party
+sandbox

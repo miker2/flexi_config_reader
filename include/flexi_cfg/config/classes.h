@@ -5,7 +5,7 @@
 
 #include <any>
 #include <iosfwd>
-#include <magic_enum.hpp>
+#include <magic_enum/magic_enum.hpp>
 #include <map>
 #include <memory>
 #include <sstream>

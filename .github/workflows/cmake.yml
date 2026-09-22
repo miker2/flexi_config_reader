@@ -7,116 +7,114 @@ on:
     branches: [ main ]
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Compiler matrix. CMake is the primary build orchestrator, so this is where
+  # compiler coverage lives.
+  #
+  # clang-tidy deliberately does NOT run here -- see the `lint` job. Keeping the
+  # two apart means adding a compiler tests a compiler, instead of also adopting
+  # whatever check set that compiler's clang-tidy happens to ship.
+  # ---------------------------------------------------------------------------
   build:
     name: ${{ matrix.name }} ${{ matrix.build_type }}
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ${{ matrix.os }}
 
     env:
-      # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
       BUILD_TYPE: ${{ matrix.build_type }}
       CTEST_OUTPUT_ON_FAILURE: ON
-      CLANG_DEFAULT: 13
+
     strategy:
       fail-fast: false
       matrix:
-
         name: [
-          ubuntu-22.04-gcc-12,
-          ubuntu-22.04-clang-13,
-          ubuntu-22.04-clang-14,
-          ubuntu-22.04-clang-15,
+          ubuntu-24.04-gcc-12,
+          ubuntu-24.04-gcc-13,
+          ubuntu-24.04-gcc-14,
+          ubuntu-24.04-clang-16,
+          ubuntu-24.04-clang-17,
+          ubuntu-24.04-clang-22,
           mac-os-latest
         ]
 
         build_type: [Debug, Release]
+
         include:
-          - name: ubuntu-22.04-gcc-12
-            os: ubuntu-22.04
+          # gcc-12 and clang-16 are the oldest toolchains supported; see README.
+          - name: ubuntu-24.04-gcc-12
+            os: ubuntu-24.04
             compiler: gcc
             version: "12"
 
-          - name: ubuntu-22.04-clang-13
-            os: ubuntu-22.04
-            compiler: clang
+          - name: ubuntu-24.04-gcc-13
+            os: ubuntu-24.04
+            compiler: gcc
             version: "13"
 
-          - name: ubuntu-22.04-clang-14
-            os: ubuntu-22.04
-            compiler: clang
+          - name: ubuntu-24.04-gcc-14
+            os: ubuntu-24.04
+            compiler: gcc
             version: "14"
 
-          - name: ubuntu-22.04-clang-15
-            os: ubuntu-22.04
+          - name: ubuntu-24.04-clang-16
+            os: ubuntu-24.04
             compiler: clang
-            version: "15"
+            version: "16"
+
+          - name: ubuntu-24.04-clang-17
+            os: ubuntu-24.04
+            compiler: clang
+            version: "17"
+
+          # Newest stable LLVM. Not on the runner image, so it comes from
+          # apt.llvm.org.
+          - name: ubuntu-24.04-clang-22
+            os: ubuntu-24.04
+            compiler: clang
+            version: "22"
+            from_llvm_apt: true
 
           - name: mac-os-latest
             os: macos-latest
-            CC: clang
-            CXX: clang++
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install toolchain
       run: |
+        set -euxo pipefail
         if [ "${{ runner.os }}" = "Linux" ]; then
-
-          # Workaround https://github.com/actions/runner-images/issues/8659
-          echo "matrix.name=${{ matrix.name }}"
-          echo "matrix.os=${{ matrix.os }}"
-
-          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-
-          # Figure out which version of ubuntu is actually running
-          export $(cat /etc/os-release | grep UBUNTU_CODENAME)
-          # If clang is being used to compile, use the specified version, otherwise, use the default version
-          export CLANG_VERSION=$([ "${{ matrix.compiler }}" = "clang" ] && echo "${{ matrix.version }}" || echo $CLANG_DEFAULT )
-
-          sudo add-apt-repository --yes --update \
-                "deb http://apt.llvm.org/$UBUNTU_CODENAME/ llvm-toolchain-$UBUNTU_CODENAME-$CLANG_VERSION main"
-
-          sudo add-apt-repository --yes --update ppa:ubuntu-toolchain-r/test
-          sudo apt-get -y update
-
-          sudo apt-get install -y build-essential ninja-build #g++ #python-is-python3
+          if [ "${{ matrix.from_llvm_apt }}" = "true" ]; then
+            # Pin the VERSIONED repo. The unversioned llvm-toolchain-<dist>
+            # repo tracks LLVM's development branch, not the latest release.
+            . /etc/os-release
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+              | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+            sudo add-apt-repository --yes \
+              "deb http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${{ matrix.version }} main"
+          fi
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build
 
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
-            #sudo update-alternatives --remove-all gcc
-            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.version }} ${{ matrix.version }}0 \
-                --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.version }} \
-                --slave /usr/bin/gcov gcov /usr/bin/gcov-${{ matrix.version }}
-            gcc --version
-            g++ --version
-
+            sudo apt-get install -y gcc-${{ matrix.version }} g++-${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
-            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
+            # clang-tools supplies clang-scan-deps, which CMake >= 3.28 requires
+            # to scan C++20 sources when compiling with clang.
+            sudo apt-get install -y clang-${{ matrix.version }} clang-tools-${{ matrix.version }}
             echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
-
-          # Always install and link clang-tidy as they will be used during the build
-          sudo apt-get install -y clang-format-$CLANG_VERSION clang-tidy-$CLANG_VERSION
-          sudo ln -fs /usr/bin/clang-format-$CLANG_VERSION /usr/bin/clang-format
-          ls -alh `which clang-format`
-          clang-format --version
-          sudo ln -fs /usr/bin/clang-tidy-$CLANG_VERSION /usr/bin/clang-tidy
-          ls -alh `which clang-tidy`
-          clang-tidy --version
-
         elif [ "${{ runner.os }}" = "macOS" ]; then
           brew install ninja
-          clang --version
-          clang++ --version
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
         fi
+      shell: bash
+
+    - name: Report compiler
+      run: ${CXX} --version
       shell: bash
 
     # This must happen before the "Configure CMake" step otherwise the python version used to compile
@@ -128,24 +126,25 @@ jobs:
     - run: pip install -r requirements.txt
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -G Ninja
+      run: >
+        cmake -B ${{github.workspace}}/build
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        -DCFG_EXAMPLES=ON -DCFG_PYTHON_BINDINGS=ON -DENABLE_CLANG_TIDY=OFF
+        -G Ninja
 
     - name: Build
-      # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: |
         export TEST_DIR=env
         ctest -C ${{env.BUILD_TYPE}}
         ${{github.workspace}}/build/src/include_file_test
-        for i in `seq 1 15`; do
-          ${{github.workspace}}/build/src/config_build ${{github.workspace}}/examples/config_example$i.cfg
+        for cfg in ${{github.workspace}}/examples/config_example*.cfg; do
+          # Fragments pulled in by config_example16.cfg; not standalone configs.
+          case "$cfg" in *_base.cfg|*_overlay.cfg) continue ;; esac
+          ${{github.workspace}}/build/src/config_build "$cfg"
         done
 
     - name: Run python tests
@@ -153,3 +152,141 @@ jobs:
         pushd ${{github.workspace}}/build/python
         EXAMPLES_DIR=${{github.workspace}}/examples python3 -m pytest ${{github.workspace}}/python
         popd
+
+  # ---------------------------------------------------------------------------
+  # Static analysis, pinned and run exactly once.
+  #
+  # The version here is decoupled from the compiler matrix on purpose: bumping
+  # it is a deliberate change with a reviewable diff of new findings, rather
+  # than a side effect of adding a compiler. It is also the single most
+  # expensive step in the build, so running it once instead of once per matrix
+  # entry saves most of the wall-clock this workflow used to spend.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+
+    env:
+      # Bump deliberately; expect new findings when you do.
+      TIDY_VERSION: "17"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-tidy
+      run: |
+        set -euxo pipefail
+        sudo apt-get update
+        sudo apt-get install -y build-essential ninja-build \
+          clang-${TIDY_VERSION} clang-tools-${TIDY_VERSION} \
+          clang-tidy-${TIDY_VERSION} clang-format-${TIDY_VERSION}
+        sudo ln -fs /usr/bin/clang-tidy-${TIDY_VERSION} /usr/bin/clang-tidy
+        sudo ln -fs /usr/bin/clang-format-${TIDY_VERSION} /usr/bin/clang-format
+        clang-tidy --version
+        echo "CC=clang-${TIDY_VERSION}" >> $GITHUB_ENV
+        echo "CXX=clang++-${TIDY_VERSION}" >> $GITHUB_ENV
+      shell: bash
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    - run: pip install -r requirements.txt
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+        -DCFG_EXAMPLES=ON -DENABLE_CLANG_TIDY=ON -G Ninja
+
+    - name: Analyse
+      run: cmake --build ${{github.workspace}}/build
+
+  # ---------------------------------------------------------------------------
+  # Bazel is the secondary build path, so this verifies it still works rather
+  # than re-testing compilers. Both Bazel majors and both platforms are covered
+  # because each axis has produced its own distinct breakage: Bazel 9 removed
+  # the native cc_* rules, and macOS needs its own deployment-target and
+  # -UDEBUG handling.
+  # ---------------------------------------------------------------------------
+  bazel:
+    name: bazel-${{ matrix.bazel }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest]
+        # The repo pins a default in .bazelversion; check the other supported
+        # major here so neither one regresses.
+        bazel: ["8.5.0", "9.2.0"]
+
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Call bazelisk directly rather than `bazel`: the runner images ship a real
+    # Bazel binary under that name, which would ignore USE_BAZEL_VERSION and
+    # quietly test the same version twice.
+    - name: Report Bazel version
+      run: bazelisk --version
+
+    - name: Cache Bazel
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/bazel-disk
+        key: bazel-${{ matrix.os }}-${{ matrix.bazel }}-${{ hashFiles('MODULE.bazel') }}
+        restore-keys: |
+          bazel-${{ matrix.os }}-${{ matrix.bazel }}-
+
+    - name: Test (fastbuild)
+      run: bazelisk test --disk_cache="$HOME/.cache/bazel-disk" //...
+
+    - name: Test (opt)
+      run: bazelisk test -c opt --disk_cache="$HOME/.cache/bazel-disk" //...
+
+  # ---------------------------------------------------------------------------
+  # Early warning, deliberately non-blocking.
+  #
+  # Tracks the newest stable LLVM so that a toolchain breaking this codebase
+  # shows up here first rather than in a user's build. A red result here is a
+  # signal to investigate, not a reason to hold a merge.
+  # ---------------------------------------------------------------------------
+  bleeding-edge:
+    name: clang-23 (non-blocking)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+
+    env:
+      CLANG_VERSION: "23"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang
+      run: |
+        set -euxo pipefail
+        . /etc/os-release
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+          | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+        sudo add-apt-repository --yes \
+          "deb http://apt.llvm.org/${UBUNTU_CODENAME}/ llvm-toolchain-${UBUNTU_CODENAME}-${CLANG_VERSION} main"
+        sudo apt-get update
+        sudo apt-get install -y build-essential ninja-build \
+          clang-${CLANG_VERSION} clang-tools-${CLANG_VERSION}
+        clang++-${CLANG_VERSION} --version
+        echo "CC=clang-${CLANG_VERSION}" >> $GITHUB_ENV
+        echo "CXX=clang++-${CLANG_VERSION}" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+        -DCFG_EXAMPLES=ON -DENABLE_CLANG_TIDY=OFF -G Ninja
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: TEST_DIR=env ctest

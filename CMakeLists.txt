@@ -27,19 +27,21 @@ FetchContent_Declare(
   )
 FetchContent_MakeAvailable(taocpp_pegtl)
 
-# magic_enum tag v0.8.1
+# magic_enum tag v0.9.8
 option(CFG_MAGIC_ENUM_DIR "Specify the location of magic_enum headers" "")
-find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum.hpp HINTS ${CFG_MAGIC_ENUM_DIR})
+# The sources include <magic_enum/magic_enum.hpp>, so we need the directory
+# holding the magic_enum/ subdirectory, not the one holding the header.
+find_path(MAGIC_ENUM_INCLUDE_DIR magic_enum/magic_enum.hpp HINTS ${CFG_MAGIC_ENUM_DIR})
 find_package_handle_standard_args(magic_enum DEFAULT_MSG MAGIC_ENUM_INCLUDE_DIR)
 if(magic_enum_FOUND)
-  message(STATUS "Found magic_enum.hpp at ${MAGIC_ENUM_INCLUDE_DIR}")
+  message(STATUS "Found magic_enum/magic_enum.hpp under ${MAGIC_ENUM_INCLUDE_DIR}")
   set(magic_enum_INCLUDE_DIR ${MAGIC_ENUM_INCLUDE_DIR})
   MARK_AS_ADVANCED(MAGIC_ENUM_INCLUDE_DIR)
 else(magic_enum_FOUND)
   FetchContent_Declare(
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-    GIT_TAG        v0.9.3
+    GIT_TAG        v0.9.8
     SYSTEM
     EXCLUDE_FROM_ALL
     )
@@ -147,6 +149,11 @@ target_include_directories(flexi_cfg PUBLIC
   $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>
   ${magic_enum_INCLUDE_DIR})
 target_compile_features(flexi_cfg INTERFACE cxx_std_20)
+# range-v3's meta.hpp forward-declares standard containers itself whenever Apple
+# clang is detected. Those declarations do not compile against recent libc++,
+# which dropped `_LIBCPP_TEMPLATE_VIS`. Opt out and let it include the real
+# headers instead. No-op for the toolchains that skip that block.
+target_compile_definitions(flexi_cfg PUBLIC META_NO_STD_FORWARD_DECLARATIONS)
 set_target_properties(flexi_cfg PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
 target_link_libraries(flexi_cfg

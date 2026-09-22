@@ -384,6 +384,20 @@ output.  Once the raw config files are parsed, there is a second pass that does 
 
 `PEGTL` also provides some additional functionality to analyze the defined grammar and to generate a parse-tree from a supplied configuration file.
 
+### Supported toolchains
+
+The library is C++20 and requires CMake 3.28 or newer. CI builds and tests every release against:
+
+| | Oldest supported | Newest tested |
+|---|---|---|
+| GCC | 12 | 14 |
+| Clang | 16 | 22 |
+| Apple Clang | whatever ships with the current `macos-latest` runner | |
+
+Newer toolchains are also built in a non-blocking job that tracks the latest stable LLVM release, so
+breakage tends to show up here before it reaches you. Older compilers than the ones listed may work
+but are not tested; the floor rose to GCC 12 / Clang 16 when the Ubuntu 22.04 CI images were retired.
+
 ### Dependencies
 
 The following dependencies are required in order to compile the code:
@@ -394,11 +408,18 @@ The following dependencies are required in order to compile the code:
  *  [`range-v3`](https://github.com/ericniebler/range-v3.git) - A range library for C++14/17/20
  *  [`googletest`](https://github.com/google/googletest.git) - The Google unit testing framework
 
-All of these dependencies are automatically collected/installed via CMake `FetchContent`. Currently, there is no mechanism for using pre-installed versions.
+Under CMake these dependencies are automatically collected/installed via `FetchContent`; the only one that can be
+supplied from a pre-installed location is `magic_enum`, via `CFG_MAGIC_ENUM_DIR`. Under Bazel they come from the
+[Bazel Central Registry](https://registry.bazel.build) and are pinned in [`MODULE.bazel`](MODULE.bazel).
 
 ### Build
 
-This project is built using CMake. While there are a variety of ways to use cmake, these simple steps should lead to a successful build:
+The project can be built with either CMake or Bazel. Both build the same sources and run the same tests; pick
+whichever fits your setup.
+
+#### CMake
+
+While there are a variety of ways to use cmake, these simple steps should lead to a successful build:
 
 From the root of the source tree:
 ```
@@ -416,6 +437,23 @@ cd build
 cmake -G Ninja ..
 ninja
 ```
+
+#### Bazel
+
+Bazel 8 and 9 are both supported. [`.bazelversion`](.bazelversion) pins the version used by default, which
+[Bazelisk](https://github.com/bazelbuild/bazelisk) will fetch for you. From the root of the source tree:
+
+```
+bazel build //...
+bazel test //...
+```
+
+Dependencies are resolved through bzlmod, so no manual setup is needed. `bazel test //...` covers the C++ unit
+tests, the python bindings, and a pass of `config_build` over every example config.
+
+Note that CMake and Bazel can share a source tree: [`.bazelignore`](.bazelignore) lists the usual CMake build
+directory names so that Bazel does not try to load the `BUILD` files that CMake's fetched dependencies bring with
+them. If you use a build directory that is not listed there, add it.
 
 ### Tests
 

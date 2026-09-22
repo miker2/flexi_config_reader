@@ -6,3 +6,10 @@ build
 build-debug
 # CLion
 cmake-build*
+
+# Bazel
+/bazel-*
+# Bazel 8 and 9 resolve some module extensions differently, so a shared
+# lockfile churns depending on which one you run. Versions are pinned in
+# MODULE.bazel instead.
+MODULE.bazel.lock
