@@ -2,10 +2,10 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <fmt/ranges.h>
 
 #include <any>
 #include <iosfwd>
+#include <iterator>
 #include <magic_enum/magic_enum.hpp>
 #include <map>
 #include <memory>
@@ -69,20 +69,20 @@ class ConfigBase {
     std::string s = fmt::format("{}:{}", source, line);
     // Only report origins that add information: skip any that point back at this node's own
     // location, and collapse consecutive repeats of the same location.
-    std::vector<std::string> origin_locs;
-    origin_locs.reserve(origins.size());
+    const auto same_loc = [](const ConfigBase& a, const ConfigBase& b) -> bool {
+      return a.line == b.line && a.source == b.source;
+    };
+    const ConfigBase* last = nullptr;
     for (const auto& origin : origins) {
-      if (origin->line == line && origin->source == source) {
+      if (same_loc(*origin, *this) || (last != nullptr && same_loc(*origin, *last))) {
         continue;
       }
-      auto origin_loc = fmt::format("{}:{}", origin->source, origin->line);
-      if (!origin_locs.empty() && origin_locs.back() == origin_loc) {
-        continue;
-      }
-      origin_locs.push_back(std::move(origin_loc));
+      fmt::format_to(std::back_inserter(s), "{}{}:{}", last == nullptr ? " (from " : " <- ",
+                     origin->source, origin->line);
+      last = origin.get();
     }
-    if (!origin_locs.empty()) {
-      s += fmt::format(" (from {})", fmt::join(origin_locs, " <- "));
+    if (last != nullptr) {
+      s += ")";
     }
     return s;
   }
