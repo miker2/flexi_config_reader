@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <range/v3/algorithm/find.hpp>
@@ -189,6 +190,26 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars,
   return out;
 }
 
+namespace {
+/// \brief Copies `from`'s location onto `to`, unless `to` already has one of its own.
+void inheritLocationIfMissing(types::ConfigBase& to, const types::ConfigBase& from) {
+  if (to.line == 0 && to.source.empty()) {
+    to.line = from.line;
+    to.source = from.source;
+  }
+}
+
+/// \brief Gives a list with no location of its own the location of its first located element.
+void inheritLocationFromElements(types::ConfigList& list) {
+  const auto located = std::ranges::find_if(list.data, [](const auto& e) -> bool {
+    return e->line != 0 || !e->source.empty();
+  });
+  if (located != list.data.end()) {
+    inheritLocationIfMissing(list, **located);
+  }
+}
+}  // namespace
+
 /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
 /// \param[in/out] cfg_map - Contents of a proto
 /// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
@@ -233,10 +254,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       auto resolved_var = ref_vars.at(v_var->name)->clone();
       resolved_var->origins.push_back(v_var); // Add the original var to the origins
       // If the resolved variable doesn't have location info, inherit from the original variable
-      if (resolved_var->line == 0 && resolved_var->source.empty()) {
-        resolved_var->line = v_var->line;
-        resolved_var->source = v_var->source;
-      }
+      inheritLocationIfMissing(*resolved_var, *v_var);
       return resolved_var;
     };
 
@@ -283,16 +301,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         // If this is any other type, we're going to skip it
       }
       // Ensure the list inherits location info if it doesn't have any
-      if (v_list->line == 0 && v_list->source.empty()) {
-        // Find a representative element to inherit location from
-        for (const auto& e : v_list->data) {
-          if (e->line != 0 || !e->source.empty()) {
-            v_list->line = e->line;
-            v_list->source = e->source;
-            break;
-          }
-        }
-      }
+      inheritLocationFromElements(*v_list);
       logger::trace("Resolved list: {}", v_list);
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
@@ -313,9 +322,10 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       state.obj_res->source = v->source;
       state.obj_res->origins = v->origins; // Inherit origins from the original expression
       // Add only the variables whose values were actually substituted into the expression.
-      for (const auto& used_var : used_vars) {
-        state.obj_res->origins.push_back(ref_vars.at(used_var));
-      }
+      std::ranges::transform(used_vars, std::back_inserter(state.obj_res->origins),
+                             [&ref_vars](const std::string& name) -> types::BasePtr {
+                               return ref_vars.at(name);
+                             });
       auto contains_var = str_contains_var(out.value());
       logger::debug("{} has var? {}", out.value(), contains_var);
       if (contains_var) {
