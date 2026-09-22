@@ -414,6 +414,39 @@ reference p as foo {
   EXPECT_THAT(output, testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:3)\n"));
 }
 
+TEST(ConfigParse, ExpressionRefVarOrigins) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // '$FOO' is a prefix of '$FOO2'. VAR substitution replaces '$FOO' first (see
+  // ConfigHelpers.replaceVarInStr), so 'expr' is '{{ 12 * 2 }}' and only '$FOO' contributed to it.
+  // Only the reference vars that were actually substituted may be reported as origins.
+  constexpr std::string_view cfg_str = R"(proto p {
+  expr = {{ $FOO2 * 2 }}
+  both = {{ ${FOO} + $BAZ }}
+}
+
+reference p as r {
+  $FOO = 1
+  $FOO2 = 5
+  $BAZ = 3
+  $UNUSED = 7
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "collide.cfg");
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("r.expr"), 24.F);
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("r.both"), 4.F);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  // The chains start with the proto and the reference (line 6), followed by the vars used.
+  EXPECT_THAT(output, testing::ContainsRegex(
+                          R"(expr = 24\.000000  # collide\.cfg:2 \(from [^)]*collide\.cfg:6 <- )"
+                          R"(collide\.cfg:7\))"));
+  EXPECT_THAT(output, testing::ContainsRegex(
+                          R"(both = 4\.000000  # collide\.cfg:3 \(from [^)]*collide\.cfg:6 <- )"
+                          R"(collide\.cfg:9 <- collide\.cfg:7\))"));
+}
+
 TEST(ConfigParse, LocSkipsRedundantOrigins) {
   namespace types = flexi_cfg::config::types;
   const auto at = [](std::size_t line, const std::string& source) -> types::BasePtr {

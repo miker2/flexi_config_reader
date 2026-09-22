@@ -146,8 +146,8 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   return struct_out;
 }
 
-auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
-    -> std::optional<std::string> {
+auto replaceVarInStr(std::string input, const types::RefMap& ref_vars,
+                     std::vector<std::string>* used_vars) -> std::optional<std::string> {
   // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
   // sense in doing this loop.
   const auto var_pos = input.find('$');
@@ -173,6 +173,7 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     // Strip off any leading or trailing quotes from the replacement value. If the replacement
     // value is not a string, this is a no-op.
     const auto replacement = utils::trim(rv->value, "\\\"");
+    const auto before = out;
     // Look for `rk` (escape leading '$') in `out` and replace them with 'replacement'
     out = std::regex_replace(out, std::regex(std::string("\\").append(rk)), replacement);
     // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
@@ -181,6 +182,9 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
     out = std::regex_replace(out, std::regex(bracket_var), replacement);
     logger::debug("out: {}", out);
+    if (used_vars != nullptr && out != before) {
+      used_vars->push_back(rk);
+    }
   }
   return out;
 }
@@ -293,7 +297,8 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
 
-      auto out = replaceVarInStr(expression->value, ref_vars);
+      std::vector<std::string> used_vars;
+      auto out = replaceVarInStr(expression->value, ref_vars, &used_vars);
       if (!out.has_value()) {
         continue;
       }
@@ -307,14 +312,9 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       state.obj_res->line = v->line;
       state.obj_res->source = v->source;
       state.obj_res->origins = v->origins; // Inherit origins from the original expression
-      // Add only the resolved variables that were actually used in the expression
-      for (const auto& rkv : ref_vars) {
-        const auto& rk = rkv.first;
-        // Check if this variable was actually used in the expression
-        if (expression->value.find(rk) != std::string::npos ||
-            expression->value.find(std::regex_replace(rk, std::regex("\\$(.+)"), "${$1}")) != std::string::npos) {
-          state.obj_res->origins.push_back(rkv.second);
-        }
+      // Add only the variables whose values were actually substituted into the expression.
+      for (const auto& used_var : used_vars) {
+        state.obj_res->origins.push_back(ref_vars.at(used_var));
       }
       auto contains_var = str_contains_var(out.value());
       logger::debug("{} has var? {}", out.value(), contains_var);
