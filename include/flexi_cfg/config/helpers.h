@@ -48,8 +48,13 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
                          const std::shared_ptr<types::ConfigProto>& proto)
     -> std::shared_ptr<types::ConfigStruct>;
 
-auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
-    -> std::optional<std::string>;
+/// \brief Replaces all uses of the VARs in 'ref_vars' within 'input'
+/// \param[in] input - The string to replace VARs in
+/// \param[in] ref_vars - All of the available 'ConfigVar's in the reference
+/// \param[out] used_vars - If not null, receives the names of the VARs that were replaced
+/// \return The resulting string, or std::nullopt if 'input' contains no VARs at all
+auto replaceVarInStr(std::string input, const types::RefMap& ref_vars,
+                     std::vector<std::string>* used_vars = nullptr) -> std::optional<std::string>;
 
 /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
 /// \param[in/out] cfg_map - Contents of a proto

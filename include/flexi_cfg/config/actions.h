@@ -403,8 +403,11 @@ struct action<PARENTNAMEk> {
     // When this action is invoked, we create a ConfigValue (of type kString) whose value matches
     // the name/key of the parent object. This allows us to easily reference the name of the parent
     // object where required.
-    out.obj_res =
-        std::make_shared<types::ConfigValue>(out.objects.back()->name, types::Type::kString);
+    const auto& parent = out.objects.back();
+    out.obj_res = std::make_shared<types::ConfigValue>(parent->name, types::Type::kString);
+    // The name is defined where the parent object is declared, so report that location.
+    out.obj_res->line = parent->line;
+    out.obj_res->source = parent->source;
   }
 };
 
@@ -807,9 +810,15 @@ struct action<STRUCTs> {
 
 template <>
 struct action<PROTOs> {
-  static void apply0(ActionData& out) {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("proto {}", out.keys.back());
-    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
+    auto proto = std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++);
+    // Set location information for the proto. structFromReference pushes the proto into the
+    // origins of every value it contributes, so without this those chains report ':0'.
+    proto->line = in.position().line;
+    proto->source = in.position().source;
+    out.objects.push_back(proto);
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
     out.in_proto = true;
@@ -819,10 +828,19 @@ struct action<PROTOs> {
 
 template <>
 struct action<REFs> {
-  static void apply0(ActionData& out) {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("reference {} as {}", out.flat_keys.back(), out.keys.back());
-    out.objects.push_back(std::make_shared<types::ConfigReference>(
-        out.keys.back(), out.flat_keys.back(), out.depth++));
+    auto ref = std::make_shared<types::ConfigReference>(
+        out.keys.back(), out.flat_keys.back(), out.depth++);
+    // Set location information for the reference
+    ref->line = in.position().line;
+    ref->source = in.position().source;
+    // The constructor creates '$PARENT_NAME' before the location is known, so propagate it here.
+    auto& parent_name = ref->ref_vars.at("$PARENT_NAME");
+    parent_name->line = ref->line;
+    parent_name->source = ref->source;
+    out.objects.push_back(ref);
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
   }

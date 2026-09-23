@@ -462,6 +462,44 @@ TEST(ConfigHelpers, replaceVarInStr) {
   }
 }
 
+TEST(ConfigHelpers, replaceVarInStrUsedVars) {
+  const auto value = [](const std::string& v) {
+    return std::make_shared<flexi_cfg::config::types::ConfigValue>(v, kValue);
+  };
+
+  {
+    // Both forms are reported, unused vars are not.
+    const flexi_cfg::config::types::RefMap ref_vars = {
+        {"$VARS", value(R"("vars")")}, {"$EXTRA", value("extra")}, {"$CONTAINS", value("c")}};
+    std::vector<std::string> used_vars;
+    const auto output =
+        flexi_cfg::config::helpers::replaceVarInStr("this $CONTAINS ${VARS}", ref_vars, &used_vars);
+    EXPECT_EQ(output, "this c vars");
+    EXPECT_EQ(used_vars, std::vector<std::string>({"$CONTAINS", "$VARS"}));
+  }
+
+  {
+    // '$FOO' is a prefix of '$FOO2'. Substitution replaces '$FOO' first, so '$FOO2' is never
+    // substituted and must not be reported, even though its name appears in the input.
+    const flexi_cfg::config::types::RefMap ref_vars = {{"$FOO", value("1")}, {"$FOO2", value("5")}};
+    std::vector<std::string> used_vars;
+    const auto output =
+        flexi_cfg::config::helpers::replaceVarInStr("{{ $FOO2 * 2 }}", ref_vars, &used_vars);
+    EXPECT_EQ(output, "{{ 12 * 2 }}");
+    EXPECT_EQ(used_vars, std::vector<std::string>({"$FOO"}));
+  }
+
+  {
+    // Nothing substituted, nothing reported.
+    const flexi_cfg::config::types::RefMap ref_vars = {{"$FOO", value("1")}};
+    std::vector<std::string> used_vars;
+    const auto output =
+        flexi_cfg::config::helpers::replaceVarInStr("{{ $BAR * 2 }}", ref_vars, &used_vars);
+    EXPECT_EQ(output, "{{ $BAR * 2 }}");
+    EXPECT_TRUE(used_vars.empty());
+  }
+}
+
 // TODO(miker2): Test for replaceProtoVar
 
 auto generateConfig() -> flexi_cfg::config::types::CfgMap {

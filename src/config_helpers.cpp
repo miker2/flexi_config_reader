@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <range/v3/algorithm/find.hpp>
@@ -110,6 +111,9 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
 
   // First, create the new struct based on the reference data.
   auto struct_out = std::make_shared<types::ConfigStruct>(ref->name, ref->depth);
+  // Populate origins for the new struct
+  struct_out->origins = proto->origins; // Inherit origins from proto
+  struct_out->origins.push_back(ref); // Add the reference itself to origins
   if (CONFIG_HELPERS_DEBUG) {
     logger::debug("New struct: \n{}", struct_out);
   }
@@ -122,7 +126,10 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
       checkForErrors(struct_out->data, proto->data, el.first);
     }
     // types::BasePtr value = el.second->clone();
-    struct_out->data[el.first] = el.second->clone();
+    auto cloned_value = el.second->clone();
+    cloned_value->origins.push_back(proto); // Add the proto to the cloned value's origins
+    cloned_value->origins.push_back(ref); // Add the reference to the cloned value's origins
+    struct_out->data[el.first] = cloned_value;
   }
 
   // Next, move the data from the reference to the struct:
@@ -140,8 +147,8 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
   return struct_out;
 }
 
-auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
-    -> std::optional<std::string> {
+auto replaceVarInStr(std::string input, const types::RefMap& ref_vars,
+                     std::vector<std::string>* used_vars) -> std::optional<std::string> {
   // Before doing any of this, maybe check if there is a "$" in v_value->value, otherwise, no
   // sense in doing this loop.
   const auto var_pos = input.find('$');
@@ -167,6 +174,7 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     // Strip off any leading or trailing quotes from the replacement value. If the replacement
     // value is not a string, this is a no-op.
     const auto replacement = utils::trim(rv->value, "\\\"");
+    const auto before = out;
     // Look for `rk` (escape leading '$') in `out` and replace them with 'replacement'
     out = std::regex_replace(out, std::regex(std::string("\\").append(rk)), replacement);
     // Turn the $VAR version into ${VAR} in case that is used within a string as well. Throw
@@ -175,9 +183,32 @@ auto replaceVarInStr(std::string input, const types::RefMap& ref_vars)
     logger::debug("v: {}, rk: {}, rv: {}", out, bracket_var, rkv.second);
     out = std::regex_replace(out, std::regex(bracket_var), replacement);
     logger::debug("out: {}", out);
+    if (used_vars != nullptr && out != before) {
+      used_vars->push_back(rk);
+    }
   }
   return out;
 }
+
+namespace {
+/// \brief Copies `from`'s location onto `to`, unless `to` already has one of its own.
+void inheritLocationIfMissing(types::ConfigBase& to, const types::ConfigBase& from) {
+  if (to.line == 0 && to.source.empty()) {
+    to.line = from.line;
+    to.source = from.source;
+  }
+}
+
+/// \brief Gives a list with no location of its own the location of its first located element.
+void inheritLocationFromElements(types::ConfigList& list) {
+  const auto located = std::ranges::find_if(list.data, [](const auto& e) -> bool {
+    return e->line != 0 || !e->source.empty();
+  });
+  if (located != list.data.end()) {
+    inheritLocationIfMissing(list, **located);
+  }
+}
+}  // namespace
 
 /// \brief Finds all uses of 'ConfigVar' in the contents of a proto and replaces them
 /// \param[in/out] cfg_map - Contents of a proto
@@ -220,7 +251,11 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         "Attempting to replace '{}' with undefined var: '{}' at {}.", k,
                         v_var->name, v->loc());
       }
-      return ref_vars.at(v_var->name);
+      auto resolved_var = ref_vars.at(v_var->name)->clone();
+      resolved_var->origins.push_back(v_var); // Add the original var to the origins
+      // If the resolved variable doesn't have location info, inherit from the original variable
+      inheritLocationIfMissing(*resolved_var, *v_var);
+      return resolved_var;
     };
 
     /// \brief A helper function for replacing VAR elements within a string
@@ -235,6 +270,8 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
       // Replace the existing value with the new value.
       std::shared_ptr<types::ConfigBase> new_value =
           std::make_shared<types::ConfigValue>(out.value(), v->type);
+      new_value->origins = v->origins; // Inherit origins from the original value
+      new_value->origins.push_back(v); // Add the original value to origins
 
       new_value->line = v->line;
       new_value->source = v->source;
@@ -263,11 +300,14 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
         }
         // If this is any other type, we're going to skip it
       }
+      // Ensure the list inherits location info if it doesn't have any
+      inheritLocationFromElements(*v_list);
       logger::trace("Resolved list: {}", v_list);
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);
 
-      auto out = replaceVarInStr(expression->value, ref_vars);
+      std::vector<std::string> used_vars;
+      auto out = replaceVarInStr(expression->value, ref_vars, &used_vars);
       if (!out.has_value()) {
         continue;
       }
@@ -280,6 +320,12 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
 
       state.obj_res->line = v->line;
       state.obj_res->source = v->source;
+      state.obj_res->origins = v->origins; // Inherit origins from the original expression
+      // Add only the variables whose values were actually substituted into the expression.
+      std::ranges::transform(used_vars, std::back_inserter(state.obj_res->origins),
+                             [&ref_vars](const std::string& name) -> types::BasePtr {
+                               return ref_vars.at(name);
+                             });
       auto contains_var = str_contains_var(out.value());
       logger::debug("{} has var? {}", out.value(), contains_var);
       if (contains_var) {
@@ -404,7 +450,8 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
                       src_key, src, fmt::join(refs, " -> "));
     }
     // Get the new value based on the kValueLookup object.
-    value = getConfigValue(root, kv_lookup);
+    value = getConfigValue(root, kv_lookup)->clone();
+    value->origins.push_back(kv_lookup);  // Add the lookup to the origins
     logger::trace("{} points to {}", kv_lookup, value);
     // Add this key to the list of references/dependencies
     refs.emplace_back(kv_lookup->var());
@@ -505,8 +552,13 @@ auto evaluateExpression(std::shared_ptr<types::ConfigExpression>& expression,
   peg::memory_input input(expression->value, key);
   internal::parseCore<peg::seq<config::Eo, math::expression, config::Ec>, math::action>(input,
                                                                                         math);
-  return std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
-                                              math.res);
+  auto result_value = std::make_shared<types::ConfigValue>(std::to_string(math.res), types::Type::kNumber,
+                                                          math.res);
+  result_value->origins = expression->origins;  // Inherit origins from the original expression
+  result_value->origins.push_back(expression);  // Add the expression itself to origins
+  result_value->line = expression->line;
+  result_value->source = expression->source;
+  return result_value;
 }
 
 void evaluateExpressions(types::CfgMap& cfg, const std::string& parent_key) {

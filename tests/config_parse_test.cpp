@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -8,6 +9,8 @@
 #include <tao/pegtl.hpp>
 #include <tao/pegtl/contrib/parse_tree.hpp>
 #include <thread>
+
+#include <fmt/format.h>
 
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
@@ -315,6 +318,180 @@ TEST(ConfigParse, ConfigRoot) {
   setLevel(flexi_cfg::logger::Severity::DEBUG);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(
       std::filesystem::path("config_root/test/config_example_base.cfg"), baseDir()));
+}
+
+TEST(ConfigParse, LocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example13.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  // Included files are always resolved to absolute paths, whereas the top-level file keeps the
+  // path it was opened with. Under CMake `baseDir()` is already absolute, but under Bazel it is
+  // relative to the runfiles tree, so the two have to be built differently.
+  const auto& base_path = baseDir();
+  const auto expected_loc1 = std::filesystem::absolute(base_path / "env/env_example1.cfg").string();
+  const auto config_path = (base_path / "config_example13.cfg").string();
+  const auto expected_loc2 = std::filesystem::absolute(base_path / "env/env_example2.cfg").string();
+
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref1 = \"test\"  # {}:1 (from {}:5)", expected_loc1, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref2 = \"test\"  # {}:2 (from {}:6)", expected_loc2, config_path)));
+}
+
+TEST(ConfigParse, ProtoLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example9.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example9.cfg").string();
+
+  // Test that proto variable substitution preserves location information. '$PARENT = $PARENT_NAME'
+  // takes its value from the 'reference' line, and is used via '$PARENT' on line 9.
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:18 (from {}:9)\n",
+                                                     config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:24 (from {}:9)\n",
+                                                     config_path, config_path)));
+  
+  // Test that lists in protos have proper location information
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10", config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, -9.000000, -0.06]  # {}:14", config_path)));
+}
+
+TEST(ConfigParse, ValueLookupLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example1.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example1.cfg").string();
+
+  // Test value lookup references show origin location
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("var_ref = -0.392699  # {}:6 (from {}:13)\n",
+                                                     config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("b = 2  # {}:24 (from {}:36)", config_path, config_path)));
+}
+
+TEST(ConfigParse, ExpressionLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example2.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  std::string output = ss.str();
+
+  const auto config_path = (baseDir() / "config_example2.cfg").string();
+
+  // Test expression evaluation preserves location information
+  EXPECT_THAT(output, testing::HasSubstr(
+                          fmt::format("expression = -6159999999.329000  # {}:17\n", config_path)));
+}
+
+TEST(ConfigParse, ParentNameLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // The value of $PARENT_NAME is the name given on the 'reference' line, so that is where it should
+  // be reported as coming from, whether it is used directly or through a reference var.
+  constexpr std::string_view cfg_str = R"(proto p {
+  name = $PARENT_NAME
+  alias = $PN
+}
+
+reference p as foo {
+  $PN = $PARENT_NAME
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "parent.cfg");
+  EXPECT_EQ(cfg.getValue<std::string>("foo.name"), "foo");
+  EXPECT_EQ(cfg.getValue<std::string>("foo.alias"), "foo");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  EXPECT_THAT(output, testing::HasSubstr("name = foo  # parent.cfg:6 (from parent.cfg:2)\n"));
+  EXPECT_THAT(output, testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:3)\n"));
+}
+
+TEST(ConfigParse, ProtoOriginLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A proto needs a location of its own: structFromReference lists the proto in the origins of
+  // every value it contributes, so without one those chains report ':0' for the proto step.
+  constexpr std::string_view cfg_str = R"(proto p {
+  a = 0
+}
+
+reference p as foo {
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "proto.cfg");
+  EXPECT_EQ(cfg.getValue<int>("foo.a"), 0);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  // Defined on line 2, contributed by the proto on line 1, via the reference on line 5.
+  EXPECT_THAT(ss.str(),
+              testing::HasSubstr("a = 0  # proto.cfg:2 (from proto.cfg:1 <- proto.cfg:5)\n"));
+}
+
+TEST(ConfigParse, ExpressionRefVarOrigins) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // '$FOO' is a prefix of '$FOO2'. VAR substitution replaces '$FOO' first (see
+  // ConfigHelpers.replaceVarInStr), so 'expr' is '{{ 12 * 2 }}' and only '$FOO' contributed to it.
+  // Only the reference vars that were actually substituted may be reported as origins.
+  constexpr std::string_view cfg_str = R"(proto p {
+  expr = {{ $FOO2 * 2 }}
+  both = {{ ${FOO} + $BAZ }}
+}
+
+reference p as r {
+  $FOO = 1
+  $FOO2 = 5
+  $BAZ = 3
+  $UNUSED = 7
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "collide.cfg");
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("r.expr"), 24.F);
+  EXPECT_FLOAT_EQ(cfg.getValue<float>("r.both"), 4.F);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  // The chains start with the proto and the reference (line 6), followed by the vars used.
+  EXPECT_THAT(output, testing::ContainsRegex(
+                          R"(expr = 24\.000000  # collide\.cfg:2 \(from [^)]*collide\.cfg:6 <- )"
+                          R"(collide\.cfg:7\))"));
+  EXPECT_THAT(output, testing::ContainsRegex(
+                          R"(both = 4\.000000  # collide\.cfg:3 \(from [^)]*collide\.cfg:6 <- )"
+                          R"(collide\.cfg:9 <- collide\.cfg:7\))"));
+}
+
+TEST(ConfigParse, LocSkipsRedundantOrigins) {
+  namespace types = flexi_cfg::config::types;
+  const auto at = [](std::size_t line, const std::string& source) -> types::BasePtr {
+    auto v = std::make_shared<types::ConfigValue>("1", types::Type::kNumber);
+    v->line = line;
+    v->source = source;
+    return v;
+  };
+
+  auto value = at(5, "a.cfg");
+  EXPECT_EQ(value->loc(), "a.cfg:5");
+
+  // An origin at the node's own location adds nothing, so no suffix is emitted at all.
+  value->origins = {at(5, "a.cfg"), at(5, "a.cfg")};
+  EXPECT_EQ(value->loc(), "a.cfg:5");
+
+  // Self entries are dropped and consecutive repeats collapse, but genuine origins keep their
+  // order. The same line in a different file is a genuine origin.
+  value->origins = {at(9, "b.cfg"), at(9, "b.cfg"), at(5, "a.cfg"),
+                    at(9, "b.cfg"), at(5, "b.cfg"), at(2, "a.cfg")};
+  EXPECT_EQ(value->loc(), "a.cfg:5 (from b.cfg:9 <- b.cfg:5 <- a.cfg:2)");
 }
 
 TEST(ConfigVisitor, JsonConfigVisitor) {

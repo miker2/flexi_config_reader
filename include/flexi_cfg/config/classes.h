@@ -5,6 +5,7 @@
 
 #include <any>
 #include <iosfwd>
+#include <iterator>
 #include <magic_enum/magic_enum.hpp>
 #include <map>
 #include <memory>
@@ -64,12 +65,33 @@ class ConfigBase {
 
   [[nodiscard]] virtual auto clone() const -> BasePtr = 0;
 
-  [[nodiscard]] auto loc() const -> std::string { return fmt::format("{}:{}", source, line); }
+  [[nodiscard]] auto loc() const -> std::string {
+    std::string s = fmt::format("{}:{}", source, line);
+    // Only report origins that add information: skip any that point back at this node's own
+    // location, and collapse consecutive repeats of the same location.
+    const auto same_loc = [](const ConfigBase& a, const ConfigBase& b) -> bool {
+      return a.line == b.line && a.source == b.source;
+    };
+    const ConfigBase* last = nullptr;
+    for (const auto& origin : origins) {
+      if (same_loc(*origin, *this) || (last != nullptr && same_loc(*origin, *last))) {
+        continue;
+      }
+      fmt::format_to(std::back_inserter(s), "{}{}:{}", last == nullptr ? " (from " : " <- ",
+                     origin->source, origin->line);
+      last = origin.get();
+    }
+    if (last != nullptr) {
+      s += ")";
+    }
+    return s;
+  }
 
   const Type type;
 
   std::size_t line{0};
   std::string source{};
+  std::vector<std::shared_ptr<ConfigBase>> origins{};
 
  protected:
   explicit ConfigBase(const Type in_type) : type{in_type} {}
@@ -403,6 +425,7 @@ class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigRefere
   ConfigReference(const std::string& name, std::string proto_name, std::size_t depth)
       : ConfigBaseClonable(Type::kReference, name, depth), proto{std::move(proto_name)} {
     // Create the required key to easily reference the parent name.
+    // NOTE: Its location is filled in by 'action<REFs>', as it isn't known yet at this point.
     ref_vars["$PARENT_NAME"] = std::make_shared<ConfigValue>(name, Type::kString);
   }
 
