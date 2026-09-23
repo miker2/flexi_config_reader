@@ -417,6 +417,27 @@ reference p as foo {
   EXPECT_THAT(output, testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:3)\n"));
 }
 
+TEST(ConfigParse, ProtoOriginLocationReporting) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A proto needs a location of its own: structFromReference lists the proto in the origins of
+  // every value it contributes, so without one those chains report ':0' for the proto step.
+  constexpr std::string_view cfg_str = R"(proto p {
+  a = 0
+}
+
+reference p as foo {
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "proto.cfg");
+  EXPECT_EQ(cfg.getValue<int>("foo.a"), 0);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  // Defined on line 2, contributed by the proto on line 1, via the reference on line 5.
+  EXPECT_THAT(ss.str(),
+              testing::HasSubstr("a = 0  # proto.cfg:2 (from proto.cfg:1 <- proto.cfg:5)\n"));
+}
+
 TEST(ConfigParse, ExpressionRefVarOrigins) {
   setLevel(flexi_cfg::logger::Severity::INFO);
   // '$FOO' is a prefix of '$FOO2'. VAR substitution replaces '$FOO' first (see

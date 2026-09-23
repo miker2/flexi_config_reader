@@ -810,9 +810,15 @@ struct action<STRUCTs> {
 
 template <>
 struct action<PROTOs> {
-  static void apply0(ActionData& out) {
+  template <typename ActionInput>
+  static void apply(const ActionInput& in, ActionData& out) {
     CONFIG_ACTION_DEBUG("proto {}", out.keys.back());
-    out.objects.push_back(std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++));
+    auto proto = std::make_shared<types::ConfigProto>(out.keys.back(), out.depth++);
+    // Set location information for the proto. structFromReference pushes the proto into the
+    // origins of every value it contributes, so without this those chains report ':0'.
+    proto->line = in.position().line;
+    proto->source = in.position().source;
+    out.objects.push_back(proto);
     CONFIG_ACTION_DEBUG("Depth is now {}", out.depth);
     CONFIG_ACTION_DEBUG("length of objects is: {}", out.objects.size());
     out.in_proto = true;
