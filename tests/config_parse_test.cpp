@@ -413,8 +413,57 @@ reference p as foo {
   std::stringstream ss;
   cfg.dump(ss);
   const std::string output = ss.str();
-  EXPECT_THAT(output, testing::HasSubstr("name = foo  # parent.cfg:6 (from parent.cfg:2)\n"));
-  EXPECT_THAT(output, testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:3)\n"));
+  EXPECT_THAT(output,
+              testing::HasSubstr("name = foo  # parent.cfg:6 (from parent.cfg:1 <- parent.cfg:2)"
+                                 "\n"));
+  EXPECT_THAT(output,
+              testing::HasSubstr("alias = foo  # parent.cfg:6 (from parent.cfg:1 <- parent.cfg:3)"
+                                 "\n"));
+}
+
+TEST(ConfigParse, ProtoVarOriginsSurviveSubstitution) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // Replacing a bare '$VAR' swaps the node out wholesale. The replacement has to keep the origins
+  // the old node carried, or the proto and reference it came from vanish from the chain -- which
+  // is what a value spelled out as a literal, or as a string containing the var, already reports.
+  constexpr std::string_view cfg_str = R"(proto p {
+  e = $A
+}
+reference p as q {
+  $A = 9
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "var.cfg");
+  EXPECT_EQ(cfg.getValue<int>("q.e"), 9);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  // Defined at the ref var on line 5; from the proto (1), the reference (4), and 'e = $A' (2).
+  EXPECT_THAT(ss.str(),
+              testing::HasSubstr("e = 9  # var.cfg:5 (from var.cfg:1 <- var.cfg:4 <- var.cfg:2)"
+                                 "\n"));
+}
+
+TEST(ConfigParse, ProtoVarResolvedThroughLookupKeepsOrigins) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // Same as above, but the ref var is a value lookup, so the node is replaced a second time when
+  // the lookup resolves. That step has to preserve the chain too.
+  constexpr std::string_view cfg_str = R"(a = 2
+proto p {
+  e = $A
+}
+reference p as q {
+  $A = $(a)
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "lookup.cfg");
+  EXPECT_EQ(cfg.getValue<int>("q.e"), 2);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  // Defined at 'a' on line 1; from the proto (2), the reference (5), 'e = $A' (3), '$A = $(a)' (6).
+  EXPECT_THAT(ss.str(), testing::HasSubstr("e = 2  # lookup.cfg:1 (from lookup.cfg:2 <- "
+                                           "lookup.cfg:5 <- lookup.cfg:3 <- lookup.cfg:6)\n"));
 }
 
 TEST(ConfigParse, ProtoOriginLocationReporting) {
