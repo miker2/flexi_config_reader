@@ -252,7 +252,12 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
                         v_var->name, v->loc());
       }
       auto resolved_var = ref_vars.at(v_var->name)->clone();
-      resolved_var->origins.push_back(v_var); // Add the original var to the origins
+      // The node being replaced already carries the proto and reference it came from; keep them,
+      // then the $VAR itself, ahead of whatever the resolved value's own origins are.
+      auto inherited = v->origins;
+      inherited.push_back(v_var);
+      resolved_var->origins.insert(resolved_var->origins.begin(), inherited.begin(),
+                                   inherited.end());
       // If the resolved variable doesn't have location info, inherit from the original variable
       inheritLocationIfMissing(*resolved_var, *v_var);
       return resolved_var;
@@ -451,7 +456,11 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
     }
     // Get the new value based on the kValueLookup object.
     value = getConfigValue(root, kv_lookup)->clone();
-    value->origins.push_back(kv_lookup);  // Add the lookup to the origins
+    // The lookup being resolved may itself have come from a proto/reference; keep those ahead of
+    // the lookup, so the chain still shows where this key is written.
+    auto inherited = kv_lookup->origins;
+    inherited.push_back(kv_lookup);
+    value->origins.insert(value->origins.begin(), inherited.begin(), inherited.end());
     logger::trace("{} points to {}", kv_lookup, value);
     // Add this key to the list of references/dependencies
     refs.emplace_back(kv_lookup->var());
