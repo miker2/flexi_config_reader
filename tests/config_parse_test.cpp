@@ -350,16 +350,24 @@ TEST(ConfigParse, ProtoLocationReporting) {
 
   const auto config_path = (baseDir() / "config_example9.cfg").string();
 
-  // Test that proto variable substitution preserves location information. '$PARENT = $PARENT_NAME'
-  // takes its value from the 'reference' line, and is used via '$PARENT' on line 9.
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:18 (from {}:9)\n",
-                                                     config_path, config_path)));
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:24 (from {}:9)\n",
-                                                     config_path, config_path)));
-  
-  // Test that lists in protos have proper location information
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10", config_path)));
-  EXPECT_THAT(output, testing::HasSubstr(fmt::format("offset = [0.15, -9.000000, -0.06]  # {}:14", config_path)));
+  // 'name' and 'offset' live in structs nested inside the proto, so every one of these chains
+  // runs: value -> the proto (line 7) -> the reference that instantiated it.
+  //
+  // '$PARENT = $PARENT_NAME' takes its value from the 'reference' line, and is used via '$PARENT'
+  // on line 9.
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = front  # {}:18 (from {}:7 <- {}:9)\n",
+                                                     config_path, config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format("name = back  # {}:24 (from {}:7 <- {}:9)\n",
+                                                     config_path, config_path, config_path)));
+
+  // Lists in protos report the line they are written on, and carry the proto/reference chain.
+  EXPECT_THAT(output,
+              testing::HasSubstr(fmt::format("offset = [0.15, 9.0, -0.06, -0.5]  # {}:10 (from "
+                                             "{}:7 <- {}:18)",
+                                             config_path, config_path, config_path)));
+  EXPECT_THAT(output, testing::HasSubstr(fmt::format(
+                          "offset = [0.15, -9.000000, -0.06]  # {}:14 (from {}:7 <- {}:18)",
+                          config_path, config_path, config_path)));
 }
 
 TEST(ConfigParse, ValueLookupLocationReporting) {
@@ -464,6 +472,92 @@ reference p as q {
   // Defined at 'a' on line 1; from the proto (2), the reference (5), 'e = $A' (3), '$A = $(a)' (6).
   EXPECT_THAT(ss.str(), testing::HasSubstr("e = 2  # lookup.cfg:1 (from lookup.cfg:2 <- "
                                            "lookup.cfg:5 <- lookup.cfg:3 <- lookup.cfg:6)\n"));
+}
+
+TEST(ConfigParse, NestedStructInProtoGetsOrigins) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // Everything a proto contributes came from that proto, not just its direct children. Values
+  // inside a nested struct used to report a bare location with no chain at all.
+  constexpr std::string_view cfg_str = R"(proto p {
+  top = 1
+  struct inner {
+    deep = 2
+  }
+}
+reference p as q {
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "nested.cfg");
+  EXPECT_EQ(cfg.getValue<int>("q.inner.deep"), 2);
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  // Both the direct child and the one a level down name the proto (1) and the reference (7).
+  EXPECT_THAT(output, testing::HasSubstr("top = 1  # nested.cfg:2 (from nested.cfg:1 <- "
+                                         "nested.cfg:7)\n"));
+  EXPECT_THAT(output, testing::HasSubstr("deep = 2  # nested.cfg:4 (from nested.cfg:1 <- "
+                                         "nested.cfg:7)\n"));
+}
+
+TEST(ConfigParse, ProtoListReportsItsOwnLine) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A list holding a proto var parses as PROTO_LIST, which the grammar puts beside VALUE rather
+  // than under it, so action<VALUE> never stamped it. It used to fall back to borrowing the
+  // location of its first resolved element -- here, the '$A = 9' line rather than its own.
+  constexpr std::string_view cfg_str = R"(proto p {
+  var_list = [$A, 2]
+  lit_list = [7, 8]
+}
+reference p as q {
+  $A = 9
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "list.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  // Each list reports the line it is written on, not an element's.
+  EXPECT_THAT(output, testing::HasSubstr("var_list = [9, 2]  # list.cfg:2 (from list.cfg:1 <- "
+                                         "list.cfg:5)\n"));
+  EXPECT_THAT(output, testing::HasSubstr("lit_list = [7, 8]  # list.cfg:3 (from list.cfg:1 <- "
+                                         "list.cfg:5)\n"));
+}
+
+TEST(ConfigParse, ProtoListMayHoldVarsAtAnyDepth) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A list in a proto may hold VARs, and so may a list nested inside it. The nested case used to
+  // be rejected by the grammar, because the element rule recursed through VALUE (which only
+  // allows plain lists) rather than through PROTO_VALUE.
+  constexpr std::string_view cfg_str = R"(proto p {
+  nested = [[$A], [2]]
+  mixed = [[$A, 2], [3, 4]]
+}
+reference p as q {
+  $A = 1
+}
+)";
+  const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "deep.cfg");
+
+  std::stringstream ss;
+  cfg.dump(ss);
+  const std::string output = ss.str();
+  // Substitution has to reach the nested elements too, not just the outer list.
+  EXPECT_THAT(output, testing::HasSubstr("nested = [[1], [2]]  # deep.cfg:2 (from deep.cfg:1 <- "
+                                         "deep.cfg:5)\n"));
+  EXPECT_THAT(output, testing::HasSubstr("mixed = [[1, 2], [3, 4]]  # deep.cfg:3 (from deep.cfg:1 "
+                                         "<- deep.cfg:5)\n"));
+}
+
+TEST(ConfigParse, VarIsStillRejectedOutsideAProto) {
+  setLevel(flexi_cfg::logger::Severity::CRITICAL);
+  // Widening proto lists must not make VARs legal anywhere else.
+  for (const std::string_view cfg_str : {"bad = $A\n", "bad = [$A, 2]\n", "bad = [[$A], [2]]\n",
+                                         "struct s {\n  bad = [$A, 2]\n}\n"}) {
+    EXPECT_THROW(flexi_cfg::Parser::parseFromString(cfg_str, "bad.cfg"), std::exception)
+        << "should not parse: " << cfg_str;
+  }
 }
 
 TEST(ConfigParse, ProtoOriginLocationReporting) {

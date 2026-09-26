@@ -103,6 +103,54 @@ auto mergeNestedMaps(const types::CfgMap& cfg1, const types::CfgMap& cfg2) -> ty
   return cfg_out;
 }
 
+namespace {
+/// \brief Records the proto and reference a cloned value came from, all the way down.
+///
+/// A proto's direct children are not the only things it contributes: anything inside a nested
+/// struct came from the proto just as much, and without this it would report no origin at all.
+void tagProtoOrigins(const types::BasePtr& node, const types::BasePtr& proto,
+                     const types::BasePtr& ref) {
+  node->origins.push_back(proto);
+  node->origins.push_back(ref);
+  // Only plain structs are descended into. A nested reference owns its own subtree and is
+  // resolved by its own call to structFromReference; tagging through it would put this reference
+  // into the origins of nodes that reference still owns, which is a cycle -- the nodes keep it
+  // alive and it keeps them alive, so the whole subtree leaks.
+  if (node->type == types::Type::kStruct || node->type == types::Type::kStructInProto) {
+    for (const auto& kv : dynamic_pointer_cast<types::ConfigStructLike>(node)->data) {
+      tagProtoOrigins(kv.second, proto, ref);
+    }
+  }
+}
+}  // namespace
+
+/// \brief Substitutes proto vars throughout a list, descending into nested lists.
+///
+/// A list inside a proto may hold VARs at any depth, so '[[$A], [2]]' has to be walked, not just
+/// its top level.
+template <typename ReplaceVar, typename ReplaceVarInStr>
+void resolveListElements(const std::shared_ptr<types::ConfigList>& list, const std::string& key,
+                         const ReplaceVar& replace_var, const ReplaceVarInStr& replace_var_in_str) {
+  for (auto& e : list->data) {
+    logger::trace("Element type: {}, data: {}", e->type, e);
+    if (e->type == types::Type::kVar) {
+      e = replace_var(e);
+    } else if (e->type == types::Type::kString) {
+      e = replace_var_in_str(e);
+    } else if (e->type == types::Type::kList) {
+      resolveListElements(dynamic_pointer_cast<types::ConfigList>(e), key, replace_var,
+                          replace_var_in_str);
+    }
+    // Any other type is left alone.
+    if (!helpers::listElementValid(list, e->type)) {
+      THROW_EXCEPTION(InvalidTypeException,
+                      "While resolving a reference in {} ({}), encountered an incorrect type. "
+                      "Expected {}, but found {}",
+                      key, list->loc(), list->list_element_type, e->type);
+    }
+  }
+}
+
 auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
                          const std::shared_ptr<types::ConfigProto>& proto)
     -> std::shared_ptr<types::ConfigStruct> {
@@ -127,8 +175,7 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
     }
     // types::BasePtr value = el.second->clone();
     auto cloned_value = el.second->clone();
-    cloned_value->origins.push_back(proto); // Add the proto to the cloned value's origins
-    cloned_value->origins.push_back(ref); // Add the reference to the cloned value's origins
+    tagProtoOrigins(cloned_value, proto, ref);
     struct_out->data[el.first] = cloned_value;
   }
 
@@ -196,16 +243,6 @@ void inheritLocationIfMissing(types::ConfigBase& to, const types::ConfigBase& fr
   if (to.line == 0 && to.source.empty()) {
     to.line = from.line;
     to.source = from.source;
-  }
-}
-
-/// \brief Gives a list with no location of its own the location of its first located element.
-void inheritLocationFromElements(types::ConfigList& list) {
-  const auto located = std::ranges::find_if(list.data, [](const auto& e) -> bool {
-    return e->line != 0 || !e->source.empty();
-  });
-  if (located != list.data.end()) {
-    inheritLocationIfMissing(list, **located);
   }
 }
 }  // namespace
@@ -290,23 +327,7 @@ void replaceProtoVar(types::CfgMap& cfg_map, const types::RefMap& ref_vars) {
     } else if (v->type == types::Type::kList) {
       auto v_list = dynamic_pointer_cast<types::ConfigList>(v);
       logger::trace("Resolving references in list: {}", v_list);
-      for (auto& e : v_list->data) {
-        logger::trace("Element type: {}, data: {}", e->type, e);
-        if (e->type == types::Type::kVar) {
-          e = replace_var(e);
-        } else if (e->type == types::Type::kString) {
-          e = replace_var_in_str(e);
-        }
-        if (!listElementValid(v_list, e->type)) {
-          THROW_EXCEPTION(InvalidTypeException,
-                          "While resolving a reference in {} ({}), encountered an incorrect type. "
-                          "Expected {}, but found {}",
-                          k, v_list->loc(), v_list->list_element_type, e->type);
-        }
-        // If this is any other type, we're going to skip it
-      }
-      // Ensure the list inherits location info if it doesn't have any
-      inheritLocationFromElements(*v_list);
+      resolveListElements(v_list, k, replace_var, replace_var_in_str);
       logger::trace("Resolved list: {}", v_list);
     } else if (v->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(v);

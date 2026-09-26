@@ -209,6 +209,11 @@ struct action<VALUE> {
   }
 };
 
+// A proto's values go through the same action as everywhere else, so they are validated and
+// stamped identically -- including lists, which previously had no stamp of their own.
+template <>
+struct action<PROTO_VALUE> : action<VALUE> {};
+
 template <>
 struct action<HEX> {
   template <typename ActionInput>
@@ -305,8 +310,9 @@ struct action<LIST::begin> {
   }
 };
 
-template <>
-struct action<LIST::element> {
+// LIST and PROTO_LIST differ only in which elements they accept, so their element handling is
+// the same; share one implementation rather than keeping two copies in step.
+struct list_element_action {
   static void apply0(ActionData& out) {
     CONFIG_ACTION_TRACE("In LIST::element action - adding {}", out.obj_res);
     // Add (or check) the type of the elements in the list
@@ -325,6 +331,9 @@ struct action<LIST::element> {
 };
 
 template <>
+struct action<LIST::element> : list_element_action {};
+
+template <>
 /* struct action<PROTO_LIST::end> */
 struct action<LIST::end> {
   static void apply0(ActionData& out) {
@@ -335,23 +344,7 @@ struct action<LIST::end> {
 };
 
 template <>
-struct action<PROTO_LIST::element> {
-  static void apply0(ActionData& out) {
-    CONFIG_ACTION_TRACE("In PROTO_LIST::element action - adding {}", out.obj_res);
-    // Add (or check) the type of the elements in the list
-    if (!helpers::listElementValid(out.lists.back(), out.obj_res->type)) {
-      const auto key = !out.keys.empty() ? out.keys.back() : "";
-      THROW_EXCEPTION(InvalidTypeException,
-                      "While processing '{}' at {}, found {}, but expected {}. All elements in {} "
-                      "must be of the same type.",
-                      key, out.obj_res->loc(), out.obj_res->type,
-                      out.lists.back()->list_element_type, out.lists.back()->type);
-    }
-    out.lists.back()->data.push_back(std::move(out.obj_res));
-    // Set the moved object to null so it isn't left in an invalid state
-    out.obj_res = nullptr;
-  }
-};
+struct action<PROTO_LIST::element> : list_element_action {};
 
 template <>
 struct action<Eo> {

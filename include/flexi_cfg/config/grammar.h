@@ -114,7 +114,12 @@ struct LIST_ : peg::seq<SBo, TAIL, peg::opt<Content>, TAIL, SBc> {
 
 struct LIST;
 struct VALUE_LOOKUP;
-struct VALUE : peg::sor<HEX, NUMBER, STRING, BOOLEAN, VALUE_LOOKUP, EXPRESSION, LIST> {};
+// The set of values, parameterised on which list rule is allowed. A proto accepts lists that may
+// hold VARs; everywhere else only plain lists are valid. Keeping this in one place means anything
+// that applies to a value -- notably stamping its source location -- applies to both.
+template <typename ListRule>
+struct VALUE_ : peg::sor<HEX, NUMBER, STRING, BOOLEAN, VALUE_LOOKUP, EXPRESSION, ListRule> {};
+struct VALUE : VALUE_<LIST> {};
 // 'seq' is used here so that the 'VALUE' action will collect the location information.
 struct LIST_ELEMENT : peg::seq<VALUE> {};
 struct LIST_CONTENT : LIST_CONTENT_<LIST_ELEMENT> {};
@@ -133,24 +138,27 @@ struct VAR : peg::seq<peg::one<'$'>, peg::sor<peg::seq<peg::one<'{'>, VARc, peg:
 struct VALUE_LOOKUP : peg::seq<TAO_PEGTL_STRING("$("), peg::list<peg::sor<KEY, VAR>, peg::one<'.'>>,
                                peg::one<')'>> {};
 
-// A special type of list for lists containing VAR elements.
-struct PROTO_LIST_ELEMENT : peg::sor<VALUE, VAR> {};
+// A special type of list for lists containing VAR elements. The element recurses through
+// PROTO_VALUE rather than VALUE, so a list nested inside one of these is itself a PROTO_LIST and
+// may hold VARs too; going through VALUE would have made '[[$A], [2]]' illegal inside a proto for
+// no reason. The rules are mutually recursive, hence the forward declaration.
+struct PROTO_VALUE;
+struct PROTO_LIST_ELEMENT : peg::sor<PROTO_VALUE, VAR> {};
 struct PROTO_LIST_CONTENT : LIST_CONTENT_<PROTO_LIST_ELEMENT> {};
 struct PROTO_LIST : LIST_<PROTO_LIST_CONTENT> {};
+struct PROTO_VALUE : VALUE_<PROTO_LIST> {};
 
-struct KV_NOMINAL : peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION> {};
+// 'sor' with a single alternative is deliberate: it keeps VALUE a sub-rule, so the VALUE action
+// still fires and collects the location. Deriving from VALUE directly would not.
+struct KV_NOMINAL : peg::sor<VALUE> {};
 
 struct REF_ADDKVP : peg::seq<peg::one<'+'>, KEY, KVs, KV_NOMINAL, TAIL> {};
-struct REF_VARDEF
-    : peg::seq<VAR, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, PARENTNAMEk>, TAIL> {};
+struct REF_VARDEF : peg::seq<VAR, KVs, peg::sor<VALUE, PARENTNAMEk>, TAIL> {};
 
 // A 'FULLPAIR' is a flattened key followed by a limited set of "value" options
 struct FULLPAIR : peg::seq<FLAT_KEY, peg::opt<pd<OVERRIDEk>>, KVs, KV_NOMINAL, TAIL> {};
 struct PAIR : peg::seq<KEY, peg::opt<pd<OVERRIDEk>>, KVs, KV_NOMINAL, TAIL> {};
-// NOTE: Within a 'PROTO_PAIR' it may make sense to support a special type of list that can contain
-// one or more 'VAR' elements
-struct PROTO_PAIR
-    : peg::seq<KEY, KVs, peg::sor<VALUE, VALUE_LOOKUP, EXPRESSION, VAR, PROTO_LIST>, TAIL> {};
+struct PROTO_PAIR : peg::seq<KEY, KVs, peg::sor<PROTO_VALUE, VAR>, TAIL> {};
 
 // A rule for defining struct-like objects
 template <typename Start, typename Content>
@@ -175,9 +183,10 @@ struct PROTOc : peg::plus<peg::sor<PROTO_PAIR, STRUCT_IN_PROTO, REFERENCE>> {};
 struct STRUCTc : peg::plus<peg::sor<PAIR, STRUCT, REFERENCE, PROTO>> {};
 
 // Include syntax
-struct INCLUDE_ATTRS : peg::star<peg::sor<pd<OPTIONALk>,pd<ONCEk>>> {};
+struct INCLUDE_ATTRS : peg::star<peg::sor<pd<OPTIONALk>, pd<ONCEk>>> {};
 struct INCLUDE : peg::seq<INCLUDEk, SP, INCLUDE_ATTRS, filename::grammar, TAIL> {};
-struct INCLUDE_RELATIVE : peg::seq<INCLUDE_RELATIVEk, SP, INCLUDE_ATTRS, filename::grammar, TAIL> {};
+struct INCLUDE_RELATIVE : peg::seq<INCLUDE_RELATIVEk, SP, INCLUDE_ATTRS, filename::grammar, TAIL> {
+};
 struct include_list : peg::star<INCLUDE> {};
 struct include_relative_list : peg::star<INCLUDE_RELATIVE> {};
 struct includes : peg::seq<include_list, include_relative_list, TAIL> {};
