@@ -585,6 +585,17 @@ a = 2
   }
 }
 
+TEST(ConfigParse, ExpressionChainFromFileResolves) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // config_example19.cfg declares the chain in the opposite order to its dependencies. The
+  // FileInput suite already checks every example parses; this pins the values down.
+  const auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example19.cfg");
+  EXPECT_EQ(cfg.getValue<int>("math_chain.base"), 2);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.doubled"), 4.0);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.scaled"), 5.0);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.chained"), 10.0);
+}
+
 TEST(ConfigParse, ExpressionChainCycleIsReported) {
   setLevel(flexi_cfg::logger::Severity::CRITICAL);
   // Three expressions where the tail refers back to the head. Following the chain has to stop
