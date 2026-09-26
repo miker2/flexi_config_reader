@@ -195,7 +195,7 @@ auto Parser::resolveConfig(config::ActionData& state) -> const config::types::Cf
 
   config::helpers::evaluateExpressions(cfg_data_);
 
-  // Removes empty structs, fixes incorrect depth, etc.
+  // Removes empty structs.
   config::helpers::cleanupConfig(cfg_data_);
 
   return cfg_data_;

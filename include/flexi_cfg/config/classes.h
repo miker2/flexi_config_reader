@@ -9,7 +9,6 @@
 #include <magic_enum/magic_enum.hpp>
 #include <map>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -18,13 +17,18 @@
 #include "flexi_cfg/utils.h"
 
 #define DEBUG_CLASSES 0
-#define PRINT_SRC 1  // NOLINT(cppcoreguidelines-macro-usage)
 
 namespace flexi_cfg::config::types {
 constexpr std::size_t tw{4};  // The width of the indentation
 
 class ConfigBase;
 using BasePtr = std::shared_ptr<ConfigBase>;
+
+/// \brief Renders `cfg` with default options, at indent level 0.
+///
+/// Declared here so the `stream()` shim below can call it; defined in `flexi_cfg/render-ostream.h`,
+/// which this header includes at the bottom once the node types are complete.
+void renderToStream(std::ostream& os, const ConfigBase& cfg);
 
 using CfgMap = details::ordered_map<std::string, BasePtr, details::string_hash>;
 using RefMap = std::map<std::string, BasePtr>;
@@ -61,7 +65,9 @@ class ConfigBase {
   auto operator=(const ConfigBase&) -> ConfigBase& = delete;
   auto operator=(ConfigBase&&) -> ConfigBase& = delete;
 
-  virtual void stream(std::ostream&) const = 0;
+  /// \brief Renders this node with default options. Kept for backward compatibility; the
+  /// configurable entry points are `flexi_cfg::Dump` and `Reader::dump(os, opts)`.
+  virtual void stream(std::ostream& os) const { renderToStream(os, *this); }
 
   [[nodiscard]] virtual auto clone() const -> BasePtr = 0;
 
@@ -152,61 +158,10 @@ concept SharedPtrMap =
     MapLike<T> &&
     std::is_same_v<typename T::mapped_type, std::shared_ptr<typename T::mapped_type::element_type>>;
 
-template <MapLike MapType>
-inline auto operator<<(std::ostream& os, const MapType& data) -> std::ostream& {
-  for (const auto& kv : data) {
-    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
-      os << kv.second << "\n";
-    } else {
-      os << kv.first << " = " << kv.second;
-      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
-        os << "  # " << kv.second->loc();
-      }
-      os << "\n";
-    }
-  }
-  return os;
-}
-
-// See here for a potentially better solution:
-//    https://raw.githubusercontent.com/louisdx/cxx-prettyprint/master/prettyprint.hpp
-template <SharedPtrMap MapType>
-inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
-  const auto ws = std::string(depth * tw, ' ');
-  for (const auto& kv : data) {
-    if (dynamic_pointer_cast<ConfigStructLike>(kv.second)) {
-      // Don't add extra whitespace, as this is handled entirely by the StructLike objects
-      os << kv.second << "\n";
-    } else {
-      os << ws << kv.first << " = " << kv.second;
-      if constexpr (PRINT_SRC && std::is_same_v<typename MapType::mapped_type, BasePtr>) {
-        os << "  # " << kv.second->loc();
-      }
-      os << "\n";
-    }
-  }
-}
-
-// More generic pprint that requires a map-like object, but not a std::shared_ptr<T> as the
-// value_type
-template <MapLike MapType>
-inline void pprint(std::ostream& os, const MapType& data, std::size_t depth) {
-  const auto ws = std::string(depth * tw, ' ');
-  for (const auto& kv : data) {
-    os << ws << kv.first << " = " << kv.second
-#if PRINT_SRC
-       << "  # " << kv.second->loc()
-#endif
-       << "\n";
-  }
-}
-
 class ConfigValue : public ConfigBaseClonable<ConfigBase, ConfigValue> {
  public:
   explicit ConfigValue(std::string value_in, Type type, std::any val = {})
       : ConfigBaseClonable(type), value{std::move(value_in)}, value_any{std::move(val)} {};
-
-  void stream(std::ostream& os) const override { os << value; }
 
   const std::string value{};
 
@@ -225,17 +180,6 @@ class ConfigList : public ConfigBaseClonable<ConfigValue, ConfigList> {
  public:
   ConfigList(std::string value_in = "") : ConfigBaseClonable(std::move(value_in), Type::kList) {};
 
-  void stream(std::ostream& os) const override {
-    os << "[";
-    for (auto it = data.begin(); it != data.end(); it = std::next(it)) {
-      os << *it;
-      if (std::next(it) != data.end()) {
-        os << ", ";
-      }
-    }
-    os << "]";
-  }
-
   std::vector<std::shared_ptr<ConfigBase>> data;
 
   Type list_element_type{Type::kUnknown};
@@ -253,8 +197,6 @@ class ConfigValueLookup : public ConfigBaseClonable<ConfigBase, ConfigValueLooku
  public:
   explicit ConfigValueLookup(const std::string& var_ref)
       : ConfigBaseClonable(Type::kValueLookup), keys{utils::split(var_ref, '.')} {};
-
-  void stream(std::ostream& os) const override { os << "$(" << var() << ")"; }
 
   const std::vector<std::string> keys{};
 
@@ -294,8 +236,6 @@ class ConfigVar : public ConfigBaseClonable<ConfigBase, ConfigVar> {
  public:
   explicit ConfigVar(std::string name) : ConfigBaseClonable(Type::kVar), name{std::move(name)} {};
 
-  void stream(std::ostream& os) const override { os << name; }
-
   const std::string name{};
 
   ~ConfigVar() noexcept override = default;
@@ -314,17 +254,10 @@ inline auto operator<<(std::ostream& os, const ConfigVar& cfg) -> std::ostream& 
 
 class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike> {
  public:
-  ConfigStructLike(Type in_type, std::string name, std::size_t depth)
-      : ConfigBaseClonable(in_type), name{std::move(name)}, depth{depth} {};
-
-  void stream(std::ostream& os) const override {
-    os << "struct-like " << name << "\n";
-    os << data;
-  }
+  ConfigStructLike(Type in_type, std::string name)
+      : ConfigBaseClonable(in_type), name{std::move(name)} {};
 
   const std::string name{};
-
-  std::size_t depth{};
 
   CfgMap data;
 
@@ -343,19 +276,8 @@ class ConfigStructLike : public ConfigBaseClonable<ConfigBase, ConfigStructLike>
 
 class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
  public:
-  ConfigStruct(std::string name, std::size_t depth, Type type = Type::kStruct)
-      : ConfigBaseClonable(type, std::move(name), depth) {};
-
-  void stream(std::ostream& os) const override {
-    const auto ws = std::string(depth * tw, ' ');
-    os << ws << "struct " << name << " {\n";
-#if DEBUG_CLASSES
-    os << ws << "-- " << data.size() << " k/v pairs\n";
-#endif
-    pprint(os, data, depth + 1);
-    // os << data;
-    os << ws << "}";
-  }
+  explicit ConfigStruct(std::string name, Type type = Type::kStruct)
+      : ConfigBaseClonable(type, std::move(name)) {};
 
   [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
@@ -383,18 +305,7 @@ class ConfigStruct : public ConfigBaseClonable<ConfigStructLike, ConfigStruct> {
 
 class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
  public:
-  ConfigProto(std::string name, std::size_t depth)
-      : ConfigBaseClonable(Type::kProto, std::move(name), depth) {}
-
-  void stream(std::ostream& os) const override {
-    const auto ws = std::string(depth * tw, ' ');
-    os << ws << "proto " << name << " {\n";
-#if DEBUG_CLASSES
-    os << ws << "-- " << data.size() << " k/v pairs\n";
-#endif
-    pprint(os, data, depth + 1);
-    os << ws << "}";
-  }
+  explicit ConfigProto(std::string name) : ConfigBaseClonable(Type::kProto, std::move(name)) {}
 
   [[nodiscard]] auto clone() const -> BasePtr final {
     // This sort of feels like a dirty hack, but appears to work.
@@ -422,23 +333,11 @@ class ConfigProto : public ConfigBaseClonable<ConfigStructLike, ConfigProto> {
 
 class ConfigReference : public ConfigBaseClonable<ConfigStructLike, ConfigReference> {
  public:
-  ConfigReference(const std::string& name, std::string proto_name, std::size_t depth)
-      : ConfigBaseClonable(Type::kReference, name, depth), proto{std::move(proto_name)} {
+  ConfigReference(const std::string& name, std::string proto_name)
+      : ConfigBaseClonable(Type::kReference, name), proto{std::move(proto_name)} {
     // Create the required key to easily reference the parent name.
     // NOTE: Its location is filled in by 'action<REFs>', as it isn't known yet at this point.
     ref_vars["$PARENT_NAME"] = std::make_shared<ConfigValue>(name, Type::kString);
-  }
-
-  void stream(std::ostream& os) const override {
-    const auto ws = std::string(depth * tw, ' ');
-    os << ws << "reference " << proto << " as " << name << " {\n";
-#if DEBUG_CLASSES
-    os << ws << "-- " << ref_vars.size() << " ref vars\n";
-    os << ws << "-- " << data.size() << " k/v pairs\n";
-#endif
-    pprint(os, ref_vars, depth + 1);
-    pprint(os, data, depth + 1);
-    os << ws << "}";
   }
 
   const std::string proto{};
@@ -465,21 +364,7 @@ struct fmt::formatter<flexi_cfg::config::types::Type> : formatter<std::string_vi
   }
 };
 
-// Formatter for all types that inherit from `config::types::ConfigBase`.
-template <typename T>
-struct fmt::formatter<
-    T, std::enable_if_t<
-           std::is_convertible_v<T, std::shared_ptr<flexi_cfg::config::types::ConfigBase>>, char>>
-    : formatter<std::string_view> {
-  // parse is inherited from formatter<string_view>
-  auto format(const std::shared_ptr<flexi_cfg::config::types::ConfigBase>& cfg,
-              format_context& ctx) const {
-    std::stringstream ss;
-    if (cfg != nullptr) {
-      cfg->stream(ss);
-    } else {
-      ss << "NULL";
-    }
-    return formatter<std::string_view>::format(ss.str(), ctx);
-  }
-};
+// Pull in the renderer and its ostream/fmt adapters now that the node types above are complete.
+// This has to be the last thing in the header: `render.h` includes this one straight back, so
+// anything placed below would be skipped on the path that starts at `render.h`.
+#include "flexi_cfg/render.h"  // NOLINT(misc-include-cleaner,llvm-include-order)

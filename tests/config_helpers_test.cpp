@@ -32,11 +32,11 @@ TEST(ConfigHelpers, isStructLike) {
 
   testIsStructLike<flexi_cfg::config::types::ConfigVar>("");
 
-  testIsStructLike<flexi_cfg::config::types::ConfigStruct>("struct", 0);
+  testIsStructLike<flexi_cfg::config::types::ConfigStruct>("struct");
 
-  testIsStructLike<flexi_cfg::config::types::ConfigProto>("proto", 0);
+  testIsStructLike<flexi_cfg::config::types::ConfigProto>("proto");
 
-  testIsStructLike<flexi_cfg::config::types::ConfigReference>("reference", "proto", 0);
+  testIsStructLike<flexi_cfg::config::types::ConfigReference>("reference", "proto");
 }
 
 TEST(ConfigHelpers, checkForErrors) {
@@ -60,8 +60,7 @@ TEST(ConfigHelpers, checkForErrors) {
         {key, std::make_shared<flexi_cfg::config::types::ConfigValue>(
                   "13", flexi_cfg::config::types::Type::kNumber)}};
     flexi_cfg::config::types::CfgMap cfg2 = {
-        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                  key, 0 /* depth doesn't matter */)}};
+        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key)}};
 
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key),
                  flexi_cfg::config::MismatchKeyException);
@@ -70,11 +69,9 @@ TEST(ConfigHelpers, checkForErrors) {
     // This test should fail due to mismatched types (both struct-like, but different types)
     const std::string key = "key1";
     flexi_cfg::config::types::CfgMap cfg1 = {
-        {key, std::make_shared<flexi_cfg::config::types::ConfigProto>(
-                  key, 0 /* depth doesn't matter */)}};
+        {key, std::make_shared<flexi_cfg::config::types::ConfigProto>(key)}};
     flexi_cfg::config::types::CfgMap cfg2 = {
-        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                  key, 0 /* depth doesn't matter */)}};
+        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key)}};
 
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key),
                  flexi_cfg::config::MismatchTypeException);
@@ -83,11 +80,9 @@ TEST(ConfigHelpers, checkForErrors) {
     // This test should be successful
     const std::string key = "key1";
     flexi_cfg::config::types::CfgMap cfg1 = {
-        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                  key, 0 /* depth doesn't matter */)}};
+        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key)}};
     flexi_cfg::config::types::CfgMap cfg2 = {
-        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                  key, 0 /* depth doesn't matter */)}};
+        {key, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key)}};
 
     EXPECT_NO_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key));
   }
@@ -95,13 +90,11 @@ TEST(ConfigHelpers, checkForErrors) {
     // This test should fail (no common keys)
     const std::string key1 = "key1";
     flexi_cfg::config::types::CfgMap cfg1 = {
-        {key1, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                   key1, 0 /* depth doesn't matter */)}};
+        {key1, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key1)}};
 
     const std::string key2 = "key2";
     flexi_cfg::config::types::CfgMap cfg2 = {
-        {key2, std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-                   key2, 0 /* depth doesn't matter */)}};
+        {key2, std::make_shared<flexi_cfg::config::types::ConfigStruct>(key2)}};
 
     EXPECT_THROW(flexi_cfg::config::helpers::checkForErrors(cfg1, cfg2, key1), std::out_of_range)
         << "cfg1: " << cfg1 << ", cfg2: " << cfg2;
@@ -124,8 +117,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg1_inner = {
         {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg1_struct =
-        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
     cfg1_struct->data = std::move(cfg1_inner);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
@@ -136,8 +128,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2_inner = {
         {inner_keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {inner_keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg2_struct =
-        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
     cfg2_struct->data = std::move(cfg2_inner);
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
@@ -172,8 +163,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg1_inner = {
         {inner_keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg1_struct =
-        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
     cfg1_struct->data = std::move(cfg1_inner);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
@@ -185,8 +175,7 @@ TEST(ConfigHelpers, mergeNestedMaps) {
         {inner_keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         // This key is duplicated in the struct above (cfg1_inner), which will cause a failure.
         {inner_keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg2_struct =
-        std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0 /* depth doesn't matter */);
+    auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
     cfg2_struct->data = std::move(cfg2_inner);
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
@@ -212,15 +201,13 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg1_lvl2 = {
         {keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg1_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-        key_lvl1, 1 /* depth doesn't matter */);
+    auto cfg1_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key_lvl1);
     cfg1_inner->data = std::move(cfg1_lvl2);
     flexi_cfg::config::types::CfgMap cfg1_lvl1 = {
         {cfg1_inner->name, std::move(cfg1_inner)},
         {keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg1_outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-        key_lvl0, 0 /* depth doesn't matter */);
+    auto cfg1_outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key_lvl0);
     cfg1_outer->data = std::move(cfg1_lvl1);
     flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_outer->name, std::move(cfg1_outer)}};
 
@@ -235,15 +222,13 @@ TEST(ConfigHelpers, mergeNestedMaps) {
     flexi_cfg::config::types::CfgMap cfg2_lvl2 = {
         {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg2_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-        key_lvl1, 1 /* depth doesn't matter */);
+    auto cfg2_inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key_lvl1);
     cfg2_inner->data = std::move(cfg2_lvl2);
     flexi_cfg::config::types::CfgMap cfg2_lvl1 = {
         {cfg2_inner->name, std::move(cfg2_inner)},
         {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)},
         {keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("", kValue)}};
-    auto cfg2_outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>(
-        key_lvl0, 0 /* depth doesn't matter */);
+    auto cfg2_outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key_lvl0);
     cfg2_outer->data = std::move(cfg2_lvl1);
     flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_outer->name, std::move(cfg2_outer)}};
 
@@ -294,8 +279,8 @@ TEST(ConfigHelpers, structFromReference) {
     //    +key2 = "fizz_buzz"
     //    $KEY3 = "foo"
     //    $KEY4 = "bar"
-    auto reference = std::make_shared<flexi_cfg::config::types::ConfigReference>(
-        ref_name, proto_name, 4 /* depth doesn't matter */);
+    auto reference =
+        std::make_shared<flexi_cfg::config::types::ConfigReference>(ref_name, proto_name);
     constexpr double MAGIC_NUMBER{0.14};
     reference->data = {
         {keys[0],
@@ -312,8 +297,7 @@ TEST(ConfigHelpers, structFromReference) {
     //    key4 = $KEY4
     std::map<std::string, std::string> expected_proto_values = {
         {keys[2], "$KEY3"}, {keys[3], "$KEY4"}, {keys[4], "-2"}};
-    auto proto = std::make_shared<flexi_cfg::config::types::ConfigProto>(
-        proto_name, 0 /* depth doesn't matter */);
+    auto proto = std::make_shared<flexi_cfg::config::types::ConfigProto>(proto_name);
     proto->data = {
         {keys[2],
          std::make_shared<flexi_cfg::config::types::ConfigVar>(expected_proto_values[keys[2]])},
@@ -327,7 +311,6 @@ TEST(ConfigHelpers, structFromReference) {
 
     // Ensure that the struct was created properly from the reference
     ASSERT_EQ(reference->name, struct_out->name);
-    ASSERT_EQ(reference->depth, struct_out->depth);
 
     // Reference data should be empty (moved to struct)
     ASSERT_TRUE(reference->data.empty());
@@ -515,10 +498,10 @@ auto generateConfig() -> flexi_cfg::config::types::CfgMap {
        a_key = -9.87
      }
    */
-  auto inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>("inner", 0);
+  auto inner = std::make_shared<flexi_cfg::config::types::ConfigStruct>("inner");
   inner->data = {{"key1", std::make_shared<flexi_cfg::config::types::ConfigValue>("10", kValue)},
                  {"key2", std::make_shared<flexi_cfg::config::types::ConfigValueLookup>("ref")}};
-  auto outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>("outer", 0);
+  auto outer = std::make_shared<flexi_cfg::config::types::ConfigStruct>("outer");
   outer->data = {
       {inner->name, inner},
       {"a_key", std::make_shared<flexi_cfg::config::types::ConfigValue>("-9.87", kValue)}};
@@ -669,7 +652,7 @@ TEST(ConfigHelpers, mergeNestedMapsWithDifferentKeyOrder) {
       {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("value2", kValue)},
       {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("value3", kValue)},
       {keys[3], std::make_shared<flexi_cfg::config::types::ConfigValue>("value4", kValue)}};
-  auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+  auto cfg1_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
   cfg1_struct->data = std::move(cfg1_inner);
   flexi_cfg::config::types::CfgMap cfg1 = {{cfg1_struct->name, std::move(cfg1_struct)}};
 
@@ -679,11 +662,12 @@ TEST(ConfigHelpers, mergeNestedMapsWithDifferentKeyOrder) {
       {keys[2], std::make_shared<flexi_cfg::config::types::ConfigValue>("value3", kValue)},
       {keys[1], std::make_shared<flexi_cfg::config::types::ConfigValue>("value2", kValue)},
       {keys[0], std::make_shared<flexi_cfg::config::types::ConfigValue>("value1", kValue)}};
-  auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key, 0);
+  auto cfg2_struct = std::make_shared<flexi_cfg::config::types::ConfigStruct>(key);
   cfg2_struct->data = std::move(cfg2_inner);
   flexi_cfg::config::types::CfgMap cfg2 = {{cfg2_struct->name, std::move(cfg2_struct)}};
 
   // Merge the configs
   flexi_cfg::config::types::CfgMap cfg_out{};
-  ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2), flexi_cfg::config::DuplicateKeyException);
+  ASSERT_THROW(cfg_out = flexi_cfg::config::helpers::mergeNestedMaps(cfg1, cfg2),
+               flexi_cfg::config::DuplicateKeyException);
 }

@@ -87,10 +87,9 @@ auto unflatten(std::span<std::string> keys, const types::CfgMap& cfg) -> types::
 /// \brief Turns a flat key/value pair into a nested structure
 /// \param[in] flat_key - The dot-separated key
 /// \param[in/out] cfg - The root of the existing data structure
-/// \param[in] depth - The current depth level of the data structure
-void unflatten(const std::string& flat_key, types::CfgMap& cfg, std::size_t depth = 0);
+void unflatten(const std::string& flat_key, types::CfgMap& cfg);
 
-void cleanupConfig(types::CfgMap& cfg, std::size_t depth = 0);
+void cleanupConfig(types::CfgMap& cfg);
 
 auto listElementValid(const std::shared_ptr<types::ConfigList>& list, types::Type type) -> bool;
 

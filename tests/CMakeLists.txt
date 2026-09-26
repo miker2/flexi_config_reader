@@ -151,3 +151,25 @@ target_include_directories(ordered_map_test PRIVATE
 
 add_clang_format(ordered_map_test)
 gtest_discover_tests(ordered_map_test)
+
+################################################################################
+add_executable(
+  render_test
+  render_test.cpp
+  )
+
+target_link_libraries(
+  render_test
+  flexi_cfg
+  fmt::fmt
+  taocpp::pegtl
+  gtest_main
+  gmock_main
+  )
+
+target_include_directories(render_test PRIVATE
+  ${PROJECT_SOURCE_DIR}/include/
+  )
+
+add_clang_format(render_test)
+gtest_discover_tests(render_test)
