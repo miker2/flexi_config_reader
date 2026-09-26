@@ -12,6 +12,7 @@
 #include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/helpers.h"
 #include "flexi_cfg/logger.h"
+#include "flexi_cfg/render.h"
 #include "flexi_cfg/utils.h"
 #include "flexi_cfg/visitor-internal.h"
 #include "flexi_cfg/visitor.h"
@@ -34,6 +35,9 @@ class Reader {
 
   /// \brief Prints the full config to the stream
   void dump(std::ostream& os) const;
+
+  /// \brief Prints the full config to the stream with the supplied render options
+  void dump(std::ostream& os, const DumpOptions& opts) const;
 
   /// \brief Walks the full config tree
   template <visitor::TypedVisitor Visitor>

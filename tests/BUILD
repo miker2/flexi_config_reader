@@ -15,6 +15,7 @@ _UNIT_TESTS = [
     "config_helpers_test",
     "math_test",
     "ordered_map_test",
+    "render_test",
     "utils_test",
 ]
 
