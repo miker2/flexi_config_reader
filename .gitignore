@@ -10,6 +10,13 @@ build-debug
 # CLion
 cmake-build*
 
+# Ninja writes these into whatever build directory is in use, so they turn up in build trees
+# that are not covered by the anchored `/build/` rule above. Dotfile names, so unlike a bare
+# `build` pattern they cannot collide with Bazel's `BUILD` files on a case-insensitive
+# filesystem.
+.ninja_log
+.ninja_deps
+
 # Bazel
 /bazel-*
 # Bazel 8 and 9 resolve some module extensions differently, so a shared
