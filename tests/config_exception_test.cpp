@@ -335,7 +335,9 @@ TEST_P(CyclicReference, Exception) {
       << "Input file: " << in_file;
 }
 INSTANTIATE_TEST_SUITE_P(ConfigException, CyclicReference,
-                         testing::Values("config_cyclic1.cfg", "config_cyclic2.cfg"));
+                         testing::Values("config_cyclic1.cfg", "config_cyclic2.cfg",
+                                         // A cycle made of expressions rather than plain lookups.
+                                         "config_cyclic3.cfg"));
 
 class InvalidConfig : public testing::TestWithParam<std::string> {};
 

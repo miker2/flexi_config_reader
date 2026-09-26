@@ -494,8 +494,12 @@ auto resolveVarRefs(const types::CfgMap& root, const std::string& src_key,
 
 void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
                     const std::string& parent_key) {
-  auto resolve_expression_vars = [&root](std::shared_ptr<types::ConfigExpression>& expression,
-                                         const std::string& src_key) {
+  // 'chain' carries the keys already being resolved on this path, so a sub-expression that leads
+  // back to one of them is reported as a cycle rather than recursing forever.
+  auto resolve_expression_vars = [&root](auto&& self,
+                                         std::shared_ptr<types::ConfigExpression>& expression,
+                                         const std::string& src_key,
+                                         std::vector<std::string>& chain) -> void {
     assert(expression.get() != nullptr);
     logger::trace("Calling resolve_expression_vars with expression={}, src_key={}", expression,
                   src_key);
@@ -509,9 +513,20 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       if (value->type == types::Type::kExpression) {
         logger::debug("Found sub expression '{}' when trying to evaluate '{}'.", kvl.first,
                       src_key);
-        // Follow the trail!
+        if (utils::contains(chain, kvl.first)) {
+          THROW_EXCEPTION(CyclicReferenceException,
+                          "For {}, found a cyclic reference when trying to resolve {}.\n  "
+                          "Reference chain: [{}]\n",
+                          src_key, kvl.first, fmt::join(chain, " -> "));
+        }
+        // Follow the trail! The sub-expression may hold lookups of its own that have not been
+        // resolved yet -- evaluating it before they are would fail on whichever order the keys
+        // happen to appear in the file.
         auto sub_expression = dynamic_pointer_cast<types::ConfigExpression>(value);
+        chain.push_back(kvl.first);
+        self(self, sub_expression, src_key, chain);
         value = evaluateExpression(sub_expression, src_key);
+        chain.pop_back();
       }
       if (value->type != types::Type::kNumber) {
         THROW_EXCEPTION(InvalidTypeException,
@@ -523,6 +538,14 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
     }
   };
 
+  // Seeded with the key being resolved, so a chain that leads back to its own start is caught.
+  auto resolve_expression = [&resolve_expression_vars](
+                                std::shared_ptr<types::ConfigExpression>& expression,
+                                const std::string& src_key) {
+    std::vector<std::string> chain{src_key};
+    resolve_expression_vars(resolve_expression_vars, expression, src_key, chain);
+  };
+
   for (const auto& kv : sub_tree) {
     const auto src_key = utils::makeName(parent_key, kv.first);
     if (kv.second && kv.second->type == types::Type::kValueLookup) {
@@ -531,7 +554,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
       sub_tree[kv.first] = resolveVarRefs(root, src_key, kv.second);
     } else if (kv.second && kv.second->type == types::Type::kExpression) {
       auto expression = dynamic_pointer_cast<types::ConfigExpression>(kv.second);
-      resolve_expression_vars(expression, src_key);
+      resolve_expression(expression, src_key);
     } else if (kv.second && kv.second->type == types::Type::kList) {
       // Check the elements of the list to see if it contains any kValueLookup objects
       auto list = dynamic_pointer_cast<types::ConfigList>(kv.second);
@@ -553,7 +576,7 @@ void resolveVarRefs(const types::CfgMap& root, types::CfgMap& sub_tree,
         } else if (el->type == types::Type::kExpression) {
           logger::trace("Found {} ({}) in {}", el->type, el, list);
           auto expression = dynamic_pointer_cast<types::ConfigExpression>(el);
-          resolve_expression_vars(expression, src_key);
+          resolve_expression(expression, src_key);
         }
       }
     } else if (isStructLike(kv.second)) {

@@ -15,6 +15,7 @@
 #include "flexi_cfg/config/actions.h"
 #include "flexi_cfg/config/grammar.h"
 #include "flexi_cfg/config/parser-internal.h"
+#include "flexi_cfg/config/exceptions.h"
 #include "flexi_cfg/config/selector.h"
 #include "flexi_cfg/logger.h"
 #include "flexi_cfg/parser.h"
@@ -558,6 +559,60 @@ TEST(ConfigParse, VarIsStillRejectedOutsideAProto) {
     EXPECT_THROW(flexi_cfg::Parser::parseFromString(cfg_str, "bad.cfg"), std::exception)
         << "should not parse: " << cfg_str;
   }
+}
+
+TEST(ConfigParse, ExpressionChainResolvesInAnyOrder) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A chain of expressions, each referring to another expression. Resolving one has to resolve
+  // whatever it depends on first, so the order the keys happen to appear in the file must not
+  // matter.
+  constexpr std::string_view forward = R"(a = 2
+b = {{ $(a) * 2 }}
+c = {{ $(b) + 1 }}
+d = {{ $(c) * 2 }}
+)";
+  constexpr std::string_view reverse = R"(d = {{ $(c) * 2 }}
+c = {{ $(b) + 1 }}
+b = {{ $(a) * 2 }}
+a = 2
+)";
+  for (const auto& [name, cfg_str] : {std::pair{"forward", forward}, std::pair{"reverse", reverse}}) {
+    const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "chain.cfg");
+    EXPECT_EQ(cfg.getValue<int>("a"), 2) << name;
+    EXPECT_DOUBLE_EQ(cfg.getValue<double>("b"), 4.0) << name;
+    EXPECT_DOUBLE_EQ(cfg.getValue<double>("c"), 5.0) << name;
+    EXPECT_DOUBLE_EQ(cfg.getValue<double>("d"), 10.0) << name;
+  }
+}
+
+TEST(ConfigParse, ExpressionChainFromFileResolves) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // config_example19.cfg declares the chain in the opposite order to its dependencies. The
+  // FileInput suite already checks every example parses; this pins the values down.
+  const auto cfg = flexi_cfg::Parser::parse(baseDir() / "config_example19.cfg");
+  EXPECT_EQ(cfg.getValue<int>("math_chain.base"), 2);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.doubled"), 4.0);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.scaled"), 5.0);
+  EXPECT_DOUBLE_EQ(cfg.getValue<double>("math_chain.chained"), 10.0);
+}
+
+TEST(ConfigParse, ExpressionChainCycleIsReported) {
+  setLevel(flexi_cfg::logger::Severity::CRITICAL);
+  // Three expressions where the tail refers back to the head. Following the chain has to stop
+  // and report a cycle rather than recursing forever or failing on an unresolved lookup.
+  constexpr std::string_view cfg_str = R"(a = {{ $(c) + 1 }}
+b = {{ $(a) * 2 }}
+c = {{ $(b) - 3 }}
+)";
+  EXPECT_THROW(flexi_cfg::Parser::parseFromString(cfg_str, "cycle.cfg"),
+               flexi_cfg::config::CyclicReferenceException);
+}
+
+TEST(ConfigParse, ExpressionSelfReferenceIsReported) {
+  setLevel(flexi_cfg::logger::Severity::CRITICAL);
+  constexpr std::string_view cfg_str = "a = {{ $(a) + 1 }}\n";
+  EXPECT_THROW(flexi_cfg::Parser::parseFromString(cfg_str, "self.cfg"),
+               flexi_cfg::config::CyclicReferenceException);
 }
 
 TEST(ConfigParse, ProtoOriginLocationReporting) {
