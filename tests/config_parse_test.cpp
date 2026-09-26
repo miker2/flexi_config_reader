@@ -314,6 +314,53 @@ TEST_P(FileInput, ConfigReaderParseRootDir) {
 
 INSTANTIATE_TEST_SUITE_P(ConfigParse, FileInput, testing::ValuesIn(filenameGenerator()));
 
+TEST(ConfigParse, StructFromProtoMergesWithPlainStruct) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // A struct declared inside a proto keeps a distinct type so that reference resolution knows to
+  // substitute vars in it. Once instantiated it is an ordinary struct, and must merge with one
+  // written by hand -- overriding a key in one instance, and leaving the other alone.
+  const auto cfg = flexi_cfg::Parser::parse(std::filesystem::path("config_example20.cfg"),
+                                            baseDir());
+
+  EXPECT_EQ(cfg.getValue<int>("shapes.first.dims.width"), 7);
+  EXPECT_EQ(cfg.getValue<int>("shapes.first.dims.height"), 0);
+  EXPECT_EQ(cfg.getValue<std::string>("shapes.first.style.colour"), "red");
+
+  // The second instance of the same proto must be untouched by the override on the first.
+  EXPECT_EQ(cfg.getValue<int>("shapes.second.dims.width"), 0);
+  EXPECT_EQ(cfg.getValue<int>("shapes.second.dims.height"), 0);
+  EXPECT_EQ(cfg.getValue<std::string>("shapes.second.style.colour"), "red");
+}
+
+TEST(ConfigParse, ListMayMixProtoAndPlainStructs) {
+  setLevel(flexi_cfg::logger::Severity::INFO);
+  // The same mismatch showed up in a list: every element has to be of one type, and a struct that
+  // came from a proto compared unequal to one written by hand.
+  constexpr std::string_view cfg_str = R"(struct protos {
+  proto p {
+    struct inner {
+      a = 0
+    }
+  }
+}
+
+struct plain {
+  a = 1
+}
+
+struct holder {
+  reference protos.p as inst {}
+}
+
+combined = [ $(plain), $(holder.inst.inner) ]
+)";
+  EXPECT_NO_THROW({
+    const auto cfg = flexi_cfg::Parser::parseFromString(cfg_str, "mixed.cfg");
+    EXPECT_EQ(cfg.getValue<int>("plain.a"), 1);
+    EXPECT_EQ(cfg.getValue<int>("holder.inst.inner.a"), 0);
+  });
+}
+
 TEST(ConfigParse, ConfigRoot) {
   setLevel(flexi_cfg::logger::Severity::DEBUG);
   EXPECT_NO_THROW(flexi_cfg::Parser::parse(
