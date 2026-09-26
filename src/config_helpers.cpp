@@ -151,6 +151,37 @@ void resolveListElements(const std::shared_ptr<types::ConfigList>& list, const s
   }
 }
 
+namespace {
+/// \brief Rebuilds a struct that was declared inside a proto as an ordinary struct.
+///
+/// kStructInProto exists so that reference resolution knows to substitute proto vars inside it.
+/// Once the proto has been instantiated the struct is an ordinary one, and keeping the
+/// proto-only type stops it from merging with a struct written by hand -- the two are
+/// structurally identical but compare unequal. ConfigBase::type is const, so the node is rebuilt
+/// rather than retyped.
+auto asPlainStruct(const types::BasePtr& node) -> types::BasePtr {
+  if (!isStructLike(node)) {
+    return node;
+  }
+  const auto struct_like = dynamic_pointer_cast<types::ConfigStructLike>(node);
+  if (node->type != types::Type::kStructInProto) {
+    // A reference nested in here keeps its own type; it is instantiated by its own call.
+    for (const auto& kv : struct_like->data) {
+      struct_like->data[kv.first] = asPlainStruct(kv.second);
+    }
+    return node;
+  }
+  auto plain = std::make_shared<types::ConfigStruct>(struct_like->name, struct_like->depth);
+  plain->line = node->line;
+  plain->source = node->source;
+  plain->origins = node->origins;
+  for (const auto& kv : struct_like->data) {
+    plain->data[kv.first] = asPlainStruct(kv.second);
+  }
+  return plain;
+}
+}  // namespace
+
 auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
                          const std::shared_ptr<types::ConfigProto>& proto)
     -> std::shared_ptr<types::ConfigStruct> {
@@ -174,7 +205,7 @@ auto structFromReference(std::shared_ptr<types::ConfigReference>& ref,
       checkForErrors(struct_out->data, proto->data, el.first);
     }
     // types::BasePtr value = el.second->clone();
-    auto cloned_value = el.second->clone();
+    auto cloned_value = asPlainStruct(el.second->clone());
     tagProtoOrigins(cloned_value, proto, ref);
     struct_out->data[el.first] = cloned_value;
   }
