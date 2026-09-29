@@ -39,3 +39,50 @@ build:sanitize --strip=never
 test:sanitize --test_tag_filters=-no_sanitize
 test:sanitize --test_env=ASAN_OPTIONS=strict_string_checks=1:abort_on_error=1
 test:sanitize --test_env=UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1
+
+# Code coverage:  bazelisk coverage --config=coverage //...
+#
+# Writes an lcov tracefile to bazel-out/_coverage/_coverage_report.dat. Turn it
+# into a browsable report with:
+#
+#   genhtml -o coverage-html "$(bazelisk info output_path)/_coverage/_coverage_report.dat"
+#
+# Only the library is instrumented. Coverage of the tests themselves says
+# nothing useful, and neither does coverage of the dependencies.
+coverage:coverage --combined_report=lcov
+coverage:coverage --instrumentation_filter=^//src[:/],^//include[:/]
+# The python bindings test loads an extension into an uninstrumented
+# interpreter; it is excluded for the same reason it is excluded from the
+# sanitizer run.
+coverage:coverage --test_tag_filters=-no_sanitize
+
+# gcc needs nothing further: the toolchain hands the collector a gcov to run.
+#
+# clang instead emits LLVM profile data, which Bazel only turns on when
+# BAZEL_USE_LLVM_NATIVE_COVERAGE is set, and the collector then runs
+# llvm-profdata and llvm-cov rather than gcov. Building with clang on Linux,
+# add this alongside --config=coverage:
+#
+#   bazelisk coverage --config=coverage --config=coverage-llvm //...
+coverage:coverage-llvm --experimental_generate_llvm_lcov
+coverage:coverage-llvm --experimental_use_llvm_covmap
+# BAZEL_USE_LLVM_NATIVE_COVERAGE is read while the C++ toolchain repository is
+# being configured, not per action, so it has to be a --repo_env: passing it as
+# --action_env leaves the toolchain generating gcov instrumentation, and the
+# run then yields a tracefile listing every file with no line data at all.
+coverage:coverage-llvm --repo_env=BAZEL_USE_LLVM_NATIVE_COVERAGE=1
+coverage:coverage-llvm --repo_env=GCOV=llvm-profdata
+coverage:coverage-llvm --repo_env=BAZEL_LLVM_COV=llvm-cov
+coverage:coverage-llvm --action_env=BAZEL_USE_LLVM_NATIVE_COVERAGE=1
+coverage:coverage-llvm --action_env=GCOV=llvm-profdata
+coverage:coverage-llvm --action_env=BAZEL_LLVM_COV=llvm-cov
+coverage:coverage-llvm --test_env=LLVM_PROFDATA=llvm-profdata
+coverage:coverage-llvm --test_env=LLVM_COV=llvm-cov
+
+# macOS only ever builds with clang, so it selects the above on its own. Its
+# llvm-profdata and llvm-cov are reachable only through xcrun, not on the
+# default PATH, so the collector is given the two toolchain directories to look
+# in. A directory that does not exist is ignored, so listing both the Command
+# Line Tools and the Xcode.app locations covers either install.
+coverage:macos --config=coverage-llvm
+coverage:macos --test_env=PATH=/Library/Developer/CommandLineTools/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin

@@ -467,6 +467,37 @@ bazel test --config=sanitize //...
 The two flag lists are declared separately (in `CMakeLists.txt` and `.bazelrc`) and
 `scripts/check_sanitizer_flags.py` fails CI if they ever differ.
 
+#### Code coverage
+
+Coverage is collected through Bazel, with either compiler:
+
+```
+bazel coverage --config=coverage //...
+genhtml -o coverage-html "$(bazel info output_path)/_coverage/_coverage_report.dat"
+```
+
+Only `//src` and `//include` are instrumented; coverage of the tests themselves, or of the
+dependencies, is not what the report is about.
+
+gcc and clang collect coverage by different means — gcov data versus LLVM profile data — and the
+two use different collectors. `--config=coverage` handles gcc as written, and macOS selects the
+LLVM path on its own, being clang-only. On Linux the compiler comes from `CC`/`CXX`, which a
+bazelrc cannot see, so building with clang there needs the LLVM path named explicitly:
+
+```
+bazel coverage --config=coverage --config=coverage-llvm //...
+```
+
+That path runs `llvm-profdata` and `llvm-cov` by name, so both must be on `PATH` — the LLVM
+packages install versioned names such as `llvm-profdata-17`, so symlink or alias them.
+
+CI runs the same commands on every push to `main` — after the merge, not on each pull request,
+because the question it answers ("what does the suite miss?") is about `main`, and an
+instrumented build is slow. The `coverage` job runs once per compiler, publishes the HTML report
+and the raw `.lcov` tracefile as build artifacts kept for 90 days, and prints the totals on the
+run's summary page. It can also be run by hand against a branch from the Actions tab, or with
+`gh workflow run "CI Linux" --ref <branch>`.
+
 #### Pre-commit hooks
 
 Bazel `BUILD` and `.bzl` files are checked with [buildifier](https://github.com/bazelbuild/buildtools).
