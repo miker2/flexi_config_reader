@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # The coverage job below is post-merge only; this lets it be run by hand
+  # against a branch before it lands.
+  workflow_dispatch:
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -378,3 +381,126 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       run: TEST_DIR=env ctest
+
+  # ---------------------------------------------------------------------------
+  # Code coverage, post-merge only.
+  #
+  # Coverage answers "what does the suite miss", which is a question about main,
+  # not about an individual change, and instrumented builds are slow. So this
+  # runs on push to main rather than on every pull request. `workflow_dispatch`
+  # is enabled so it can also be run by hand against a branch.
+  #
+  # Bazel drives it, through the same --config=coverage that is documented for
+  # local use, so the CI path and the manual path cannot drift. Both toolchains
+  # are covered: gcc produces gcov data, clang produces LLVM profile data, and
+  # the two go through different collectors.
+  # ---------------------------------------------------------------------------
+  coverage:
+    name: coverage (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            extra_config: ""
+          # On Linux the toolchain is chosen by CC/CXX, which a bazelrc cannot
+          # see, so the LLVM collector is selected explicitly. macOS picks it up
+          # on its own, being clang-only.
+          - compiler: clang
+            extra_config: "--config=coverage-llvm"
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Report Bazel version
+      run: bazelisk --version
+
+    - name: Cache Bazel
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/bazel-disk
+        key: bazel-coverage-${{ matrix.compiler }}-${{ hashFiles('.bazelversion', 'MODULE.bazel') }}
+        restore-keys: |
+          bazel-coverage-${{ matrix.compiler }}-
+
+    # genhtml and lcov produce the report. gcov comes with gcc.
+    - name: Install lcov
+      run: |
+        set -euxo pipefail
+        sudo apt-get update
+        sudo apt-get install -y lcov
+
+    # The collector runs `llvm-profdata` and `llvm-cov` by name, so they have to
+    # be on PATH under those exact names; the packages install versioned ones.
+    - name: Install clang and LLVM tools
+      if: matrix.compiler == 'clang'
+      run: |
+        set -euxo pipefail
+        sudo apt-get install -y clang-17 llvm-17
+        sudo ln -sf /usr/lib/llvm-17/bin/llvm-profdata /usr/local/bin/llvm-profdata
+        sudo ln -sf /usr/lib/llvm-17/bin/llvm-cov /usr/local/bin/llvm-cov
+        llvm-profdata --version
+        echo "CC=clang-17" >> $GITHUB_ENV
+        echo "CXX=clang++-17" >> $GITHUB_ENV
+
+    - name: Collect coverage
+      run: >
+        bazelisk coverage --config=coverage ${{ matrix.extra_config }}
+        --disk_cache="$HOME/.cache/bazel-disk" //...
+
+    - name: Generate report
+      run: |
+        set -euxo pipefail
+        tracefile="$(bazelisk info output_path)/_coverage/_coverage_report.dat"
+        # A tracefile that exists but holds no records means the collector ran
+        # and found nothing -- a silently useless report, so fail instead. This
+        # is the failure mode when the toolchain and the collector disagree.
+        test -s "$tracefile"
+        grep -q '^SF:' "$tracefile"
+        cp "$tracefile" coverage.lcov
+
+        # What the records point at, before any rewriting.
+        records=$(grep -c '^SF:' coverage.lcov)
+        hits=$(grep -c '^DA:' coverage.lcov || true)
+        echo "records: $records, line hits: $hits"
+        grep -m3 '^SF:' coverage.lcov
+        # Records with no line data mean the binaries were never instrumented,
+        # which reads as a broken report rather than a broken build.
+        test "$hits" -gt 0
+
+        # llvm-cov writes the path each file had while compiling, which under
+        # Bazel is inside the sandbox and no longer exists by now. genhtml
+        # silently drops every record it cannot read, so point them back at the
+        # workspace before it runs.
+        sed -i -E "s|^SF:/proc/self/cwd/|SF:$PWD/|" coverage.lcov
+        sed -i -E "s|^SF:(\.?/)?(src\|include)/|SF:$PWD/\2/|" coverage.lcov
+        grep -m3 '^SF:' coverage.lcov
+        readable=$(grep '^SF:' coverage.lcov | sed 's/^SF://' | sort -u | while read -r f; do
+          test -r "$f" && echo "$f"; done | wc -l)
+        echo "readable sources: $readable of $(grep -c '^SF:' coverage.lcov)"
+        test "$readable" -gt 0
+
+        genhtml --output-directory coverage-html \
+          --title "flexi_cfg @ ${GITHUB_SHA::8} (${{ matrix.compiler }})" \
+          --show-details --legend coverage.lcov | tee genhtml.log
+        # Surface the totals on the run's summary page, so the numbers are
+        # visible without downloading anything.
+        {
+          echo "## Code coverage (${{ matrix.compiler }})"
+          echo
+          echo '```'
+          sed -n '/^Overall coverage rate:/,$p' genhtml.log
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Publish report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.compiler }}-${{ github.sha }}
+        path: |
+          coverage-html/
+          coverage.lcov
+        retention-days: 90
